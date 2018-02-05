@@ -1,0 +1,3 @@
+#!/bin/bash
+
+g++ -Wall -Werror --std=c++11 -I . -I ./include/policy -I ./include/policy-glue -L . -fPIC -shared -o libdover-validator.so  main.cc validator.cc policy_meta_set.c policy_rule.c
