@@ -1,13 +1,12 @@
 #include <stdio.h>
 
-#include "renode_validator.h"
-#include "validator.h"
+#include "rv32_validator.h"
 
-basic_renode_validator_t *validator;
+rv32_validator_t *validator;
 
 extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader) {
   printf("setting callbacks\n");
-  validator = new basic_renode_validator_t(reg_reader, mem_reader);
+  validator = new rv32_validator_t(reg_reader, mem_reader);
 }
 
 extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {

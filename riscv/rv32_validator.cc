@@ -1,6 +1,14 @@
-#include "validator.h"
+#include "rv32_validator.h"
 
-bool basic_renode_validator_t::validate(address_t pc, insn_bits_t insn) {
+
+rv32_validator_t::rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr) :
+  abstract_renode_validator_t(rr, mr) {
+  ctx = (context_t *)malloc(sizeof(context_t));
+  ops = (operands_t *)malloc(sizeof(operands_t));
+  res = (results_t *)malloc(sizeof(results_t));
+}
+
+bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
   
   prepare_eval(pc, insn);
@@ -18,14 +26,14 @@ bool basic_renode_validator_t::validate(address_t pc, insn_bits_t insn) {
 //  return true;
 }
 
-void basic_renode_validator_t::commit() {
+void rv32_validator_t::commit() {
 }
 
-void basic_renode_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
+void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));
   memset(res, 0, sizeof(*res));
 }
 
-void basic_renode_validator_t::complete_eval() {
+void rv32_validator_t::complete_eval() {
 }
