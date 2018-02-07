@@ -120,16 +120,27 @@ void meta_set_factory_t::init_group_map(YAML::Node &n) {
   }
 }
 
-//#include <iostream>
+#include <linux/limits.h>
+#include <string.h>
+// temporary until we have a better way to initialize the policy code in renode
+static YAML::Node load_yaml(const char *yml_file) {
+  const char *policy_dir = getenv("GENERATED_POLICY_DIR");
+  char path_buff[PATH_MAX];
+  strcpy(path_buff, policy_dir);
+  strcat(path_buff, "/");
+  strcat(path_buff, yml_file);
+  return YAML::LoadFile(path_buff);
+}
+
 meta_set_factory_t::meta_set_factory_t(meta_set_cache_t *ms_cache) : ms_cache(ms_cache) {
   // load up all the requirements for initialization
-  YAML::Node reqsAST = YAML::LoadFile("/tmp/policy_new/policy_init.yml");
+  YAML::Node reqsAST = load_yaml("policy_init.yml");
   // load up the individual tag encodings
-  YAML::Node metaAST = YAML::LoadFile("/tmp/policy_new/policy_meta.yml");
+  YAML::Node metaAST = load_yaml("policy_meta.yml");
   metadata.populate(reqsAST);
 //  metadata = reqsAST;
   init_encoding_map(metaAST);
-  YAML::Node groupAST = YAML::LoadFile("/tmp/policy_new/policy_group.yml");
+  YAML::Node groupAST = load_yaml("policy_group.yml");
   init_group_map(groupAST);
 }
 
