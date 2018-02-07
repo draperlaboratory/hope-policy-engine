@@ -23,6 +23,7 @@ class rv32_validator_t : public abstract_renode_validator_t {
   tag_t m_to_t(meta_set_t *ms) { return (tag_t)ms; }
   meta_set_cache_t ms_cache;
   meta_set_factory_t ms_factory;
+  meta_set_t temp_ci_tag;
   public:
   rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr);
 /*
