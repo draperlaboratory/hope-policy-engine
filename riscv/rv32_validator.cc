@@ -10,7 +10,10 @@ rv32_validator_t::rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr) :
 
   meta_set_t *ms;
   ms = ms_factory.get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
-  tag_bus.add_provider(0x80000000, 0x100000 * 4,
+  tag_bus.add_provider(0x80000000, 0x100000,
+		       new platform_ram_tag_provider_t(0x100000, 4, m_to_t(ms)));
+  ms = ms_factory.get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_WRITE");
+  tag_bus.add_provider(0x80100000, 0x100000 * 4,
 		       new platform_ram_tag_provider_t(0x1000000 * 4, 4, m_to_t(ms)));
   ms = ms_factory.get_meta_set("requires.dover.riscv.Mach.Reg");
   ireg_tags.reset(m_to_t(ms));
