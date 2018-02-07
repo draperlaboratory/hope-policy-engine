@@ -1,0 +1,15 @@
+#!/bin/bash
+dot="$(cd "$(dirname "$0")"; pwd)"
+policy_output_path="$dot/policy"
+pushd ~/dover-repos/ISP-Tests/policy/unit_tests
+
+$DOVER/policies/bin/policy-tool -d -o $policy_output_path dover.frtos.main.rwx
+#echo "-d -o $policy_output_path dover.frtos.main.rwx"
+
+#$DOVER/bin/policy_tool -d -o ~/src/policy-engine/policy dover.frtos.main.rwx
+
+$DOVER/policies/bin/init-tool -t frtos.xml -o /tmp/policy_inits dover.frtos.main.rwx
+#echo "-t frtos.xml -o /tmp/policy_inits"
+
+#~/dover-repos/dover-policies/policy-tool/dist/build/policy-tool/policy-tool -d -o ~/src/policy-engine/policy dover.frtos.main.rwx
+popd
