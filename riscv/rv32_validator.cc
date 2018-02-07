@@ -88,11 +88,17 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   ctx->cached = false;
   ops->ci = t_to_m(ci_tag);
   meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
-  printf("ci tag name: %s\n", tag_name);
+  printf("ci tag name before merge: %s\n", tag_name);
 
   // hacking in the opgroup part of the metadata dynamically.
   meta_set_t *group_set = ms_factory.get_group_meta_set(name);
   ms_union(ops->ci, group_set);
+
+  meta_set_to_string(group_set, tag_name, sizeof(tag_name));
+  printf("group tag: %s\n", tag_name);
+
+  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
+  printf("ci tag name after union: %s\n", tag_name);
 
   ops->pc = 0;
   ops->op1 = 0;
