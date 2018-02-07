@@ -11,8 +11,11 @@ include_directories("./include/policy-glue")
 include_directories("./policy")
 include_directories(".")
 
+add_executable(meta_test meta_test.cc meta_set_factory.cc policy/policy_meta_set.c)
+target_link_libraries(meta_test yaml-cpp)
 
 add_library(rv32-renode-validator SHARED
+	meta_set_factory.cc
 	riscv/main.cc riscv/rv32_validator.cc
 	riscv/inst_decoder.c
 	policy/policy_meta_set.c policy/policy_rule.c

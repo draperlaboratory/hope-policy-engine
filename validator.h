@@ -5,10 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "platform_types.h"
 #include "renode_validator.h"
-
-typedef uint32_t address_t;
-typedef uint32_t insn_bits_t;
 
 class abstract_validator_t {
   public:
@@ -28,7 +26,8 @@ class abstract_renode_validator_t : abstract_validator_t {
   RegisterReader_t reg_reader;
   MemoryReader_t mem_reader;
   public:
-  abstract_renode_validator_t(RegisterReader_t rr, MemoryReader_t mr) : reg_reader(rr), mem_reader(mr) { }
+  abstract_renode_validator_t(RegisterReader_t rr, MemoryReader_t mr) : reg_reader(rr), mem_reader(mr) {
+  }
   virtual ~abstract_renode_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
   virtual void commit() = 0;
