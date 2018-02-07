@@ -24,6 +24,10 @@ rv32_validator_t::rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr) :
   ms = ms_factory.get_meta_set("requires.dover.SOC.IO.UART0");
   tag_bus.add_provider(0x70001000, 0x1000,
 		       new uniform_tag_provider_t(0x1000, m_to_t(ms)));
+  tag_bus.add_provider(0x44004000, 0x10, // mtime_cmp
+		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
+  tag_bus.add_provider(0x4400bff8, 0x10, // mtime
+		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
   ms = ms_factory.get_meta_set("requires.dover.riscv.Mach.Reg");
   ireg_tags.reset(m_to_t(ms));
   ms = ms_factory.get_meta_set("requires.dover.riscv.Mach.RegZero");
