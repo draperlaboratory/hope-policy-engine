@@ -53,6 +53,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   char tag_name[1024];
 
   int32_t flags;
+  
+  memset(ops, 0, sizeof(*ops));
 
   if (insn == 0x30200073) {
     flags = 0;
@@ -75,37 +77,33 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
       printf("failed to load MR tag\n");
     } else {
       ops->mem = t_to_m(mtag);
-      printf("mr tag = 0x%p\n", ops->mem);
+//      printf("mr tag = 0x%p\n", ops->mem);
     }
   }
 
-  if (tag_bus.load_tag(pc, ci_tag))
-    printf("ci_tag: 0x%lx\n", ci_tag);
-  else
-    printf("panic\n");
+  if (!tag_bus.load_tag(pc, ci_tag))
+    printf("failed to load CI tag\n");
+//    printf("ci_tag: 0x%lx\n", ci_tag);
   ctx->epc = pc;
   ctx->bad_addr = 0;
   ctx->cached = false;
   ops->ci = t_to_m(ci_tag);
   meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
-  printf("ci tag name before merge: %s\n", tag_name);
+//  printf("ci tag name before merge: %s\n", tag_name);
 
   // hacking in the opgroup part of the metadata dynamically.
   meta_set_t *group_set = ms_factory.get_group_meta_set(name);
   ms_union(ops->ci, group_set);
 
   meta_set_to_string(group_set, tag_name, sizeof(tag_name));
-  printf("group tag: %s\n", tag_name);
+//  printf("group tag: %s\n", tag_name);
 
   meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
-  printf("ci tag name after union: %s\n", tag_name);
+//  printf("ci tag name after union: %s\n", tag_name);
 
-  ops->pc = 0;
-  ops->op1 = 0;
-  ops->op2 = 0;
-  ops->op3 = 0;
-  ops->mem = 0;
+  ops->pc = t_to_m(pc_tag);
 }
 
 void rv32_validator_t::complete_eval() {
+//  printf("complete eval\n");
 }

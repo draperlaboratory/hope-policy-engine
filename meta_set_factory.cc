@@ -117,7 +117,7 @@ void meta_set_factory_t::init_group_map(YAML::Node &n) {
 
     // iterate over names
     for (size_t i=0;i<node.size();i++) {
-      std::string name = node[i].as<std::string>();
+      std::string name = "og." + node[i].as<std::string>();
       ms_bit_add(ms, encoding_map[name]);
 //      printf("  name = %s\n", name.c_str());
     }
