@@ -7,6 +7,12 @@ rv32_validator_t::rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr) :
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
   res = (results_t *)malloc(sizeof(results_t));
+  res->pc = (meta_set_t *)malloc(sizeof(meta_set_t));
+  res->rd = (meta_set_t *)malloc(sizeof(meta_set_t));
+  res->csr = (meta_set_t *)malloc(sizeof(meta_set_t));
+  res->pcResult = false;
+  res->rdResult = false;
+  res->csrResult = false;
 
   meta_set_t *ms;
   ms = ms_factory.get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
@@ -57,8 +63,24 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
   int32_t flags;
   
+  memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));
 
+  if(res->pcResult){
+    memset(res->pc, 0, sizeof(meta_set_t));
+    res->pcResult = false;
+  }
+
+  if(res->rdResult){
+    memset(res->rd, 0, sizeof(meta_set_t));
+    res->rdResult = false;
+  }
+
+  if(res->csrResult){
+    memset(res->csr, 0, sizeof(meta_set_t));
+    res->csrResult = false;
+  }
+  
   if (insn == 0x30200073) {
     flags = 0;
     name = "mret";
@@ -75,6 +97,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     address_t maddr = reg_reader(rs1);
     if (flags & HAS_IMM)
       maddr += imm;
+    ctx->bad_addr = maddr;
     tag_t mtag;
     if (!tag_bus.load_tag(maddr, mtag)) {
       printf("failed to load MR tag\n");
@@ -88,8 +111,10 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     printf("failed to load CI tag\n");
 //    printf("ci_tag: 0x%lx\n", ci_tag);
   ctx->epc = pc;
-  ctx->bad_addr = 0;
-  ctx->cached = false;
+
+//  ctx->bad_addr = 0;
+//  ctx->cached = false;
+
   ops->ci = t_to_m(ci_tag);
   meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
 //  printf("ci tag name before merge: %s\n", tag_name);
