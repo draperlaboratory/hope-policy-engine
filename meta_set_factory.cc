@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include "policy_utils.h"
+
 #include "meta_set_factory.h"
 
 void meta_set_factory_t::init_encoding_map(YAML::Node &rawEnc) {
@@ -110,15 +112,18 @@ void meta_set_factory_t::init_group_map(YAML::Node &n) {
     meta_set_t *ms = new meta_set_t();
     memset(ms, 0, sizeof(*ms));
     std::string key = it->first.as<std::string>();       // <- key
-//    printf("key = %s\n", key.c_str());
+    printf("key = %s\n", key.c_str());
     YAML::Node node = it->second;
 
     // iterate over names
     for (size_t i=0;i<node.size();i++) {
       std::string name = node[i].as<std::string>();
       ms_bit_add(ms, encoding_map[name]);
-//      printf("name = %s\n", name.c_str());
+//      printf("  name = %s\n", name.c_str());
     }
+    char tag_name[1024];
+    meta_set_to_string(ms, tag_name, sizeof(tag_name));
+    printf("  final tag: %s\n", tag_name);
     group_map[key] = ms;
   }
 }
