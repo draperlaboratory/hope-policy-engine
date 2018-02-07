@@ -30,3 +30,8 @@ extern "C" void debug_operands(context_t *ctx, operands_t *ops) {
 extern "C" void debug_results(context_t *ctx, results_t *res) {
   printf("results stuff\n");
 }
+
+// referenced by meta_set_t rendering code in policy_utils, but not used
+extern "C" void printm(const char *fmt, ...) {
+  printf("printm: %s\n", fmt);
+}

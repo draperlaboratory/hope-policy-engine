@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "meta_set_factory.h"
 
 void meta_set_factory_t::init_encoding_map(YAML::Node &rawEnc) {
@@ -106,6 +108,7 @@ void meta_set_factory_t::init_group_map(YAML::Node &n) {
   n = n["Groups"];
   for (YAML::const_iterator it = n.begin(); it != n.end(); ++it) {
     meta_set_t *ms = new meta_set_t();
+    memset(ms, 0, sizeof(*ms));
     std::string key = it->first.as<std::string>();       // <- key
 //    printf("key = %s\n", key.c_str());
     YAML::Node node = it->second;
@@ -121,7 +124,6 @@ void meta_set_factory_t::init_group_map(YAML::Node &n) {
 }
 
 #include <linux/limits.h>
-#include <string.h>
 // temporary until we have a better way to initialize the policy code in renode
 static YAML::Node load_yaml(const char *yml_file) {
   const char *policy_dir = getenv("GENERATED_POLICY_DIR");
@@ -148,6 +150,7 @@ meta_set_t *meta_set_factory_t::get_meta_set(std::string dotted_path) {
   // FIXME: not so good if we can't find the path
   std::map<std::string, meta_t> metadata = lookupMetadata(dotted_path);
   meta_set_t ms;
+  memset(&ms, 0, sizeof(ms));
   for (auto &it: metadata)
     ms_bit_add(&ms, (meta_t)it.second);
   return ms_cache->canonize(ms);

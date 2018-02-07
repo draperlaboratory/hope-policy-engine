@@ -10,6 +10,9 @@ $DOVER/policies/bin/policy-tool -d -o $policy_output_path dover.frtos.main.rwx
 
 $DOVER/policies/bin/init-tool -t frtos.xml -o /tmp/policy_inits dover.frtos.main.rwx
 #echo "-t frtos.xml -o /tmp/policy_inits"
+cp /tmp/policy_inits/pex/policy_utils.c $policy_output_path/pex
+cp /tmp/policy_inits/include/policy_utils.h $policy_output_path/include
+cp /tmp/policy_inits/include/policy_names.h $policy_output_path/include
 
 #~/dover-repos/dover-policies/policy-tool/dist/build/policy-tool/policy-tool -d -o ~/src/policy-engine/policy dover.frtos.main.rwx
 popd

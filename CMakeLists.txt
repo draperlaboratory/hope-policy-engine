@@ -18,7 +18,7 @@ add_library(rv32-renode-validator SHARED
 	meta_set_factory.cc
 	riscv/main.cc riscv/rv32_validator.cc riscv/debug.cc
 	riscv/inst_decoder.c
-	policy/pex/policy_meta_set.c policy/pex/policy_rule.c
+	policy/pex/policy_meta_set.c policy/pex/policy_rule.c policy/pex/policy_utils.c
 	)
 
 target_link_libraries(rv32-renode-validator yaml-cpp)

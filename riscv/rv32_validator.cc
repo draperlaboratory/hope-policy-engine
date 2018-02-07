@@ -1,6 +1,6 @@
 #include "rv32_validator.h"
 
-//extern "C" int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uint32_t *rd, int32_t *imm, const char** name);
+#include "policy_utils.h"
 
 rv32_validator_t::rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr) :
   abstract_renode_validator_t(rr, mr), ms_factory(&ms_cache) {
@@ -50,6 +50,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   const char *name;
   address_t offset;
   tag_t ci_tag;
+  char tag_name[1024];
 
   int32_t flags;
 
@@ -86,6 +87,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   ctx->bad_addr = 0;
   ctx->cached = false;
   ops->ci = t_to_m(ci_tag);
+  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
+  printf("ci tag name: %s\n", tag_name);
 
   // hacking in the opgroup part of the metadata dynamically.
   meta_set_t *group_set = ms_factory.get_group_meta_set(name);
