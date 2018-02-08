@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "validator.h"
+#include "renode_validator.h"
 #include "policy_eval.h"
 #include "tag_utils.h"
 #include "meta_set_factory.h"

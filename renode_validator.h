@@ -1,21 +1,27 @@
 #ifndef RENODE_VALIDATOR_H
 #define RENODE_VALIDATOR_H
 
-#include <stdint.h>
+#include "validator.h"
+#include "renode_interface.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/**
+   The Renode validator is a slightly more specific validator that expresses
+   some of the connection to Renode.  Specifically, when Renode calls an
+   external validator, it provides APIs to read registers and memory
+   on the assumption that the validator needs to inquire of some SOC
+   state in order to evaluate an operation.
+*/
+class abstract_renode_validator_t : abstract_validator_t {
+  protected:
+  RegisterReader_t reg_reader;
+  MemoryReader_t mem_reader;
+  public:
+  abstract_renode_validator_t(RegisterReader_t rr, MemoryReader_t mr) : reg_reader(rr), mem_reader(mr) {
+  }
+  virtual ~abstract_renode_validator_t() { }
+  virtual bool validate(address_t pc, insn_bits_t insn) = 0;
+  virtual void commit() = 0;
+};
 
-typedef uint32_t (*RegisterReader_t)(uint32_t);
-typedef uint32_t (*MemoryReader_t)(uint32_t);
-
-void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
-uint32_t e_v_validate(uint32_t pc, uint32_t instr);
-void e_v_commit();
-  
-#ifdef __cplusplus
-}
-#endif
 
 #endif
