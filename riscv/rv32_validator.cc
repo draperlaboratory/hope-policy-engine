@@ -87,14 +87,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     memset(res->csr, 0, sizeof(meta_set_t));
     res->csrResult = false;
   }
-  
-  if (insn == 0x30200073) {
-    flags = 0;
-    name = "mret";
-  }
-  else
-    flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
-  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
+  flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
+  //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
   if (flags & HAS_RS2) ops->op2 = t_to_m(ireg_tags[rs2]);
