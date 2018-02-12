@@ -78,7 +78,7 @@ class meta_set_factory_t {
 
   public:
   static std::vector<std::string> split_dotted_name(const std::string &name);
-  meta_set_factory_t(std::string policy_dir, meta_set_cache_t *ms_cache);
+  meta_set_factory_t(meta_set_cache_t *ms_cache, std::string policy_dir);
   meta_set_t *get_meta_set(std::string dotted_path);
   meta_set_t *get_group_meta_set(std::string opgroup) {
     return group_map[opgroup];

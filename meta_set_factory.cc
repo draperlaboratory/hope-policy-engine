@@ -100,7 +100,7 @@ YAML::Node meta_set_factory_t::load_yaml(const char *yml_file) {
   return YAML::LoadFile(path_buff);
 }
 
-meta_set_factory_t::meta_set_factory_t(std::string policy_dir, meta_set_cache_t *ms_cache)
+meta_set_factory_t::meta_set_factory_t(meta_set_cache_t *ms_cache, std::string policy_dir)
   : ms_cache(ms_cache), policy_dir(policy_dir) {
   // load up all the requirements for initialization
   YAML::Node reqsAST = load_yaml("policy_init.yml");
@@ -120,8 +120,12 @@ meta_set_t *meta_set_factory_t::get_meta_set(std::string dotted_path) {
   if (lookupMetadata(dotted_path, metadata)) {
     meta_set_t ms;
     memset(&ms, 0, sizeof(ms));
-    for (auto &it: metadata)
+//    printf("get_meta_set: %s = ", dotted_path.c_str());
+    for (auto &it: metadata) {
       ms_bit_add(&ms, (meta_t)it.second);
+//      printf("0x%lx ", it.second);
+    }
+//    printf("\n");
     return ms_cache->canonize(ms);
   } else {
     return nullptr;

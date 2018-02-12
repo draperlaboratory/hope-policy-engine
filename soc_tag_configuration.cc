@@ -5,6 +5,8 @@
 #include "validator_exception.h"
 #include "soc_tag_configuration.h"
 
+#include "policy_utils.h"
+
 static void dump_node(const YAML::Node &node) {
 //  printf("node: %p\n", node);
   switch (node.Type()) {
@@ -21,9 +23,15 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   std::string elt_path;
   soc_element_t elt;
   elt.heterogeneous = false;
-//  printf("processing element %s\n", element_name.c_str());
+  printf("processing element %s\n", element_name.c_str());
 //  dump_node(n);
 
+  if (n["name"]) {
+    elt_path = n["name"].as<std::string>();
+  } else {
+    throw validator::configuration_exception_t("'name' field not present for element " + element_name);
+  }
+  
   if (n["start"]) {
     elt.start = n["start"].as<unsigned>();
   } else {
@@ -39,11 +47,13 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
     elt.heterogeneous = n["heterogeneous"].as<bool>();
   }
   elt.meta_set = factory->get_meta_set(elt_path);
+  print_meta_set(elt.meta_set);
   elements.push_back(elt);
 //  printf("done processing element %s\n", element_name.c_str());
 }
 
-soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t * factory, std::string file_name)
+soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t * factory,
+						 std::string file_name)
   : factory(factory) {
   YAML::Node n = YAML::LoadFile(file_name);
   if (n["SOC"]) {
@@ -56,5 +66,16 @@ soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t * factory, s
   }
 }
 
-void soc_tag_configuration_t::apply(tag_bus_t *tag_bus) {
+void soc_tag_configuration_t::apply(tag_bus_t *tag_bus, tag_converter_t *converter) {
+  for (auto &e: elements) {
+    if (e.heterogeneous) {
+      tag_bus->add_provider(e.start, e.end,
+			    new platform_ram_tag_provider_t(e.end - e.start, 4,
+							    converter->m_to_t(e.meta_set)));
+    } else {
+      tag_bus->add_provider(e.start, e.end,
+			    new uniform_tag_provider_t(e.end - e.start,
+						       converter->m_to_t(e.meta_set)));
+    }
+  }
 }

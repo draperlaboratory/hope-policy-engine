@@ -1,9 +1,13 @@
+#include "soc_tag_configuration.h"
 #include "rv32_validator.h"
 
 #include "policy_utils.h"
 
-rv32_validator_t::rv32_validator_t(std::string policy_dir, std::string soc_config_file, RegisterReader_t rr) :
-  tag_based_validator_t(policy_dir, soc_config_file, rr) {
+rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
+				   meta_set_factory_t *ms_factory,
+				   soc_tag_configuration_t *config,
+				   RegisterReader_t rr) :
+  tag_based_validator_t(ms_cache, ms_factory, rr) {
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
   res = (results_t *)malloc(sizeof(results_t));
@@ -14,7 +18,22 @@ rv32_validator_t::rv32_validator_t(std::string policy_dir, std::string soc_confi
   res->rdResult = false;
   res->csrResult = false;
 
+//  soc_tag_configuration_t soc_cfg(&ms_factory, soc_config_file);
+
   meta_set_t *ms;
+
+  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
+  ireg_tags.reset(m_to_t(ms));
+  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.RegZero");
+  ireg_tags[0] = m_to_t(ms);
+  ms = ms_factory->get_meta_set("requires.dover.SOC.CSR.Default");
+  csr_tags.reset(m_to_t(ms));
+  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.PC");
+  pc_tag = m_to_t(ms);
+
+  config->apply(&tag_bus, this);
+
+#if 0
   ms = ms_factory.get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
   tag_bus.add_provider(0x80000000, 0x100000,
 		       new platform_ram_tag_provider_t(0x100000, 4, m_to_t(ms)));
@@ -28,14 +47,7 @@ rv32_validator_t::rv32_validator_t(std::string policy_dir, std::string soc_confi
 		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
   tag_bus.add_provider(0x4400bff8, 0x10, // mtime
 		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
-  ms = ms_factory.get_meta_set("requires.dover.riscv.Mach.Reg");
-  ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory.get_meta_set("requires.dover.riscv.Mach.RegZero");
-  ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory.get_meta_set("requires.dover.SOC.CSR.Default");
-  csr_tags.reset(m_to_t(ms));
-  ms = ms_factory.get_meta_set("requires.dover.riscv.Mach.PC");
-  pc_tag = m_to_t(ms);
+#endif
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
@@ -122,7 +134,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("ci tag name before merge: %s\n", tag_name);
 
   // hacking in the opgroup part of the metadata dynamically.
-  meta_set_t *group_set = ms_factory.get_group_meta_set(name);
+  meta_set_t *group_set = ms_factory->get_group_meta_set(name);
   ms_union(ops->ci, group_set);
 
 //  meta_set_to_string(group_set, tag_name, sizeof(tag_name));

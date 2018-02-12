@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <string>
 
+#include "soc_tag_configuration.h"
 #include "tag_based_validator.h"
+#include "tag_converter.h"
 #include "policy_eval.h"
 
 #define REG_SP 2
@@ -20,7 +22,11 @@ class rv32_validator_t : public tag_based_validator_t {
   bool has_pending_RD;
   meta_set_t temp_ci_tag;
   public:
-  rv32_validator_t(std::string policy_dir, std::string soc_config_file, RegisterReader_t rr);
+//  rv32_validator_t(std::string policy_dir, std::string soc_config_file, RegisterReader_t rr);
+  rv32_validator_t(meta_set_cache_t *ms_cache,
+		   meta_set_factory_t *ms_factory,
+		   soc_tag_configuration_t *tag_config,
+		   RegisterReader_t rr);
 /*
  : reg_reader(rr), mem_reader(mr) {
     ctx = (context_t *)malloc(sizeof(context_t));

@@ -6,7 +6,7 @@
 int main() {
   try {
   meta_set_cache_t mc;
-  meta_set_factory_t msf("/home/eli/src/policy-engine/policy", &mc);
+  meta_set_factory_t msf(&mc, "/home/eli/src/policy-engine/policy");
   soc_tag_configuration_t soc(&msf, "soc_cfg.yml");
   for (auto &e: soc) {
     printf("start = 0x%x, end = 0x%x\n", e.start, e.end);

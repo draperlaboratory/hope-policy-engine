@@ -7,6 +7,7 @@
 
 #include "platform_types.h"
 #include "meta_set_factory.h"
+#include "tag_converter.h"
 #include "tag_utils.h"
 
 class soc_tag_configuration_t {
@@ -28,7 +29,7 @@ class soc_tag_configuration_t {
   public:
 
   soc_tag_configuration_t(meta_set_factory_t *factory, std::string file_name);
-  void apply(tag_bus_t *tag_bus);
+  void apply(tag_bus_t *tag_bus, tag_converter_t *converter);
   iterator begin() { return elements.begin(); }
   iterator end() { return elements.end(); }
 };
