@@ -8,9 +8,6 @@
 #include "meta_cache.h"
 #include "policy_meta_set.h"
 
-//struct group_map_t {
-//};
-
 struct meta_tree_t {
   struct meta_node_t;
   struct meta_node_t {
@@ -23,17 +20,21 @@ struct meta_tree_t {
     }
   };
   meta_node_t *root;
-  std::vector<std::string> find_metadata(std::vector<std::string> path) {
+  bool find_metadata(std::vector<std::string> path, std::vector<std::string> &md) {
     meta_node_t *n = root;
 //    printf("searching: ");
     for (auto name: path) {
 //      printf("%s ", name.c_str());
       n = n->children[name];
-      if (!n)
-	throw "not found";
+      if (!n) {
+	return false;
+//	throw "not found";
+      }
     }
 //    printf("\n");
-    return n->metadata;
+    md = n->metadata;
+    return true;
+//    return n->metadata;
   }
   meta_tree_t() : root(new meta_node_t()) { }
   void populate(meta_node_t *child, YAML::Node node) {
@@ -58,13 +59,11 @@ struct meta_tree_t {
 };
 
 class meta_set_factory_t {
-//  std::map<std::string, meta_t> meta_map;
   std::map<std::string, meta_t> encoding_map;
   std::map<std::string, std::map<std::string, meta_t>> path_map;
   std::unordered_map<std::string, meta_set_t *> group_map;
 
   meta_tree_t metadata;
-//  YAML::Node metadata;
 
   meta_set_cache_t *ms_cache;
 
@@ -72,7 +71,8 @@ class meta_set_factory_t {
   void init_group_map(YAML::Node &groupAST);
   YAML::Node load_yaml(const char *yml_file);
   
-  std::map<std::string,meta_t> lookupMetadata(std::string dotted_path);
+//  std::map<std::string,meta_t> lookupMetadata(std::string dotted_path);
+  bool lookupMetadata(std::string dotted_path, std::map<std::string,meta_t> &md_map);
 
   std::string policy_dir;
 

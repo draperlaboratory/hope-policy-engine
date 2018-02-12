@@ -3,11 +3,16 @@
 #include "meta_set_factory.h"
 
 void dump_meta(meta_tree_t *tree, std::string path) {
-  std::vector<std::string> md = tree->find_metadata(meta_set_factory_t::split_dotted_name(path));
-  printf("%s: ", path.c_str());
-  for (auto s: md)
-    printf("%s ", s.c_str());
-  printf("\n");
+//  std::vector<std::string> md = tree->find_metadata(meta_set_factory_t::split_dotted_name(path));
+  std::vector<std::string> md;
+  if (!tree->find_metadata(meta_set_factory_t::split_dotted_name(path), md)) {
+    printf("path %s not found\n", path.c_str());
+  } else {
+    printf("%s: ", path.c_str());
+    for (auto s: md)
+      printf("%s ", s.c_str());
+    printf("\n");
+  }
 }
 
 int main() {

@@ -40,20 +40,31 @@ static void dump_node(YAML::Node node) {
   }
 }
 
-std::map<std::string,meta_t> meta_set_factory_t::lookupMetadata(std::string dotted_path) {
+bool meta_set_factory_t::lookupMetadata(std::string dotted_path, std::map<std::string,meta_t> &meta_map) {
+//std::map<std::string,meta_t> meta_set_factory_t::lookupMetadata(std::string dotted_path) {
   std::map<std::string, std::map<std::string, meta_t>>::iterator path_map_iter;
   path_map_iter = path_map.find(dotted_path);
-  if (path_map_iter != path_map.end())
-    return path_map_iter->second;
+  if (path_map_iter != path_map.end()) {
+    meta_map = path_map_iter->second;
+    return true;
+//    return path_map_iter->second;
+  }
 
   std::vector<std::string> path = split_dotted_name(dotted_path);
   
-  std::map<std::string, meta_t> metaMap;
-  std::vector<std::string> md = metadata.find_metadata(path);
-  for (auto name: md)
-    metaMap.insert(std::make_pair(name, encoding_map[name]));
-  path_map[dotted_path] = metaMap;
-  return metaMap;
+//  std::map<std::string, meta_t> metaMap;
+//  std::vector<std::string> md = metadata.find_metadata(path);
+  std::vector<std::string> md;
+  if (metadata.find_metadata(path, md)) {
+    for (auto name: md)
+      meta_map.insert(std::make_pair(name, encoding_map[name]));
+    path_map[dotted_path] = meta_map;
+  } else {
+    printf("metadata not found\n");
+    return false;
+  }
+//  return metaMap;
+  return true;
 }
 
 void meta_set_factory_t::init_group_map(YAML::Node &n) {
@@ -104,10 +115,15 @@ meta_set_factory_t::meta_set_factory_t(std::string policy_dir, meta_set_cache_t 
 
 meta_set_t *meta_set_factory_t::get_meta_set(std::string dotted_path) {
   // FIXME: not so good if we can't find the path
-  std::map<std::string, meta_t> metadata = lookupMetadata(dotted_path);
-  meta_set_t ms;
-  memset(&ms, 0, sizeof(ms));
-  for (auto &it: metadata)
-    ms_bit_add(&ms, (meta_t)it.second);
-  return ms_cache->canonize(ms);
+//  std::map<std::string, meta_t> metadata = lookupMetadata(dotted_path);
+  std::map<std::string, meta_t> metadata;
+  if (lookupMetadata(dotted_path, metadata)) {
+    meta_set_t ms;
+    memset(&ms, 0, sizeof(ms));
+    for (auto &it: metadata)
+      ms_bit_add(&ms, (meta_t)it.second);
+    return ms_cache->canonize(ms);
+  } else {
+    return nullptr;
+  }
 }
