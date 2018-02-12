@@ -9,6 +9,7 @@ find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
 include_directories("./include/policy-glue")
 include_directories("./policy/include")
+include_directories("./riscv")
 include_directories(".")
 
 add_executable(meta_test
@@ -20,7 +21,7 @@ target_link_libraries(meta_test yaml-cpp)
 
 add_executable(standalone
 	standalone.cc meta_set_factory.cc tag_based_validator.cc soc_tag_configuration.cc
-	riscv/main.cc riscv/rv32_validator.cc riscv/debug.cc
+	riscv/rv32_validator.cc riscv/debug.cc
 	riscv/inst_decoder.c
 	policy/pex/policy_meta_set.c policy/pex/policy_rule.c policy/pex/policy_utils.c
 	)
