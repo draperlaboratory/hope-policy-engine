@@ -1,18 +1,29 @@
+#include <stdio.h>
+
 #include <yaml-cpp/yaml.h>
 
 #include "validator_exception.h"
 #include "soc_tag_configuration.h"
 
-void soc_tag_configuration_t::process_element(std::string element_name, YAML::Node n) {
+static void dump_node(const YAML::Node &node) {
+//  printf("node: %p\n", node);
+  switch (node.Type()) {
+    case YAML::NodeType::Null: printf("  null\n"); break;
+    case YAML::NodeType::Scalar: printf("  scalar\n"); break;
+    case YAML::NodeType::Sequence: printf("  sequence\n"); break;
+    case YAML::NodeType::Map: printf("  map\n"); break;
+    case YAML::NodeType::Undefined: printf("  undefined\n"); break;
+      default: printf("  unknown\n"); break;
+  }
+}
+
+void soc_tag_configuration_t::process_element(std::string element_name, const YAML::Node &n) {
   std::string elt_path;
   soc_element_t elt;
   elt.heterogeneous = false;
-  if (n["name"]) {
-    elt_path = n["name"].as<std::string>();
-  } else {
-    throw validator::configuration_exception_t("'name' field not present for element " + element_name);
-  }
-  
+//  printf("processing element %s\n", element_name.c_str());
+//  dump_node(n);
+
   if (n["start"]) {
     elt.start = n["start"].as<unsigned>();
   } else {
@@ -20,15 +31,16 @@ void soc_tag_configuration_t::process_element(std::string element_name, YAML::No
   }
   
   if (n["end"]) {
-    elt.start = n["end"].as<unsigned>();
+    elt.end = n["end"].as<unsigned>();
   } else {
     throw validator::configuration_exception_t("'end' field not present for element " + element_name);
   }
   if (n["heterogeneous"]) {
-    elt.heterogeneous = n["heterogenous"].as<bool>();
+    elt.heterogeneous = n["heterogeneous"].as<bool>();
   }
   elt.meta_set = factory->get_meta_set(elt_path);
   elements.push_back(elt);
+//  printf("done processing element %s\n", element_name.c_str());
 }
 
 soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t * factory, std::string file_name)

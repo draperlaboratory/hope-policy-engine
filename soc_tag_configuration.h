@@ -23,7 +23,7 @@ class soc_tag_configuration_t {
   private:
   std::list<soc_element_t> elements;
   meta_set_factory_t *factory;
-  void process_element(std::string element_name, YAML::Node n);
+  void process_element(std::string element_name, const YAML::Node &n);
 
   public:
 
