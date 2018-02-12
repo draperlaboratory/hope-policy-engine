@@ -2,8 +2,8 @@
 
 #include "policy_utils.h"
 
-rv32_validator_t::rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr) :
-  abstract_renode_validator_t(rr, mr), ms_factory(&ms_cache) {
+rv32_validator_t::rv32_validator_t(std::string policy_dir, std::string soc_config_file, RegisterReader_t rr) :
+  tag_based_validator_t(policy_dir, soc_config_file, rr) {
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
   res = (results_t *)malloc(sizeof(results_t));

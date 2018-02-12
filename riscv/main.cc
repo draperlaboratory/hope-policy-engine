@@ -9,7 +9,9 @@ static bool DOA = false;
 extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader) {
   try {
     printf("setting callbacks\n");
-    validator = new rv32_validator_t(reg_reader, mem_reader);
+    validator = new rv32_validator_t(getenv("GENERATED_POLICY_DIR"),
+				     "soc_conf.yml",
+				     reg_reader);
   } catch (...) {
     printf("c++ exception while setting callbacks - policy code DOA\n");
     DOA = true;

@@ -2,14 +2,13 @@
 #define RV32_VALIDATOR_H
 
 #include <stdio.h>
+#include <string>
 
-#include "renode_validator.h"
+#include "tag_based_validator.h"
 #include "policy_eval.h"
-#include "tag_utils.h"
-#include "meta_set_factory.h"
 
 #define REG_SP 2
-class rv32_validator_t : public abstract_renode_validator_t {
+class rv32_validator_t : public tag_based_validator_t {
   context_t *ctx;
   operands_t *ops;
   results_t *res;
@@ -19,13 +18,9 @@ class rv32_validator_t : public abstract_renode_validator_t {
   tag_t pc_tag;
   uint32_t pending_RD;
   bool has_pending_RD;
-  meta_set_t *t_to_m(tag_t t) { return (meta_set_t *)t; }
-  tag_t m_to_t(meta_set_t *ms) { return (tag_t)ms; }
-  meta_set_cache_t ms_cache;
-  meta_set_factory_t ms_factory;
   meta_set_t temp_ci_tag;
   public:
-  rv32_validator_t(RegisterReader_t rr, MemoryReader_t mr);
+  rv32_validator_t(std::string policy_dir, std::string soc_config_file, RegisterReader_t rr);
 /*
  : reg_reader(rr), mem_reader(mr) {
     ctx = (context_t *)malloc(sizeof(context_t));

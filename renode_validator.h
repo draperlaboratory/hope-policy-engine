@@ -14,9 +14,10 @@
 class abstract_renode_validator_t : abstract_validator_t {
   protected:
   RegisterReader_t reg_reader;
-  MemoryReader_t mem_reader;
+//  MemoryReader_t mem_reader;
   public:
-  abstract_renode_validator_t(RegisterReader_t rr, MemoryReader_t mr) : reg_reader(rr), mem_reader(mr) {
+//  abstract_renode_validator_t(RegisterReader_t rr, MemoryReader_t mr) : reg_reader(rr), mem_reader(mr) {
+  abstract_renode_validator_t(RegisterReader_t rr) : reg_reader(rr) {
   }
   virtual ~abstract_renode_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;

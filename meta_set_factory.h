@@ -70,12 +70,15 @@ class meta_set_factory_t {
 
   void init_encoding_map(YAML::Node &rawEnc);
   void init_group_map(YAML::Node &groupAST);
-
+  YAML::Node load_yaml(const char *yml_file);
+  
   std::map<std::string,meta_t> lookupMetadata(std::string dotted_path);
+
+  std::string policy_dir;
 
   public:
   static std::vector<std::string> split_dotted_name(const std::string &name);
-  meta_set_factory_t(meta_set_cache_t *ms_cache);
+  meta_set_factory_t(std::string policy_dir, meta_set_cache_t *ms_cache);
   meta_set_t *get_meta_set(std::string dotted_path);
   meta_set_t *get_group_meta_set(std::string opgroup) {
     return group_map[opgroup];
