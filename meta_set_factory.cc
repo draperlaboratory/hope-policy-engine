@@ -28,7 +28,7 @@ std::vector<std::string> meta_set_factory_t::split_dotted_name(const std::string
 
 #include <stdio.h>
 
-void dump_node(YAML::Node node) {
+static void dump_node(YAML::Node node) {
   printf("node: %p\n", node);
   switch (node.Type()) {
     case YAML::NodeType::Null: printf("  null\n"); break;
@@ -41,56 +41,6 @@ void dump_node(YAML::Node node) {
 }
 
 std::map<std::string,meta_t> meta_set_factory_t::lookupMetadata(std::string dotted_path) {
-#if 0
-  YAML::Node root = metadata["requires"];
-  YAML::Node node = root;
-  std::map<std::string, meta_t> metaMap;
-
-  printf("root node ----\n");
-  YAML::Node n = metadata["requires"];
-  for(YAML::const_iterator it=n.begin();it != n.end();++it) {
-    std::string key = it->first.as<std::string>();       // <- key
-    printf("key: %s\n", key.c_str());
-//    cTypeList.push_back(it->second.as<CharacterType>()); // <- value
-  }
-  printf("----  root node\n");
-  
-  std::map<std::string, std::map<std::string, meta_t>>::iterator path_map_iter;
-  path_map_iter = path_map.find(dotted_path);
-  if (path_map_iter != path_map.end())
-    return path_map_iter->second;
-
-  std::vector<std::string> path = split_dotted_name(dotted_path);
-  
-  // find the named entitiy
-  for (size_t i = 0; i < path.size(); i++) {
-//    dump_node(node);
-//    printf("in node %s\n", node.as<std::string>().c_str());
-//    printf("found node: %s\n", node["name"].as<std::string>().c_str());
-    printf("Looking for %s\n", path[i].c_str());
-    node = node[path[i]];
-    printf(" found %p\n", node);
-  }
-
-  // get the metadata
-  node = node["metadata"];
-
-  assert(node.IsSequence());
-
-  // iterate over names
-  for (size_t i = 0; i < node.size(); i++) {
-    std::string name = node[i]["name"].as<std::string>();
-    metaMap.insert(std::make_pair(name, encoding_map[name]));
-  }
-
-  printf("root node ----\n");
-  n = metadata["requires"];
-  for(YAML::const_iterator it=n.begin();it != n.end();++it) {
-    std::string key = it->first.as<std::string>();       // <- key
-    printf("key: %s\n", key.c_str());
-  }
-  printf("----- root node\n");
-#endif
   std::map<std::string, std::map<std::string, meta_t>>::iterator path_map_iter;
   path_map_iter = path_map.find(dotted_path);
   if (path_map_iter != path_map.end())
