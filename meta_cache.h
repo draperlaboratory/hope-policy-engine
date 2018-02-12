@@ -24,6 +24,7 @@ class meta_set_cache_t {
       return true;
     }
   };
+  private:
   std::unordered_map<meta_set_t, meta_set_t *, meta_set_hasher_t, meta_set_equal_t> map;
   public:
   meta_set_t *canonize(meta_set_t const &ts) {
