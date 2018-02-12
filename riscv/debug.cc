@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include <stdarg.h>
+
 #include "policy_eval.h"
 #include "policy_utils.h"
 #include "riscv_isa.h"
@@ -57,6 +59,14 @@ extern "C" void debug_results(context_t *ctx, results_t *res) {
 }
 
 // referenced by meta_set_t rendering code in policy_utils, but not used
-extern "C" void printm(const char *fmt, ...) {
-  printf("printm: %s\n", fmt);
+extern "C" void printm(const char* s, ...)
+{
+  char buf[256];
+  va_list vl;
+
+  va_start(vl, s);
+  vsnprintf(buf, sizeof buf, s, vl);
+  va_end(vl);
+
+  puts(buf);
 }
