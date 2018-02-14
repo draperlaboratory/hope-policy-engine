@@ -1,13 +1,7 @@
 SOC:
-  code_RAM: {
-    name: requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR,
+  RAM: {
+    name: requires.dover.Kernel.MemoryMap.Default,
     start: 0x80000000,
-    end:   0x80100000,
-    heterogeneous: true
-    }
-  rw_RAM: {
-    name: requires.dover.Kernel.Code.ElfSection.SHF_WRITE,
-    start: 0x80100000,
     end:   0x80800000,
     heterogeneous: true
     }

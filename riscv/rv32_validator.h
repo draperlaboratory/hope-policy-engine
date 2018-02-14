@@ -8,6 +8,7 @@
 #include "tag_based_validator.h"
 #include "tag_converter.h"
 #include "policy_eval.h"
+#include "metadata_memory_map.h"
 
 #define REG_SP 2
 class rv32_validator_t : public tag_based_validator_t {
@@ -27,6 +28,8 @@ class rv32_validator_t : public tag_based_validator_t {
 		   meta_set_factory_t *ms_factory,
 		   soc_tag_configuration_t *tag_config,
 		   RegisterReader_t rr);
+
+  void apply_metadata(metadata_memory_map_t *md_map);
 /*
  : reg_reader(rr), mem_reader(mr) {
     ctx = (context_t *)malloc(sizeof(context_t));

@@ -1,5 +1,6 @@
 #include "soc_tag_configuration.h"
 #include "rv32_validator.h"
+#include "validator_exception.h"
 
 #include "policy_utils.h"
 
@@ -48,6 +49,16 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   tag_bus.add_provider(0x4400bff8, 0x10, // mtime
 		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
 #endif
+}
+
+void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
+  for (auto &e: *md_map) {
+    for (address_t start = e.first.start; start < e.first.end; start += 4) {
+      if (!tag_bus.store_tag(start, m_to_t(e.second))) {
+	throw validator::configuration_exception_t("unable to apply metadata");
+      }
+    }
+  }
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {

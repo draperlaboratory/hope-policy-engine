@@ -10,6 +10,7 @@ include_directories( ${Boost_INCLUDE_DIRS} )
 include_directories("./include/policy-glue")
 include_directories("./policy/include")
 include_directories("./riscv")
+include_directories("./tagging_tools")
 include_directories(".")
 
 add_executable(meta_test
@@ -19,10 +20,19 @@ add_executable(meta_test
 	)
 target_link_libraries(meta_test yaml-cpp)
 
+add_executable(tag_range
+	 meta_set_factory.cc
+	tagging_tools/tag_range.cc tagging_tools/tag_file.cc
+	riscv/debug.cc
+	policy/pex/policy_meta_set.c policy/pex/policy_utils.c
+	)
+target_link_libraries(tag_range yaml-cpp)
+
 add_executable(standalone
 	standalone.cc meta_set_factory.cc tag_based_validator.cc soc_tag_configuration.cc
 	riscv/rv32_validator.cc riscv/debug.cc
 	riscv/inst_decoder.c
+	tagging_tools/tag_file.cc
 	policy/pex/policy_meta_set.c policy/pex/policy_rule.c policy/pex/policy_utils.c
 	)
 target_link_libraries(standalone yaml-cpp)
@@ -31,6 +41,7 @@ add_library(rv32-renode-validator SHARED
 	meta_set_factory.cc tag_based_validator.cc soc_tag_configuration.cc
 	riscv/main.cc riscv/rv32_validator.cc riscv/debug.cc
 	riscv/inst_decoder.c
+	tagging_tools/tag_file.cc
 	policy/pex/policy_meta_set.c policy/pex/policy_rule.c policy/pex/policy_utils.c
 	)
 

@@ -3,6 +3,8 @@
 #include "meta_cache.h"
 #include "meta_set_factory.h"
 #include "rv32_validator.h"
+#include "metadata_memory_map.h"
+#include "tag_file.h"
 #include "validator_exception.h"
 
 meta_set_cache_t ms_cache;
@@ -19,6 +21,15 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       new soc_tag_configuration_t(ms_factory,
 				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg.yml");
     rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
+
+    address_t base_address = 0x80000000; // FIXME - need to be able to query for this
+    metadata_memory_map_t map(base_address, &ms_cache);
+    std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
+    if (!load_tags(&map, tags_file)) {
+      printf("failed read\n");
+    } else {
+      rv_validator->apply_metadata(&map);
+    }
   } catch (validator::exception_t &e) {
     printf("validator exception %s while setting callbacks - policy code DOA\n", e.what().c_str());
     DOA = true;
