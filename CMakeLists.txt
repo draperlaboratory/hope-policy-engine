@@ -7,13 +7,12 @@ set (CMAKE_CXX_COMPILER g++)
 
 find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
-include_directories("./validator/riscv")
 include_directories("./validator/include")
-include_directories("./validator/include/policy-glue")
-include_directories("./policy/include")
-include_directories("./riscv")
+#include_directories("./validator/riscv")
+#include_directories("./validator/include/policy-glue")
+#include_directories("./policy/include")
 include_directories("./tagging_tools")
-include_directories(".")
+#include_directories(".")
 
 #add_executable(meta_test
 #	meta_test.cc meta_set_factory.cc metadata_factory.cc soc_tag_configuration.cc
@@ -28,6 +27,10 @@ add_library(validator
   validator/src/soc_tag_configuration.cc
   )
 set_property(TARGET validator PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(validator PRIVATE
+  ./policy/include
+  ./validator/riscv
+  )
 
 add_library(rv32_validator
   validator/riscv/debug.cc
@@ -40,6 +43,11 @@ add_library(rv32_validator
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
   )
 set_property(TARGET rv32_validator PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(rv32_validator PRIVATE
+  ./policy/include
+  ./validator/riscv
+  ./validator/include/policy-glue
+  )
 
 add_library(tagging_tools
   tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc
@@ -56,13 +64,30 @@ add_executable(md_code
 	validator/riscv/inst_decoder.c
 	)
 target_link_libraries(md_code tagging_tools validator yaml-cpp)
+target_include_directories(md_code PRIVATE
+  ./validator/include/policy-glue
+
+  # policy directory dependency is because riscv_isa.h drags it in.
+  # There is no actual dependency.
+  ./policy/include
+  )
 
 add_executable(standalone
 	validator/riscv/standalone.cc
 	)
 target_link_libraries(standalone rv32_validator tagging_tools validator yaml-cpp)
+target_include_directories(standalone PRIVATE
+  ./policy/include
+  ./validator/riscv
+  ./validator/include/policy-glue
+  )
 
 add_library(rv32-renode-validator SHARED
 	validator/riscv/main.cc
 	)
 target_link_libraries(rv32-renode-validator rv32_validator tagging_tools validator yaml-cpp)
+target_include_directories(rv32-renode-validator PRIVATE
+  ./policy/include
+  ./validator/riscv
+  ./validator/include/policy-glue
+  )
