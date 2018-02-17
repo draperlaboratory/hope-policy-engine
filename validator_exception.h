@@ -4,6 +4,7 @@
 #include <string>
 #include <exception>
 
+//namespace policy_engine {
 namespace validator {
 
 class exception_t : public std::exception {

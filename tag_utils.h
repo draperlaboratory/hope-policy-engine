@@ -117,16 +117,16 @@ class tag_bus_t {
 };
 
 #define tassert(b) if (!(b)) { printf("bad register index: %lx\n", i); return bad_value; }
-
+#define BAD_TAG_VALUE (-1)
 template <size_t N> class tag_file_t {
   tag_t tags[N];
 
   tag_t bad_value;
   public:
 
-  tag_file_t() : bad_value(-1) { }
+  tag_file_t() : bad_value(BAD_TAG_VALUE) { }
 
-  tag_file_t(tag_t initial_tag) : bad_value(-1) {
+  tag_file_t(tag_t initial_tag) : bad_value(BAD_TAG_VALUE) {
     reset(initial_tag);
   }
 

@@ -21,7 +21,7 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
 //  soc_tag_configuration_t soc_cfg(&ms_factory, soc_config_file);
 
-  meta_set_t *ms;
+  meta_set_t const *ms;
 
   ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
   ireg_tags.reset(m_to_t(ms));
@@ -51,10 +51,14 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 #endif
 }
 
+extern std::string render_metadata(metadata_t const *metadata);
+
 void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
   for (auto &e: *md_map) {
     for (address_t start = e.first.start; start < e.first.end; start += 4) {
-      if (!tag_bus.store_tag(start, m_to_t(e.second))) {
+//      std::string s = render_metadata(e.second);
+//      printf("0x%08x: %s\n", start, s.c_str());
+      if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
 	throw validator::configuration_exception_t("unable to apply metadata");
       }
     }
@@ -111,7 +115,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     res->csrResult = false;
   }
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
-  //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
+//  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
   if (flags & HAS_RS2) ops->op2 = t_to_m(ireg_tags[rs2]);
@@ -122,6 +126,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     if (flags & HAS_IMM)
       maddr += imm;
     ctx->bad_addr = maddr;
+//    printf("maddr = 0x%08x\n", maddr);
     tag_t mtag;
     if (!tag_bus.load_tag(maddr, mtag)) {
       printf("failed to load MR tag\n");
@@ -145,8 +150,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("ci tag name before merge: %s\n", tag_name);
 
   // hacking in the opgroup part of the metadata dynamically.
-  meta_set_t *group_set = ms_factory->get_group_meta_set(name);
-  ms_union(ops->ci, group_set);
+//  meta_set_t *group_set = ms_factory->get_group_meta_set(name);
+//  ms_union(ops->ci, group_set);
 
 //  meta_set_to_string(group_set, tag_name, sizeof(tag_name));
 //  printf("group tag: %s\n", tag_name);

@@ -47,6 +47,11 @@ class rv32_validator_t : public tag_based_validator_t {
   bool validate(address_t pc, insn_bits_t insn);
   void commit();
   
+  // Provides the tag for a given address.  Used for debugging.
+  virtual bool get_tag(address_t addr, tag_t &tag) {
+    return tag_bus.load_tag(addr, tag);
+  }
+
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
 };

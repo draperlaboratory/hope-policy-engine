@@ -5,18 +5,25 @@
 #include "rv32_validator.h"
 #include "tag_file.h"
 #include "metadata_memory_map.h"
+#include "meta_cache.h"
+#include "meta_set_factory.h"
 
 meta_set_cache_t ms_cache;
 meta_set_factory_t *ms_factory;
+metadata_factory_t *md_factory;
 rv32_validator_t *rv_validator;
 
 static uint32_t regs[32];
 
 uint32_t reg_reader(uint32_t regno) { return regs[regno]; }
 
+extern void init_metadata_renderer(metadata_factory_t *md_factory);
+
 void init() {
   try {
     ms_factory = new meta_set_factory_t(&ms_cache, getenv("GENERATED_POLICY_DIR"));
+    md_factory = new metadata_factory_t(getenv("GENERATED_POLICY_DIR"));
+    init_metadata_renderer(md_factory);
     soc_tag_configuration_t *soc_config =
       new soc_tag_configuration_t(ms_factory,
 				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg.yml");
@@ -59,21 +66,39 @@ struct op_t {
 
 
 std::vector<op_t> ops= {
-  { 0x80000200, 0x00000093, { RA(0), SP(0x80000000) }},
+  { 0x80000200, 0x00000093, { RA(0), SP(0x80000200) }},
   { 0x80000204, 0x00512023, {}},
 };
 
-int main() {
+extern std::string render_metadata(metadata_t const *metadata);
+
+int main(int argc, char **argv) {
   init();
   address_t base_address = 0x80000000; // FIXME - need to be able to query for this
-  metadata_memory_map_t map(base_address, &ms_cache);
-  if (!load_tags(&map, "foo.tags")) {
+  metadata_cache_t md_cache;
+  metadata_memory_map_t map(base_address, &md_cache);
+  if (!load_tags(&map, argv[1])) {
     printf("failed read\n");
   } else {
     rv_validator->apply_metadata(&map);
   }
   
   for (auto &op: ops) {
+    tag_t ci_tag;
+    if (!rv_validator->get_tag(op.pc, ci_tag)) {
+      printf("could not load tag for PC 0x%08x\n", op.pc);
+    } else {
+      // we can print the tag here
+    }
+#if 1
+    metadata_t const *metadata = map.get_metadata(op.pc);
+    if (!metadata) {
+      printf("could not load metadata for PC 0x%08x\n", op.pc);
+    } else {
+      std::string s = render_metadata(metadata);
+      printf("0x%08x: %s\n", op.pc, s.c_str());
+    }
+#endif
     rv_validator->validate(op.pc, op.insn);
     for (auto &rc: op.changes) {
       regs[rc.regno] = rc.new_value;

@@ -1,18 +1,15 @@
 #!/bin/bash
 dot="$(cd "$(dirname "$0")"; pwd)"
 policy_output_path="$dot/policy"
-pushd ~/dover-repos/ISP-Tests/policy/unit_tests
+#pushd ~/dover-repos/ISP-Tests/policy/unit_tests
 
-$DOVER/policies/bin/policy-tool -d -o $policy_output_path dover.frtos.main.rwx
-#echo "-d -o $policy_output_path dover.frtos.main.rwx"
+#$DOVER/policies/bin/policy-tool -d -o $policy_output_path dover.frtos.main.rwx
+~/.local/bin/policy-tool -d -m ~/dover-repos/ISP-Tests/policy/unit_tests -o $policy_output_path dover.frtos.main.rwx
 
-#$DOVER/bin/policy_tool -d -o ~/src/policy-engine/policy dover.frtos.main.rwx
+#$DOVER/policies/bin/init-tool -t frtos.xml -o /tmp/policy_inits dover.frtos.main.rwx
+#cp /tmp/policy_inits/pex/policy_utils.c $policy_output_path/pex
+#cp /tmp/policy_inits/include/policy_utils.h $policy_output_path/include
+#cp /tmp/policy_inits/include/policy_names.h $policy_output_path/include
 
-$DOVER/policies/bin/init-tool -t frtos.xml -o /tmp/policy_inits dover.frtos.main.rwx
-#echo "-t frtos.xml -o /tmp/policy_inits"
-cp /tmp/policy_inits/pex/policy_utils.c $policy_output_path/pex
-cp /tmp/policy_inits/include/policy_utils.h $policy_output_path/include
-cp /tmp/policy_inits/include/policy_names.h $policy_output_path/include
-
-#~/dover-repos/dover-policies/policy-tool/dist/build/policy-tool/policy-tool -d -o ~/src/policy-engine/policy dover.frtos.main.rwx
-popd
+#$DOVER/policies/bin/cfg-tool -t frtos.xml -b -o /tmp/policy_cfg dover.frtos.main.rwx
+#popd

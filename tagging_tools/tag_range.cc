@@ -4,28 +4,36 @@
 
 #include "tag_file.h"
 #include "metadata_memory_map.h"
-#include "meta_set_factory.h"
+#include "metadata_cache.h"
+#include "metadata_factory.h"
+//#include "meta_set_factory.h"
 #include "validator_exception.h"
 
-meta_set_cache_t ms_cache;
-meta_set_factory_t *ms_factory;
+//meta_set_cache_t ms_cache;
+//meta_set_factory_t *ms_factory;
+metadata_cache_t md_cache;
+metadata_factory_t *md_factory;
+
+extern void init_metadata_renderer(metadata_factory_t *md_factory);
 
 void init() {
   try {
-    ms_factory = new meta_set_factory_t(&ms_cache, getenv("GENERATED_POLICY_DIR"));
+    md_factory = new metadata_factory_t(getenv("GENERATED_POLICY_DIR"));
+    init_metadata_renderer(md_factory);
   } catch (validator::exception_t &e) {
     printf("exception: %s\n", e.what().c_str());
   }
 }
 
 bool apply_tag(metadata_memory_map_t *map, address_t start, address_t end, const char *tag_name) {
-  meta_set_t *ms = ms_factory->get_meta_set(tag_name);
+  metadata_t const *md = md_factory->lookup_metadata(tag_name);
+//  meta_set_t *ms = ms_factory->get_meta_set(tag_name);
 //  meta_set_t *ms = ms_factory->get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
-  if (!ms) {
+  if (!md) {
 //    printf("tag %s not found\n", tag_name);
     return false;
   }
-  map->add_range(start, end, ms);
+  map->add_range(start, end, md);
   return true;
 }
 
@@ -77,13 +85,13 @@ void usage() {
 
 int main(int argc, char **argv) {
   address_t base_address;
-  base_address = strtol(argv[1], 0, 16);
-  init();
-  metadata_memory_map_t map(base_address, &ms_cache);
   if (argc != 4) {
     usage();
     return 0;
   }
+  base_address = strtol(argv[1], 0, 16);
+  init();
+  metadata_memory_map_t map(base_address, &md_cache);
   if (!load_range_file(&map, argv[2]))
     return 1;
   if (!save_tags(&map, argv[3])) {

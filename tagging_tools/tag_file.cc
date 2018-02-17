@@ -24,17 +24,19 @@ bool load_tags(metadata_memory_map_t *map, std::string file_name) {
 
   if (!fp)
     return false;
-
+//printf("file opened\n");
   file_reader_t reader(fp);
   fseek(fp, 0, SEEK_END);
   size_t eof_point = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   
+//printf("file reading\n");
 //  while (!feof(fp)) {
   while (eof_point != ftell(fp)) {
     address_t start;
     address_t end;
-    meta_set_t ms;
+    uint32_t metadata_count;
+//printf("file record\n");
     if (!read_uleb<file_reader_t, uint32_t>(&reader, start)) {
       fclose(fp);
       return false;
@@ -43,13 +45,25 @@ bool load_tags(metadata_memory_map_t *map, std::string file_name) {
       fclose(fp);
       return false;
     }
-    for (int i = 0; i < META_SET_WORDS; i++) {
-      if (!read_uleb<file_reader_t, uint32_t>(&reader, ms.tags[i])) {
+    if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_count)) {
+      fclose(fp);
+      return false;
+    }
+//    printf("(0x%x, 0x%x): %d meta_t\n", start, end, metadata_count);
+    metadata_t *metadata = new metadata_t();
+    for (uint32_t i = 0; i < metadata_count; i++) {
+      meta_t meta;
+      if (!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
 	fclose(fp);
+	delete metadata;
 	return false;
       }
+//      *metadata += meta;
+      metadata->insert(meta);
     }
-    map->add_range(start, end, &ms);
+//printf("file adding\n");
+    map->add_range(start, end, metadata);
+//printf("file more\n");
   }
   fclose(fp);
   return true;
@@ -71,8 +85,14 @@ bool save_tags(metadata_memory_map_t *map, std::string file_name) {
       fclose(fp);
       return false;
     }
-    for (int i = 0; i < META_SET_WORDS; i++) {
-      if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second->tags[i])) {
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second->size())) {
+      fclose(fp);
+      return false;
+    }
+    for (auto &m: *e.second) {
+//    for (int i = 0; i < ; i++) {
+//      if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second->tags[i])) {
+      if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
 	fclose(fp);
 	return false;
       }

@@ -23,7 +23,7 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   std::string elt_path;
   soc_element_t elt;
   elt.heterogeneous = false;
-  printf("processing element %s\n", element_name.c_str());
+//  printf("processing element %s\n", element_name.c_str());
 //  dump_node(n);
 
   if (n["name"]) {
@@ -47,7 +47,7 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
     elt.heterogeneous = n["heterogeneous"].as<bool>();
   }
   elt.meta_set = factory->get_meta_set(elt_path);
-  print_meta_set(elt.meta_set);
+//  print_meta_set((meta_set_t *)elt.meta_set);
   elements.push_back(elt);
 //  printf("done processing element %s\n", element_name.c_str());
 }

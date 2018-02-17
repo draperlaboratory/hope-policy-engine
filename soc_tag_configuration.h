@@ -16,7 +16,7 @@ class soc_tag_configuration_t {
     address_t start;
     address_t end;
     bool heterogeneous;
-    meta_set_t *meta_set;
+    meta_set_t const *meta_set;
   };
 
   typedef std::list<soc_element_t>::iterator iterator;

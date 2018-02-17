@@ -5,15 +5,17 @@
 #include <vector>
 
 #include "platform_types.h"
-#include "meta_cache.h"
+#include "metadata.h"
+#include "metadata_cache.h"
 
 class metadata_memory_map_t {
   address_t base;
   address_t end_address;
-  meta_set_cache_t *ms_cache;
+  metadata_cache_t *md_cache;
+//  meta_set_cache_t *ms_cache;
   
   static const int stride = sizeof(uint32_t); // platform word size
-  std::vector<meta_set_t *> map;
+  std::vector<metadata_t const *> map;
 
   protected:
   address_t index_to_addr(size_t idx) {
@@ -25,29 +27,17 @@ class metadata_memory_map_t {
   }
 
   public:
+
   struct range_t { address_t start, end; };
-  void add_range(address_t start, address_t end, meta_set_t *meta_set) {
-    int s = (start - base) / stride;
-    int e = (end - base) / stride;
-    if (e > map.size()) {
-      map.resize(e, nullptr);
-      end_address = index_to_addr(e);
-    }
-    while (s < e) {
-//      printf("0x%x, 0x%x\n", s, e);
-      meta_set_t ms;
-      if (map[s]) {
-	ms = *map[s];
-	ms_union(&ms, meta_set);
-      } else {
-	ms = *meta_set;
-      }
-      map[s] = ms_cache->canonize(ms);
-      s++;
-    }
+
+  void add_range(address_t start, address_t end, metadata_t const *metadata);
+  metadata_t const *get_metadata(address_t addr) {
+    if ((addr >= base) && (addr < end_address))
+      return map[addr_to_index(addr)];
+    return nullptr;
   }
 
-  metadata_memory_map_t(address_t base, meta_set_cache_t *mc) : base(base), ms_cache(mc) { }
+  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
 
   template <class Type, class UnqualifiedType = std::remove_cv<Type> >
     class ForwardIterator 
@@ -56,7 +46,7 @@ class metadata_memory_map_t {
     std::ptrdiff_t,
     Type*,
     Type&> {
-    typedef std::pair<range_t, meta_set_t *> result_type_t;
+    typedef std::pair<range_t, metadata_t const *> result_type_t;
     int cur_index;
     int end_index;
     metadata_memory_map_t *map;

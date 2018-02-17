@@ -15,7 +15,7 @@
 */
 struct tag_converter_t {
   meta_set_t *t_to_m(tag_t t) { return (meta_set_t *)t; }
-  tag_t m_to_t(meta_set_t *ms) { return (tag_t)ms; }
+  tag_t m_to_t(meta_set_t const *ms) { return (tag_t)ms; }
 };
 
 #endif
