@@ -7,6 +7,7 @@ set (CMAKE_CXX_COMPILER g++)
 
 find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
+include_directories("./validator/include")
 include_directories("./include/policy-glue")
 include_directories("./policy/include")
 include_directories("./riscv")
