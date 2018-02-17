@@ -21,38 +21,41 @@ include_directories(".")
 #	)
 #target_link_libraries(meta_test yaml-cpp)
 
+add_library(validator
+  validator/src/metadata_factory.cc
+  validator/src/tag_based_validator.cc
+  validator/src/soc_tag_configuration.cc
+  )
+set_property(TARGET validator PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 add_executable(tag_range
 	tagging_tools/tag_range.cc tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc
-	meta_set_factory.cc metadata_factory.cc 
-	riscv/debug.cc
-	policy/src/policy_meta_set.c policy/src/policy_utils.c
+#	riscv/debug.cc
 	)
-target_link_libraries(tag_range yaml-cpp)
+target_link_libraries(tag_range validator yaml-cpp)
 
 add_executable(md_code
 	tagging_tools/md_code.cc tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc
-	meta_set_factory.cc metadata_factory.cc
-	riscv/debug.cc
+#	riscv/debug.cc
 	riscv/inst_decoder.c
-	policy/src/policy_meta_set.c policy/src/policy_utils.c
 	)
-target_link_libraries(md_code yaml-cpp)
+target_link_libraries(md_code validator yaml-cpp)
 
 add_executable(standalone
-	standalone.cc meta_set_factory.cc metadata_factory.cc tag_based_validator.cc soc_tag_configuration.cc
+	standalone.cc meta_set_factory.cc
 	riscv/rv32_validator.cc riscv/debug.cc
 	riscv/inst_decoder.c
 	tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc
 	policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
 	)
-target_link_libraries(standalone yaml-cpp)
+target_link_libraries(standalone validator yaml-cpp)
 
 add_library(rv32-renode-validator SHARED
-	meta_set_factory.cc metadata_factory.cc tag_based_validator.cc soc_tag_configuration.cc
+	meta_set_factory.cc
 	riscv/main.cc riscv/rv32_validator.cc riscv/debug.cc
 	riscv/inst_decoder.c
 	tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc
 	policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
 	)
 
-target_link_libraries(rv32-renode-validator yaml-cpp)
+target_link_libraries(rv32-renode-validator validator yaml-cpp)
