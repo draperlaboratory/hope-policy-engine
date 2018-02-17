@@ -9,7 +9,7 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-md_ranges = script_path + '/../build/tag_range'
+md_range = script_path + '/../build/md_range'
 md_code = script_path + '/../build/md_code'
 
 class RangeFile:
@@ -77,7 +77,7 @@ with open(elf_file_name, 'rb') as f:
 
      range_file.finish();
      #range_file.print()
-     proc = subprocess.Popen([md_ranges, base_address_string, range_file.name(), taginfo_file_name])
+     proc = subprocess.Popen([md_range, base_address_string, range_file.name(), taginfo_file_name])
      proc.wait()
      range_file.done()
 
