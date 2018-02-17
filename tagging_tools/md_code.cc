@@ -87,7 +87,7 @@ try {
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name);
       metadata_t const *metadata = md_factory->lookup_group_metadata(name);
       if (!metadata) {
-	fprintf(stderr, "No group found for instruction 0x%x (%s)\n", insn, name);
+	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
       } else {
 //	std::string s = md_factory->render(metadata);
 //	printf("0x%08x: %s\n", code_address, s.c_str());
