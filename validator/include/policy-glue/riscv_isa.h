@@ -48,12 +48,12 @@ typedef struct context {
    * Structure that holds input operands for rule eval
    */  
 typedef struct operands {
-  meta_set_t *pc;
-  meta_set_t *ci;
-  meta_set_t *op1;
-  meta_set_t *op2;
-  meta_set_t *op3;
-  meta_set_t *mem;
+  meta_set_t const *pc;
+  meta_set_t const *ci;
+  meta_set_t const *op1;
+  meta_set_t const *op2;
+  meta_set_t const *op3;
+  meta_set_t const *mem;
 } operands_t;
 
   /**

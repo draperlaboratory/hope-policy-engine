@@ -27,7 +27,7 @@ extern "C" void debug_status(context_t *ctx, int status) {
   }
 }
 
-void dump_tag(meta_set_t *ms) {
+void dump_tag(meta_set_t const *ms) {
   char tag_name[1024];
   if (ms) {
     meta_set_to_string(ms, tag_name, sizeof(tag_name));
