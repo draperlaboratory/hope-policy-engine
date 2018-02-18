@@ -6,6 +6,8 @@
 #include "metadata_factory.h"
 #include "validator_exception.h"
 
+using namespace policy_engine;
+
 metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 

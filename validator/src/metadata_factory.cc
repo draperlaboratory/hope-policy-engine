@@ -3,6 +3,8 @@
 
 #include "metadata_factory.h"
 
+using namespace policy_engine;
+
 void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
   YAML::Node root = rawEnc["Metadata"];
   YAML::Node node;

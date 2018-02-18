@@ -7,6 +7,8 @@
 
 #include "riscv_isa.h"
 
+using namespace policy_engine;
+
 metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 

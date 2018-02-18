@@ -1,7 +1,12 @@
 #include "metadata_memory_map.h"
 
 #include "metadata_factory.h"
+
+using namespace policy_engine;
+
+// for debugging only
 static metadata_factory_t *factory;
+
 void init_metadata_renderer(metadata_factory_t *md_factory) {
   factory = md_factory;
 }

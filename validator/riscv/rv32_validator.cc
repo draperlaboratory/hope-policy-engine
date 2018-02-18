@@ -4,6 +4,8 @@
 
 #include "policy_utils.h"
 
+using namespace policy_engine;
+
 rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,

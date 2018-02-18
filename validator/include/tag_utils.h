@@ -8,6 +8,8 @@
 
 #include "platform_types.h"
 
+namespace policy_engine {
+
 /**
    This type is what we will maintain internally in the functional, in-process simulator for the PIPE.
    The size of the type will allow for conversion to a native pointer in policy code.  It is not
@@ -145,5 +147,7 @@ template <size_t N> class tag_file_t {
     return tags[i];
   }
 };
+
+} // namespace policy_engine
 
 #endif

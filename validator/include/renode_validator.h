@@ -4,6 +4,8 @@
 #include "validator.h"
 #include "renode_interface.h"
 
+namespace policy_engine {
+
 /**
    The Renode validator is a slightly more specific validator that expresses
    some of the connection to Renode.  Specifically, when Renode calls an
@@ -24,5 +26,7 @@ class abstract_renode_validator_t : abstract_validator_t {
   virtual void commit() = 0;
 };
 
+
+} // namespace policy_engine
 
 #endif

@@ -8,6 +8,8 @@
 #include "meta_cache.h"
 #include "meta_set_factory.h"
 
+using namespace policy_engine;
+
 meta_set_cache_t ms_cache;
 meta_set_factory_t *ms_factory;
 metadata_factory_t *md_factory;

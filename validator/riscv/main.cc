@@ -7,6 +7,8 @@
 #include "tag_file.h"
 #include "validator_exception.h"
 
+using namespace policy_engine;
+
 meta_set_cache_t ms_cache;
 meta_set_factory_t *ms_factory;
 rv32_validator_t *rv_validator;

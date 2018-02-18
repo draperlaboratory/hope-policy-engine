@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include "metadata.h"
 
+namespace policy_engine {
+
 class metadata_cache_t {
   private:
   std::unordered_map<metadata_t, metadata_t *, metadata_t::hasher_t, metadata_t::equal_t> map;
@@ -15,5 +17,7 @@ class metadata_cache_t {
     return map[*md];
   }
 };
+
+} // namespace policy_engine
 
 #endif

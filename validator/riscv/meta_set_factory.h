@@ -9,6 +9,8 @@
 #include "meta_cache.h"
 #include "policy_meta_set.h"
 
+namespace policy_engine {
+
 class meta_set_factory_t : public metadata_factory_t {
   meta_set_cache_t *ms_cache;
 
@@ -19,5 +21,7 @@ class meta_set_factory_t : public metadata_factory_t {
     return nullptr;
   }
 };
+
+} // namespace policy_engine
 
 #endif

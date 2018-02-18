@@ -8,6 +8,8 @@
 #include "metadata.h"
 #include "metadata_cache.h"
 
+namespace policy_engine {
+
 class metadata_memory_map_t {
   address_t base;
   address_t end_address;
@@ -134,5 +136,7 @@ class metadata_memory_map_t {
   iterator begin() { return iterator(this); }
   iterator end() { return iterator(this, true); }
 };
+
+} // namespace policy_engine
 
 #endif

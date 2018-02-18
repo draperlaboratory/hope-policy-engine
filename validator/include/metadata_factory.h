@@ -9,6 +9,8 @@
 #include "policy_types.h" // meta_t
 #include "metadata.h"
 
+namespace policy_engine {
+
 struct meta_tree_t {
   struct meta_node_t;
   struct meta_node_t {
@@ -85,5 +87,7 @@ class metadata_factory_t {
 
   std::string render(metadata_t const *metadata);
 };
+
+} // namespace policy_engine
 
 #endif

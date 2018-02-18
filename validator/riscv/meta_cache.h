@@ -6,6 +6,8 @@
 #include "policy_meta_set.h"
 #include "metadata.h"
 
+namespace policy_engine {
+
 class meta_set_cache_t {
   public:
   struct meta_set_hasher_t {
@@ -43,5 +45,7 @@ class meta_set_cache_t {
     return canonize(ms);
   }
 };
+
+} // namespace policy_engine
 
 #endif

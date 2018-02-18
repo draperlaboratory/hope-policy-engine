@@ -10,6 +10,8 @@
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
 
+namespace policy_engine {
+
 #define REG_SP 2
 class rv32_validator_t : public tag_based_validator_t {
   context_t *ctx;
@@ -45,5 +47,7 @@ class rv32_validator_t : public tag_based_validator_t {
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
 };
+
+} // namespace policy_engine
 
 #endif

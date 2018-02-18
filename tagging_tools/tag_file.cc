@@ -3,6 +3,8 @@
 #include "tag_file.h"
 #include "uleb.h"
 
+using namespace policy_engine;
+
 struct file_reader_t {
   FILE *fp;
   file_reader_t(FILE *fp) : fp(fp) { }
@@ -19,7 +21,7 @@ struct file_writer_t {
   }
 };
 
-bool load_tags(metadata_memory_map_t *map, std::string file_name) {
+bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "rb");
 
   if (!fp)
@@ -64,7 +66,7 @@ bool load_tags(metadata_memory_map_t *map, std::string file_name) {
   return true;
 }
 
-bool save_tags(metadata_memory_map_t *map, std::string file_name) {
+bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "wb");
 
   if (!fp)

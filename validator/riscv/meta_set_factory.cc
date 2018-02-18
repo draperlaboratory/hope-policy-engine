@@ -4,6 +4,8 @@
 
 #include "meta_set_factory.h"
 
+using namespace policy_engine;
+
 meta_set_factory_t::meta_set_factory_t(meta_set_cache_t *ms_cache, std::string policy_dir)
   : metadata_factory_t(policy_dir), ms_cache(ms_cache) {
 }

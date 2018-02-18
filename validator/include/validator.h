@@ -9,6 +9,8 @@
 // building for.  This includes things like address_t and insn_bits_t.
 #include "platform_types.h"
 
+namespace policy_engine {
+
 /**
    Highest level validator interface class.  No structure of input information
    is presumed at all.  The interface is restricted to a validate/commit pair of
@@ -39,5 +41,7 @@ class always_ok_validator_t final : public abstract_validator_t {
   bool validate(address_t pc, insn_bits_t insn) { return true; }
   void commit() { }
 };
+
+} // namespace policy_engine
 
 #endif

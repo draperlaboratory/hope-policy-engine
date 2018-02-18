@@ -10,6 +10,7 @@
 #include "tag_converter.h"
 #include "tag_utils.h"
 
+namespace policy_engine {
 class soc_tag_configuration_t {
   public:
   struct soc_element_t {
@@ -33,5 +34,7 @@ class soc_tag_configuration_t {
   iterator begin() { return elements.begin(); }
   iterator end() { return elements.end(); }
 };
+
+} // namespace policy_engine
 
 #endif

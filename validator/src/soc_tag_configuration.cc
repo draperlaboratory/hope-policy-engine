@@ -7,6 +7,8 @@
 
 #include "policy_utils.h"
 
+using namespace policy_engine;
+
 static void dump_node(const YAML::Node &node) {
 //  printf("node: %p\n", node);
   switch (node.Type()) {

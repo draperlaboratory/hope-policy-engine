@@ -4,7 +4,7 @@
 #include <string>
 #include <exception>
 
-//namespace policy_engine {
+namespace policy_engine {
 namespace validator {
 
 class exception_t : public std::exception {
@@ -25,6 +25,8 @@ class runtime_exception_t : public exception_t {
   runtime_exception_t(std::string msg) : exception_t(msg) { }
 };
 
-}
+} // namespace validator
+
+} // namespace policy_engine
 
 #endif
