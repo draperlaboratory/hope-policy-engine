@@ -6,6 +6,12 @@
 
 using namespace policy_engine;
 
+static const char *tag_name(meta_set_t const *tag) {
+  static char tag_name[1024];
+  meta_set_to_string(tag, tag_name, sizeof(tag_name));
+  return tag_name;
+}
+
 rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
@@ -68,6 +74,18 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 }
 
 void rv32_validator_t::commit() {
+  if (has_pending_RD && res->rdResult) {
+    ireg_tags[pending_RD] = m_to_t(ms_cache->canonize(*res->rd));
+  }
+  if (has_pending_mem && res->rdResult) {
+//    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
+    if (!tag_bus.store_tag(mem_addr, m_to_t(ms_cache->canonize(*res->rd)))) {
+      printf("failed to store MR tag\n");
+    }
+  }
+  if (has_pending_CSR && res->csrResult) {
+    csr_tags[pending_CSR] = m_to_t(ms_cache->canonize(*res->csr));
+  }
 }
 
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
@@ -76,7 +94,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   const char *name;
   address_t offset;
   tag_t ci_tag;
-  char tag_name[1024];
+//  char tag_name[1024];
 
   int32_t flags;
   
@@ -103,18 +121,23 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
   if (flags & HAS_RS2) ops->op2 = t_to_m(ireg_tags[rs2]);
   if (flags & HAS_RS3) ops->op3 = t_to_m(ireg_tags[rs3]);
+  has_pending_CSR = (flags & HAS_CSR_STORE) != 0;
   has_pending_RD = (flags & HAS_RD) != 0;
+  has_pending_mem = (flags & HAS_STORE) != 0;
+  pending_CSR = rs3;
   if (flags & (HAS_LOAD | HAS_STORE)) {
-    address_t maddr = reg_reader(rs1);
+//    address_t maddr = reg_reader(rs1);
+    mem_addr = reg_reader(rs1);
     if (flags & HAS_IMM)
-      maddr += imm;
-    ctx->bad_addr = maddr;
-//    printf("maddr = 0x%08x\n", maddr);
+      mem_addr += imm;
+    ctx->bad_addr = mem_addr;
+//    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
-    if (!tag_bus.load_tag(maddr, mtag)) {
+    if (!tag_bus.load_tag(mem_addr, mtag)) {
       printf("failed to load MR tag\n");
     } else {
       ops->mem = t_to_m(mtag);
+//      printf("  mr tag = '%s'\n", tag_name(ops->mem));
 //      printf("mr tag = 0x%p\n", ops->mem);
     }
   }
@@ -126,8 +149,9 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  ctx->bad_addr = 0;
 //  ctx->cached = false;
 
-  temp_ci_tag = *t_to_m(ci_tag);
-  ops->ci = &temp_ci_tag;
+//  temp_ci_tag = *t_to_m(ci_tag);
+//  ops->ci = &temp_ci_tag;
+  ops->ci = t_to_m(ci_tag);
 //  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);

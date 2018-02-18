@@ -22,8 +22,12 @@ class rv32_validator_t : public tag_based_validator_t {
   tag_file_t<0x1000> csr_tags;
   tag_t pc_tag;
   uint32_t pending_RD;
+  address_t mem_addr;
+  uint32_t pending_CSR;
   bool has_pending_RD;
-  meta_set_t temp_ci_tag;
+  bool has_pending_mem;
+  bool has_pending_CSR;
+//  meta_set_t temp_ci_tag;
   public:
   rv32_validator_t(meta_set_cache_t *ms_cache,
 		   meta_set_factory_t *ms_factory,
