@@ -1,16 +1,11 @@
 #include <stdio.h>
 
-//#include "policy_utils.h"
-
 #include "tag_file.h"
 #include "metadata_memory_map.h"
 #include "metadata_cache.h"
 #include "metadata_factory.h"
-//#include "meta_set_factory.h"
 #include "validator_exception.h"
 
-//meta_set_cache_t ms_cache;
-//meta_set_factory_t *ms_factory;
 metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 
@@ -27,12 +22,8 @@ void init(const char *policy_dir) {
 
 bool apply_tag(metadata_memory_map_t *map, address_t start, address_t end, const char *tag_name) {
   metadata_t const *md = md_factory->lookup_metadata(tag_name);
-//  meta_set_t *ms = ms_factory->get_meta_set(tag_name);
-//  meta_set_t *ms = ms_factory->get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
-  if (!md) {
-//    printf("tag %s not found\n", tag_name);
+  if (!md)
     return false;
-  }
   map->add_range(start, end, md);
   return true;
 }
@@ -67,9 +58,6 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
 //	  printf("done\n");
 	}
       }
-//      for (auto s: tokens)
-//	printf("'%s' ", s.c_str());
-//      printf("\n");
       lineno++;
     }
   } catch (...) {
@@ -94,43 +82,22 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-//  policy_dir = getenv("GENERATED_POLICY_DIR");
   policy_dir = argv[1];
   base_address = strtol(argv[2], 0, 16);
   range_file_name = argv[3];
   file_name = argv[4];
 
   init(policy_dir);
+
   metadata_memory_map_t map(base_address, &md_cache);
+
   if (!load_range_file(&map, range_file_name))
     return 1;
+
   if (!save_tags(&map, file_name)) {
     printf("failed write of tag file\n");
     return 1;
   }
-#if 0
-  apply_tag(&map, 0x80000000, 0x80010000, "requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
-  for (auto &e: map) {
-    printf("(0x%x, 0x%x): ", e.first.start, e.first.end);
-    print_meta_set(e.second);
-  }
-  apply_tag(&map, 0x80000000, 0x80020000, "requires.dover.Kernel.Code.ElfSection.SHF_WRITE");
-  for (auto &e: map) {
-    printf("(0x%x, 0x%x): ", e.first.start, e.first.end);
-    print_meta_set(e.second);
-  }
-  if (!save_tags(&map, "/tmp/foo.tags"))
-    printf("failed write\n");
-  metadata_memory_map_t map2(0x80000000, &ms_cache);
-  printf("reading...\n");
-  if (!load_tags(&map2, "/tmp/foo.tags"))
-    printf("failed read\n");
-  for (auto &e: map2) {
-    printf("(0x%x, 0x%x): ", e.first.start, e.first.end);
-    print_meta_set(e.second);
-  }
-  printf("loading\n");
-  load_range_file(&map2, "/tmp/ranges.txt");
-#endif
+
   return 0;
 }

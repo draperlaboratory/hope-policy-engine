@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-//#include "policy_utils.h"
-
 #include "tag_file.h"
 #include "metadata_memory_map.h"
 #include "metadata_factory.h"
@@ -13,11 +11,9 @@ metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
-//    init_metadata_renderer(md_factory);
 
 void init(const char *policy_dir) {
   try {
-//    md_factory = new metadata_factory_t(getenv("GENERATED_POLICY_DIR"));
     md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
   } catch (validator::exception_t &e) {
@@ -73,17 +69,15 @@ try {
   code_address = strtol(argv[3], 0, 16);
   file_name = argv[4];
 
-//  policy_dir = getenv("GENERATED_POLICY_DIR");
   init(policy_dir);
   metadata_memory_map_t map(base_address, &md_cache);
-//  printf("reading tags from %s\n", argv[2]);
   if (!load_tags(&map, file_name)) {
     printf("failed read\n");
     fprintf(stderr, "failed to read tags from %s\n", file_name);
     return 1;
   }
   printf("base addr = 0x%08x\ncode addr = 0x%08x\n", base_address, code_address);
-//  printf("processing code stream...\n");
+// use this for debugging with gdb
 //  FILE *foo = fopen("/tmp/bits.bin", "rb");
 //  rv32_insn_stream_t s(foo);
   rv32_insn_stream_t s(stdin);
@@ -104,24 +98,13 @@ try {
 	map.add_range(code_address, code_address + 4, metadata);
       }
       code_address += 4;
-//      printf("%s\n", name);
-
-//      printf("0x%08x ", insn);
-//      if (cnt++ % 8 == 0)
-//	printf("\n");
     }
   } catch (read_error_t &e) {
     fprintf(stderr, "read error on stdin\n");
     return 1;
   }
-//  printf("done\n");
-#if 0
-  if (!load_tags(&map, argv[2])) {
-    fprintf(stderr, "failed to read tags from %s\n", argv[2]);
-    return 1;
-  }
-#endif
-  printf("writing tags to %s\n", file_name);
+
+//  printf("writing tags to %s\n", file_name);
   if (!save_tags(&map, file_name)) {
     printf("failed write of tag file\n");
     return 1;

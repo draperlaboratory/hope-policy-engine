@@ -12,7 +12,6 @@ class metadata_memory_map_t {
   address_t base;
   address_t end_address;
   metadata_cache_t *md_cache;
-//  meta_set_cache_t *ms_cache;
   
   static const int stride = sizeof(uint32_t); // platform word size
   std::vector<metadata_t const *> map;
@@ -65,7 +64,6 @@ class metadata_memory_map_t {
 	    current.first.start = map->index_to_addr(cur_index);
 	    current.second = map->map[cur_index];
 	    while (cur_index < end_index && (map->map[cur_index] != nullptr) &&
-//		   (*map->map[cur_index] == *current.second)) {
 		   (map->map[cur_index] == current.second)) {
 	      cur_index++;
 	    }
@@ -130,16 +128,11 @@ class metadata_memory_map_t {
     }
   };
   
-//  typedef ForwardIterator<tag_collection_t> iterator;
-//  typedef ForwardIterator<const tag_collection_t> const_iterator;
   typedef ForwardIterator<metadata_memory_map_t> iterator;
   typedef ForwardIterator<const metadata_memory_map_t> const_iterator;
 
   iterator begin() { return iterator(this); }
   iterator end() { return iterator(this, true); }
 };
-
-//it->first = range
-//it->second = meta_set_t *
 
 #endif

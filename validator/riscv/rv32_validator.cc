@@ -33,22 +33,6 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
-
-#if 0
-  ms = ms_factory.get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
-  tag_bus.add_provider(0x80000000, 0x100000,
-		       new platform_ram_tag_provider_t(0x100000, 4, m_to_t(ms)));
-  ms = ms_factory.get_meta_set("requires.dover.Kernel.Code.ElfSection.SHF_WRITE");
-  tag_bus.add_provider(0x80100000, 0x100000 * 4,
-		       new platform_ram_tag_provider_t(0x1000000 * 4, 4, m_to_t(ms)));
-  ms = ms_factory.get_meta_set("requires.dover.SOC.IO.UART0");
-  tag_bus.add_provider(0x70001000, 0x1000,
-		       new uniform_tag_provider_t(0x1000, m_to_t(ms)));
-  tag_bus.add_provider(0x44004000, 0x10, // mtime_cmp
-		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
-  tag_bus.add_provider(0x4400bff8, 0x10, // mtime
-		       new uniform_tag_provider_t(0x10, m_to_t(ms)));
-#endif
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
@@ -81,7 +65,6 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 //    handle_violation(ctx, ops, res);
 
   return policy_result == POLICY_SUCCESS;
-//  return true;
 }
 
 void rv32_validator_t::commit() {
@@ -140,7 +123,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     printf("failed to load CI tag\n");
 //    printf("ci_tag: 0x%lx\n", ci_tag);
   ctx->epc = pc;
-
 //  ctx->bad_addr = 0;
 //  ctx->cached = false;
 
@@ -148,17 +130,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   ops->ci = &temp_ci_tag;
 //  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
 //  printf("ci tag name before merge: %s\n", tag_name);
-
-  // hacking in the opgroup part of the metadata dynamically.
-//  meta_set_t *group_set = ms_factory->get_group_meta_set(name);
-//  ms_union(ops->ci, group_set);
-
-//  meta_set_to_string(group_set, tag_name, sizeof(tag_name));
-//  printf("group tag: %s\n", tag_name);
-
-//  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
-//  printf("ci tag name after union: %s\n", tag_name);
-
   ops->pc = t_to_m(pc_tag);
 }
 

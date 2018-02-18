@@ -7,7 +7,6 @@
 #include "riscv_isa.h"
 
 extern "C" void debug_msg(context_t *ctx, const char *msg) {
-//  printf("@%p: %s", ctx->epc, msg);
   printf("%s", msg);
 }
 

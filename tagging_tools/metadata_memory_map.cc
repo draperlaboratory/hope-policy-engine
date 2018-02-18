@@ -24,7 +24,6 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
     metadata_t const *md;
     if (map[s]) {
       md = map[s];
-//	metadata_t *new_md = new metadata_t(*md | *metadata);
       metadata_t *new_md = new metadata_t(*md);
       new_md->insert(metadata);
       md = md_cache->canonize(new_md);

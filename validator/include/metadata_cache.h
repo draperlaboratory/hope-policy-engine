@@ -9,14 +9,10 @@ class metadata_cache_t {
   std::unordered_map<metadata_t, metadata_t *, metadata_t::hasher_t, metadata_t::equal_t> map;
   public:
   metadata_t const *canonize(metadata_t const *md) {
-//    metadata_t *res = md;
     if (map.find(*md) == map.end()) {
       map[*md] = new metadata_t(*md);
     }
     return map[*md];
-//    if (res != md)
-//      delete md;
-//    return res;
   }
 };
 

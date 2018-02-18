@@ -24,19 +24,17 @@ bool load_tags(metadata_memory_map_t *map, std::string file_name) {
 
   if (!fp)
     return false;
-//printf("file opened\n");
+
   file_reader_t reader(fp);
   fseek(fp, 0, SEEK_END);
   size_t eof_point = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   
-//printf("file reading\n");
-//  while (!feof(fp)) {
   while (eof_point != ftell(fp)) {
     address_t start;
     address_t end;
     uint32_t metadata_count;
-//printf("file record\n");
+
     if (!read_uleb<file_reader_t, uint32_t>(&reader, start)) {
       fclose(fp);
       return false;
@@ -58,12 +56,9 @@ bool load_tags(metadata_memory_map_t *map, std::string file_name) {
 	delete metadata;
 	return false;
       }
-//      *metadata += meta;
       metadata->insert(meta);
     }
-//printf("file adding\n");
     map->add_range(start, end, metadata);
-//printf("file more\n");
   }
   fclose(fp);
   return true;
@@ -76,7 +71,6 @@ bool save_tags(metadata_memory_map_t *map, std::string file_name) {
     return false;
   file_writer_t writer(fp);
   for (auto &e: *map) {
-//    printf("writing 0x%x\n", e.first.start);
     if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;
@@ -90,8 +84,6 @@ bool save_tags(metadata_memory_map_t *map, std::string file_name) {
       return false;
     }
     for (auto &m: *e.second) {
-//    for (int i = 0; i < ; i++) {
-//      if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second->tags[i])) {
       if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
 	fclose(fp);
 	return false;
