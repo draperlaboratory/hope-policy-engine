@@ -28,7 +28,7 @@ void init() {
     init_metadata_renderer(md_factory);
     soc_tag_configuration_t *soc_config =
       new soc_tag_configuration_t(ms_factory,
-				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg.yml");
+				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg/miv_cfg.yml");
     rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
   } catch (validator::exception_t &e) {
     printf("exception: %s\n", e.what().c_str());

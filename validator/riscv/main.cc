@@ -21,7 +21,7 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
     ms_factory = new meta_set_factory_t(&ms_cache, getenv("GENERATED_POLICY_DIR"));
     soc_tag_configuration_t *soc_config =
       new soc_tag_configuration_t(ms_factory,
-				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg.yml");
+				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg/miv_cfg.yml");
     rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
 
     address_t base_address = 0x80000000; // FIXME - need to be able to query for this

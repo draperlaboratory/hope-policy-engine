@@ -21,8 +21,6 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   res->rdResult = false;
   res->csrResult = false;
 
-//  soc_tag_configuration_t soc_cfg(&ms_factory, soc_config_file);
-
   meta_set_t const *ms;
 
   ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
