@@ -15,9 +15,10 @@ metadata_factory_t *md_factory;
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
 //    init_metadata_renderer(md_factory);
 
-void init() {
+void init(const char *policy_dir) {
   try {
-    md_factory = new metadata_factory_t(getenv("GENERATED_POLICY_DIR"));
+//    md_factory = new metadata_factory_t(getenv("GENERATED_POLICY_DIR"));
+    md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
   } catch (validator::exception_t &e) {
     printf("exception: %s\n", e.what().c_str());
@@ -25,7 +26,10 @@ void init() {
 }
 
 void usage() {
-  printf("usage: md_code <base_address> <code_address> <tag_file>\n");
+  printf("usage: md_code <policy-dir> <base_address> <code_address> <tag_file>\n");
+  printf("  Reads a stream of binary instructions from stdin, applying metadata\n");
+  printf("  for each instruction related to the group of operations that instruction\n");
+  printf("  may represent.\n");
 }
 
 struct abstract_instruction_stream_t {
@@ -54,17 +58,23 @@ class rv32_insn_stream_t : public abstract_instruction_stream_t {
 
 int main(int argc, char **argv) {
 try {
+  const char *policy_dir;
   address_t base_address;
   address_t code_address;
   const char *file_name;
-  if (argc != 4) {
+
+  if (argc != 5) {
     usage();
     return 0;
   }
-  base_address = strtol(argv[1], 0, 16);
-  code_address = strtol(argv[2], 0, 16);
-  file_name = argv[3];
-  init();
+
+  policy_dir = argv[1];
+  base_address = strtol(argv[2], 0, 16);
+  code_address = strtol(argv[3], 0, 16);
+  file_name = argv[4];
+
+//  policy_dir = getenv("GENERATED_POLICY_DIR");
+  init(policy_dir);
   metadata_memory_map_t map(base_address, &md_cache);
 //  printf("reading tags from %s\n", argv[2]);
   if (!load_tags(&map, file_name)) {

@@ -58,9 +58,10 @@ def generate_rwx_ranges(ef, range_file):
                range_file.write_range(start, end, RWX_R)
                print('R {0}: 0x{1:X}'.format(s.name, start))
 
-base_address_string = sys.argv[1]
-taginfo_file_name = sys.argv[2]
-elf_file_name = sys.argv[3]
+policy_dir = sys.argv[1]
+base_address_string = sys.argv[2]
+taginfo_file_name = sys.argv[3]
+elf_file_name = sys.argv[4]
 
 try:
      os.remove(taginfo_file_name)
@@ -77,7 +78,7 @@ with open(elf_file_name, 'rb') as f:
 
      range_file.finish();
      #range_file.print()
-     proc = subprocess.Popen([md_range, base_address_string, range_file.name(), taginfo_file_name])
+     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
      proc.wait()
      range_file.done()
 
@@ -86,6 +87,7 @@ with open(elf_file_name, 'rb') as f:
           if s['sh_flags'] & SH_FLAGS.SHF_EXECINSTR:
                section_addr_string = '0x{:08x}'.format(s['sh_addr'])
                proc = subprocess.Popen([md_code,
+                                        policy_dir,
                                         base_address_string,
                                         section_addr_string,
                                         taginfo_file_name],

@@ -16,9 +16,9 @@ metadata_factory_t *md_factory;
 
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
 
-void init() {
+void init(const char *policy_dir) {
   try {
-    md_factory = new metadata_factory_t(getenv("GENERATED_POLICY_DIR"));
+    md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
   } catch (validator::exception_t &e) {
     printf("exception: %s\n", e.what().c_str());
@@ -84,17 +84,27 @@ void usage() {
 }
 
 int main(int argc, char **argv) {
+  const char *policy_dir;
   address_t base_address;
-  if (argc != 4) {
+  const char *range_file_name;
+  const char *file_name;
+
+  if (argc != 5) {
     usage();
     return 0;
   }
-  base_address = strtol(argv[1], 0, 16);
-  init();
+
+//  policy_dir = getenv("GENERATED_POLICY_DIR");
+  policy_dir = argv[1];
+  base_address = strtol(argv[2], 0, 16);
+  range_file_name = argv[3];
+  file_name = argv[4];
+
+  init(policy_dir);
   metadata_memory_map_t map(base_address, &md_cache);
-  if (!load_range_file(&map, argv[2]))
+  if (!load_range_file(&map, range_file_name))
     return 1;
-  if (!save_tags(&map, argv[3])) {
+  if (!save_tags(&map, file_name)) {
     printf("failed write of tag file\n");
     return 1;
   }
