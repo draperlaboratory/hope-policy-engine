@@ -31,19 +31,19 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   if (n["name"]) {
     elt_path = n["name"].as<std::string>();
   } else {
-    throw validator::configuration_exception_t("'name' field not present for element " + element_name);
+    throw configuration_exception_t("'name' field not present for element " + element_name);
   }
   
   if (n["start"]) {
     elt.start = n["start"].as<unsigned>();
   } else {
-    throw validator::configuration_exception_t("'start' field not present for element " + element_name);
+    throw configuration_exception_t("'start' field not present for element " + element_name);
   }
   
   if (n["end"]) {
     elt.end = n["end"].as<unsigned>();
   } else {
-    throw validator::configuration_exception_t("'end' field not present for element " + element_name);
+    throw configuration_exception_t("'end' field not present for element " + element_name);
   }
   if (n["heterogeneous"]) {
     elt.heterogeneous = n["heterogeneous"].as<bool>();
@@ -64,7 +64,7 @@ soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t * factory,
       process_element(it->first.as<std::string>(), it->second);
     }
   } else {
-    throw validator::configuration_exception_t("Expected a root SOC node");
+    throw configuration_exception_t("Expected a root SOC node");
   }
 }
 

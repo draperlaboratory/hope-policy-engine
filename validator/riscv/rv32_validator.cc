@@ -49,7 +49,7 @@ void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
 //      std::string s = render_metadata(e.second);
 //      printf("0x%08x: %s\n", start, s.c_str());
       if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
-	throw validator::configuration_exception_t("unable to apply metadata");
+	throw configuration_exception_t("unable to apply metadata");
       }
     }
   }

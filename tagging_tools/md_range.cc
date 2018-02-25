@@ -17,7 +17,7 @@ void init(const char *policy_dir) {
   try {
     md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
-  } catch (validator::exception_t &e) {
+  } catch (exception_t &e) {
     printf("exception: %s\n", e.what().c_str());
   }
 }

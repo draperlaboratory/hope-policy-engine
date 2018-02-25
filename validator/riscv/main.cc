@@ -33,7 +33,7 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
     } else {
       rv_validator->apply_metadata(&map);
     }
-  } catch (validator::exception_t &e) {
+  } catch (exception_t &e) {
     printf("validator exception %s while setting callbacks - policy code DOA\n", e.what().c_str());
     DOA = true;
   } catch (std::exception &e) {

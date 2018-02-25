@@ -19,6 +19,7 @@ static uint32_t regs[32];
 
 uint32_t reg_reader(uint32_t regno) { return regs[regno]; }
 
+// so we can do debugging output with string representations of tags
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
 
 void init() {
@@ -30,7 +31,7 @@ void init() {
       new soc_tag_configuration_t(ms_factory,
 				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg/miv_cfg.yml");
     rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
-  } catch (validator::exception_t &e) {
+  } catch (exception_t &e) {
     printf("exception: %s\n", e.what().c_str());
   }
 }
