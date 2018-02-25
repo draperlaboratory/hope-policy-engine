@@ -96,7 +96,7 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
 }
 
 void usage() {
-  printf("usage: tag_range <base_address> <range_file> <tag_file>\n");
+  printf("usage: md_range <policy_dir> <base_address> <range_file> <tag_file>\n");
 }
 
 int main(int argc, char **argv) {
