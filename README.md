@@ -156,5 +156,5 @@ CPU).
 
 # Tools For Tags
 
-Still to be finished: basic tooling to allow for generating tagging information
-for an arbitrary application.
+See README in tagging_tools directory.
+
