@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(renode_pipe)
+project(policy-engine)
 
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_C_COMPILER gcc)
@@ -8,18 +8,7 @@ set (CMAKE_CXX_COMPILER g++)
 find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
 include_directories("./validator/include")
-#include_directories("./validator/riscv")
-#include_directories("./validator/include/policy-glue")
-#include_directories("./policy/include")
 include_directories("./tagging_tools")
-#include_directories(".")
-
-#add_executable(meta_test
-#	meta_test.cc meta_set_factory.cc metadata_factory.cc soc_tag_configuration.cc
-#	riscv/debug.cc
-#	policy/src/policy_meta_set.c policy/src/policy_utils.c
-#	)
-#target_link_libraries(meta_test yaml-cpp)
 
 add_library(validator
   validator/src/metadata_factory.cc
