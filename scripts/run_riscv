@@ -1,0 +1,12 @@
+#!/bin/bash
+renode_file=/tmp/$(id -u -n)_renode.txt
+cat > $renode_file <<- EOF
+mach create
+machine LoadPlatformDescription @platforms/boards/miv-board.repl
+sysbus.cpu MaximumBlockSize 1
+showAnalyzer sysbus.uart
+EOF
+full_path=`readlink -f $1`
+echo "sysbus LoadELF @$full_path" >> $renode_file
+echo "sysbus.cpu SetExternalValidator @/home/eli/src/policy-engine/build/librv32-renode-validator.so" >> $renode_file
+~/dover-repos/renode/renode $renode_file
