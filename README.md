@@ -158,3 +158,83 @@ CPU).
 
 See README in tagging_tools directory.
 
+# Getting Started
+
+## Build gcc
+
+Pull the RISCV gnu toolchain from
+<https://github.com/riscv/riscv-gnu-toolchain>.  Configure it as follows:
+
+```
+mkdir build
+cd build
+../configure --prefix=<wherever you want it installed> --with-arch=rv32g --with-abi=ilp32
+make
+```
+
+You will not have to build this again anytime soon.
+
+## Build Renode
+
+You need to follow the instructions in the Renode repos README.md for getting
+the prerequisites to build renode.  When you get pull the renode project, the
+first time you build it, it will populate submodules.  The submodules will not
+be on the proper branch, because of some git submodule issues that we haven't
+sorted out.  So build the project once, then go to the src/Infrastructure
+directory, and do a `git checkout dover` to ensure that it is on the proper
+branch.  Then go back to the top level renode directory, and run `./build.sh -c`
+followed by `./build.sh`.
+
+You will not have to build this again anytime soon.
+
+## Build the policy-tool
+
+The policy tool uses `stack` to build.  Pull the policy-tool project, and build
+it with `stack install`.
+
+## Build the policy-engine Project
+
+Go to the policy engine project.  Run the policy tool with `./bld_policy`.  This
+will populate the local `policy` directory with the RWX policy.
+
+Then build the policy-engine project, proper:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+This will build the renode validator, plus the standalone validator test app.
+
+## Build a FreeRTOS project
+
+Pull the FreeRTOS repos.  Go to the `Demo/RISCV_MIV_GCC/hello_world` directory,
+and follow the instructions in the README.md file for building the hello world
+sample.
+
+## Generate Tags
+
+Run the `policy-engine/tagging_tools/gen_tag_info` script on your hello world
+binary like this:
+
+```
+policy-engine/tagging_tools/gen_tag_info policy_engine/policy 0x80000000 policy_engine/application_tags.taginfo main
+```
+## Run Under Renode
+
+In your `policy-engine/scripts` directory, there is a `run_riscv` script.  You
+will have to change paths in there to point at your renode build, and at your
+policy-engine build.
+
+You have to export a variable to point to policy stuff:
+
+```
+export GENERATED_POLICY_DIR=<whatever>/policy-engine/policy
+```
+
+Then you can use the run_riscv script to run your app under renode:
+
+```
+policy_engine/scripts/run_riscv FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/main
+```
