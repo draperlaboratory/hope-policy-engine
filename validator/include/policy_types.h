@@ -29,6 +29,16 @@
 
 #include <stdint.h>
 
+/**
+   meta_t is a type that is shared between the policy code running on the target platform and
+   the policy code running on the functional simulator.  The type is defined here to reduce
+   dependencies on external projects, accepting the minimal hassle that comes with maintaining
+   the type in two or more places.
+
+   Functional code in the policy engine will perform to specifications provided that this
+   type satisfies the constraint that it is an unsigned integral type.  In particular,
+   all bets could be off if the type was made signed.
+*/
 typedef uintptr_t meta_t;
 
 #endif
