@@ -1,5 +1,5 @@
 #!/bin/bash
 dot="$(cd "$(dirname "$0")"; pwd)"
 policy_output_path="$dot/policy"
-~/.local/bin/policy-tool -m ~/dover-repos/ISP-Tests/policy/unit_tests -o $policy_output_path dover.frtos.main.rwx
+~/.local/bin/policy-tool -d -m $dot/../policy-SSITH -o $policy_output_path frtos.osv_rwx.main
 
