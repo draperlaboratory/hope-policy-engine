@@ -10,7 +10,9 @@ complete or partial SOC environments.
 The framework here was constructed primarily to allow integration with Renode,
 but other bindings should be relatively easy to accomplish.
 
-The framework currently builds on linux.
+The framework currently builds on linux.  For installation
+instructions, skip the the [Getting Started](getting-started) section
+below.
 
 # Renode
 
@@ -163,7 +165,13 @@ See README in tagging_tools directory.
 ## Build gcc
 
 Pull the RISCV gnu toolchain from
-<https://github.com/riscv/riscv-gnu-toolchain>.  Configure it as follows:
+<https://github.com/riscv/riscv-gnu-toolchain>.  Note that this is the
+official version from the RISC-V foundation github, not the custom
+Dover/Draper version.
+
+Follow the instructions in that repository's README to pull its
+submodules and install relevant prerequisites (the "Getting the
+sources" and "Prerequisites" section in the README).  Then, configure it as follows:
 
 ```
 mkdir build
@@ -174,9 +182,14 @@ make
 
 You will not have to build this again anytime soon.
 
+
 ## Build Renode
 
-You need to follow the instructions in the Renode repos README.md for getting
+Pull our modified version of Renode:
+
+<https://github.com/DoverMicrosystems/renode>
+
+You need to follow the instructions in the Renode repos README.rst for getting
 the prerequisites to build renode.  When you get pull the renode project, the
 first time you build it, it will populate submodules.  The submodules will not
 be on the proper branch, because of some git submodule issues that we haven't
@@ -187,15 +200,42 @@ followed by `./build.sh`.
 
 You will not have to build this again anytime soon.
 
+
 ## Build the policy-tool
 
-The policy tool uses `stack` to build.  Pull the policy-tool project, and build
-it with `stack install`.
+Pull the policy tool:
+
+<https://github.com/DoverMicrosystems/policy-tool>
+
+The policy tool uses `stack` to build.  If you don't have stack
+installed, you can find [installation instructions at the Stack
+website](https://docs.haskellstack.org/en/stable/README/).
+
+Once you have stack installed, build the policy tool by running `stack
+install` from the top level `policy-tool` directory.  This may take a
+while the first time, as a local instance of GHC and all dependencies
+are installed.
+
 
 ## Build the policy-engine Project
 
-Go to the policy engine project.  Run the policy tool with `./bld_policy`.  This
-will populate the local `policy` directory with the RWX policy.
+Pull the repository containing the repositories:
+
+<https://github.com/DoverMicrosystems/policy-SSITH.git>
+
+This be in the same directory as the `policy-engine` repository (they
+should have the same parent directory).
+
+Go to the policy engine project.  Run the policy tool with
+`./bld_policy`.  This will populate the local `policy` directory with
+the RWX policy.
+
+The policy engine requires `cmake` and a few C++ libraries to build.
+On Ubuntu, you can get these with
+
+```
+sudo apt-get install cmake libboost-dev libboost-program-options-dev libyaml-cpp-dev
+```
 
 Then build the policy-engine project, proper:
 
@@ -205,22 +245,38 @@ cd build
 cmake ..
 make
 ```
-This will build the renode validator, plus the standalone validator test app.
+
+This will build the renode validator, plus the standalone validator test app.  For example, from the build directory, you should see a simple policy violation error when you run:
+
+```
+./standalone ../policy ../soc_cfg/miv_cfg.yml
+```
+
 
 ## Build a FreeRTOS project
 
-Pull the FreeRTOS repos.  Go to the `Demo/RISCV_MIV_GCC/hello_world` directory,
-and follow the instructions in the README.md file for building the hello world
+Pull the FreeRTOS repos:
+
+<https://github.com/DoverMicrosystems/FreeRTOS>
+
+Go to the `Demo/RISCV_MIV_GCC/hello_world` directory, and follow the
+instructions in the README.md file for building the hello world
 sample.
+
 
 ## Generate Tags
 
-Run the `policy-engine/tagging_tools/gen_tag_info` script on your hello world
-binary like this:
+The next stem is to run the `policy-engine/tagging_tools/gen_tag_info`
+script on your hello world binary.  This tool depends on some python
+packages, so install those first:
+
+Permission denied:
+'/usr/local/lib/python2.7/dist-packages/pyelftools-0.24.dist-info'
 
 ```
 policy-engine/tagging_tools/gen_tag_info policy_engine/policy 0x80000000 policy_engine/application_tags.taginfo main
 ```
+
 ## Run Under Renode
 
 In your `policy-engine/scripts` directory, there is a `run_riscv` script.  You
