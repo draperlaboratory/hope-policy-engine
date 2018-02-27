@@ -187,7 +187,7 @@ You will not have to build this again anytime soon.
 
 Pull our modified version of Renode:
 
-<https://github.com/DoverMicrosystems/renode>
+<https://github.com/draperlaboratory/hope-renode.git>
 
 You need to follow the instructions in the Renode repos README.rst for getting
 the prerequisites to build renode.  When you get pull the renode project, the
@@ -205,7 +205,7 @@ You will not have to build this again anytime soon.
 
 Pull the policy tool:
 
-<https://github.com/DoverMicrosystems/policy-tool>
+<https://github.com/draperlaboratory/hope-policy-tool.git>
 
 The policy tool uses `stack` to build.  If you don't have stack
 installed, you can find [installation instructions at the Stack
@@ -221,7 +221,7 @@ are installed.
 
 Pull the repository containing the repositories:
 
-<https://github.com/DoverMicrosystems/policy-SSITH.git>
+<https://github.com/draperlaboratory/hope-policies.git>
 
 This be in the same directory as the `policy-engine` repository (they
 should have the same parent directory).
@@ -257,7 +257,7 @@ This will build the renode validator, plus the standalone validator test app.  F
 
 Pull the FreeRTOS repos:
 
-<https://github.com/DoverMicrosystems/FreeRTOS>
+<https://github.com/draperlaboratory/hope-FreeRTOS.git>
 
 Go to the `Demo/RISCV_MIV_GCC/hello_world` directory, and follow the
 instructions in the README.md file for building the hello world
