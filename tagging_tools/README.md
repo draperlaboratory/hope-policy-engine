@@ -73,9 +73,12 @@ of group tags for each concrete instruction.
 There is one script that can be used used on an ELF format binary to generate tagging information
 for an application.
 
-`gen_tag_info` is a python script that uses pyelf to parse an input ELF file, and calls
+`gen_tag_info` is a python script that uses pyelftools to parse an input ELF file, and calls
 both `md_range` and `md_code` to generate tagging information for the RWX policy for the application.
-This utility can be expanded upon to add more policy support.
+This utility can be expanded upon to add more policy support.  The script uses python3, so make
+sure you get the python3 version of pyelftools.  The simplest way to do that is to run:
+
+```sudo pip3 install pyelftools```
 
 # Future
 

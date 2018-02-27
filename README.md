@@ -271,9 +271,15 @@ script on your hello world binary.  This tool depends on some python
 packages, so install those first:
 
 ```
-policy-engine/tagging_tools/gen_tag_info policy_engine/policy 0x80000000 policy_engine/application_tags.taginfo main
+policy-engine/tagging_tools/gen_tag_info policy_engine/policy 0x80000000 policy_engine/application_tags.taginfo hello_world
 ```
 
+The location of the `application_tags.taginfo file` has some hardcoding
+requirement on it currently.  The Renode validator shared library will load
+policy YAML files in order to set up register state.  It will look to the
+environment variable mentioned in the `Run Under Renode` section for those.  It
+will also load the file `application_tags.taginfo` from the directory one above
+the policy directory.  This will be changed in the future to be configurable.
 
 ## Run Under Renode
 
@@ -290,5 +296,5 @@ export GENERATED_POLICY_DIR=<whatever>/policy-engine/policy
 Then you can use the run_riscv script to run your app under renode:
 
 ```
-policy_engine/scripts/run_riscv FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/main
+policy_engine/scripts/run_riscv FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/hello_world
 ```
