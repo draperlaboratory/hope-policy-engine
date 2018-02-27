@@ -11,7 +11,7 @@ The framework here was constructed primarily to allow integration with Renode,
 but other bindings should be relatively easy to accomplish.
 
 The framework currently builds on linux.  For installation
-instructions, skip the the [Getting Started](getting-started) section
+instructions, skip the the [Getting Started](#getting-started) section
 below.
 
 # Renode
