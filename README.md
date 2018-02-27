@@ -270,12 +270,10 @@ The next stem is to run the `policy-engine/tagging_tools/gen_tag_info`
 script on your hello world binary.  This tool depends on some python
 packages, so install those first:
 
-Permission denied:
-'/usr/local/lib/python2.7/dist-packages/pyelftools-0.24.dist-info'
-
 ```
 policy-engine/tagging_tools/gen_tag_info policy_engine/policy 0x80000000 policy_engine/application_tags.taginfo main
 ```
+
 
 ## Run Under Renode
 
