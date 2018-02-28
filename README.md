@@ -98,12 +98,13 @@ from a direct hardware integration to a functional simulator.
 
 # Tags vs Metadata
 
-There is a subtle distinction between tags and metadata records.  Tags here are the
-architecture specific values associated with registers and memory locations.
-Metadata records (meta_set_t type in policy code) are referred to by tags.  How
-that reference is accomplished is intended to be flexible.  In the
-implementation here, they are simple pointers, but a distinction is maintained
-at the API level to leave it flexible.
+There is a subtle distinction between tags and metadata records.  Tags
+here are the architecture specific values associated with registers
+and memory locations.  Metadata records (meta_set_t type in policy
+code) are referred to by tags.  How that reference is accomplished is
+intended to be flexible.  In the implementation here, they are simple
+pointers, but a distinction is maintained at the API level to leave it
+flexible.
 
 # Metadata Management
 
@@ -148,13 +149,13 @@ implementations of validators to set up the initial system state.
 # RISCV Tag Based Validator
 
 There is a RISCV specific implementation of a validator provided.  The
-implementation includes all the code necessary to set up the initial SOC state,
-and maintain metadata across a run.
+implementation includes all the code necessary to set up the initial SOC
+state, and maintain metadata across a run.
 
 The validator uses a RISCV instruction decoder to decode incoming instructions
 to determine which input tags (based on the registers used by the instruction)
-are used, and what memory tag should be used (dependent on register state of the
-CPU).
+are used, and what memory tag should be used (dependent on register state of
+the CPU).
 
 # Tools For Tags
 
@@ -169,9 +170,9 @@ Pull the RISCV gnu toolchain from
 official version from the RISC-V foundation github, not the custom
 Dover/Draper version.
 
-Follow the instructions in that repository's README to pull its
-submodules and install relevant prerequisites (the "Getting the
-sources" and "Prerequisites" section in the README).  Then, configure it as follows:
+Follow the instructions in that repository's README to pull its submodules and
+install relevant prerequisites (the "Getting the sources" and "Prerequisites"
+section in the README).  Then, configure it as follows:
 
 ```
 mkdir build
@@ -179,6 +180,9 @@ cd build
 ../configure --prefix=<wherever you want it installed> --with-arch=rv32g --with-abi=ilp32
 make
 ```
+
+The resulting binaries have names like "riscv32-unknown-elf-*".  A
+later step will expect to find these on your PATH.
 
 You will not have to build this again anytime soon.
 
@@ -190,13 +194,7 @@ Pull our modified version of Renode:
 <https://github.com/draperlaboratory/hope-renode.git>
 
 You need to follow the instructions in the Renode repos README.rst for getting
-the prerequisites to build renode.  When you get pull the renode project, the
-first time you build it, it will populate submodules.  The submodules will not
-be on the proper branch, because of some git submodule issues that we haven't
-sorted out.  So build the project once, then go to the src/Infrastructure
-directory, and do a `git checkout dover` to ensure that it is on the proper
-branch.  Then go back to the top level renode directory, and run `./build.sh -c`
-followed by `./build.sh`.
+the prerequisites and building renode.
 
 You will not have to build this again anytime soon.
 
@@ -271,21 +269,32 @@ script on your hello world binary.  This tool depends on some python
 packages, so install those first:
 
 ```
-policy-engine/tagging_tools/gen_tag_info policy_engine/policy 0x80000000 policy_engine/application_tags.taginfo hello_world
+sudo apt-get install python3-pip
+pip3 install pyelftools
 ```
 
-The location of the `application_tags.taginfo file` has some hardcoding
-requirement on it currently.  The Renode validator shared library will load
+Then invoke the tagging tool, adjusting the paths appropriately:
+
+```
+hope-policy-engine/tagging_tools/gen_tag_info hope-policy-engine/policy 0x80000000 hope-policy-engine/application_tags.taginfo hello_world
+```
+
+You can ignore the warnings about missing tags for floating point
+instructions.
+
+The location of the `application_tags.taginfo` file has some hardcoding
+requirements on it currently.  The Renode validator shared library will load
 policy YAML files in order to set up register state.  It will look to the
 environment variable mentioned in the `Run Under Renode` section for those.  It
 will also load the file `application_tags.taginfo` from the directory one above
 the policy directory.  This will be changed in the future to be configurable.
 
+
 ## Run Under Renode
 
-In your `policy-engine/scripts` directory, there is a `run_riscv` script.  You
-will have to change paths in there to point at your renode build, and at your
-policy-engine build.
+In your `hope-policy-engine/scripts` directory, there is a `run_riscv` script.
+You will have to change paths in there to point at your renode build, and at
+your policy-engine build.
 
 You have to export a variable to point to policy stuff:
 
@@ -296,5 +305,5 @@ export GENERATED_POLICY_DIR=<whatever>/policy-engine/policy
 Then you can use the run_riscv script to run your app under renode:
 
 ```
-policy_engine/scripts/run_riscv FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/hello_world
+hope-policy-engine/scripts/run_riscv hope-FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/build/hello_world
 ```
