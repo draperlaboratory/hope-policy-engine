@@ -181,6 +181,11 @@ cd build
 make
 ```
 
+(On Arch Linux one also has to pass `--with-guile=no` to `configure`,
+since [the guile version that comes with Arch is
+incompatible](https://github.com/riscv/riscv-binutils-gdb/issues/82)
+and for some reason it gets picked up by `riscv-binutils-gdb`)
+
 The resulting binaries have names like "riscv32-unknown-elf-*".  A
 later step will expect to find these on your PATH.
 
