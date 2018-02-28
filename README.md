@@ -196,6 +196,13 @@ Pull our modified version of Renode:
 You need to follow the instructions in the Renode repos README.rst for getting
 the prerequisites and building renode.
 
+The first time you build Renode, it will populate submodules.  The submodules
+will not be on the proper branch, because of some git submodule issues that we
+haven't sorted out.  So build the project once, then go to the
+src/Infrastructure directory, and do a `git checkout dover` to ensure that it
+is on the proper branch.  Then go back to the top level renode directory, and
+run `./build.sh -c` followed by `./build.sh`.
+
 You will not have to build this again anytime soon.
 
 
