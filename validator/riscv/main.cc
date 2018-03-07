@@ -84,7 +84,7 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
   return 0;
 }
 
-extern "C" void e_v_commit() {
+extern "C" uint32_t e_v_commit() {
 //  printf("committing\n");
   if (!DOA) {
     try {
@@ -94,4 +94,5 @@ extern "C" void e_v_commit() {
       DOA = true;
     }
   }
+  return 1;
 }
