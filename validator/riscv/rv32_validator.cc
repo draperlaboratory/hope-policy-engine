@@ -38,11 +38,11 @@ static const char *tag_name(meta_set_t const *tag) {
   return tag_name;
 }
 
-rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
-				   meta_set_factory_t *ms_factory,
-				   soc_tag_configuration_t *config,
-				   RegisterReader_t rr) :
-  tag_based_validator_t(ms_cache, ms_factory, rr) {
+rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
+					     meta_set_factory_t *ms_factory,
+					     RegisterReader_t rr)
+  : tag_based_validator_t(ms_cache, ms_factory, rr) {
+  
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
   res = (results_t *)malloc(sizeof(results_t));
@@ -52,6 +52,33 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   res->pcResult = false;
   res->rdResult = false;
   res->csrResult = false;
+}
+
+void rv32_validator_base_t::setup_validation() {
+  memset(ctx, 0, sizeof(*ctx));
+  memset(ops, 0, sizeof(*ops));
+
+  if (res->pcResult) {
+    memset(res->pc, 0, sizeof(meta_set_t));
+    res->pcResult = false;
+  }
+
+  if (res->rdResult) {
+    memset(res->rd, 0, sizeof(meta_set_t));
+    res->rdResult = false;
+  }
+
+  if (res->csrResult) {
+    memset(res->csr, 0, sizeof(meta_set_t));
+    res->csrResult = false;
+  }
+}
+
+rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
+				   meta_set_factory_t *ms_factory,
+				   soc_tag_configuration_t *config,
+				   RegisterReader_t rr) :
+  rv32_validator_base_t(ms_cache, ms_factory, rr) {
 
   meta_set_t const *ms;
 
@@ -83,6 +110,8 @@ void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
+
+  setup_validation();
   
   prepare_eval(pc, insn);
   
@@ -124,23 +153,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
   int32_t flags;
   
-  memset(ctx, 0, sizeof(*ctx));
-  memset(ops, 0, sizeof(*ops));
-
-  if(res->pcResult){
-    memset(res->pc, 0, sizeof(meta_set_t));
-    res->pcResult = false;
-  }
-
-  if(res->rdResult){
-    memset(res->rd, 0, sizeof(meta_set_t));
-    res->rdResult = false;
-  }
-
-  if(res->csrResult){
-    memset(res->csr, 0, sizeof(meta_set_t));
-    res->csrResult = false;
-  }
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
