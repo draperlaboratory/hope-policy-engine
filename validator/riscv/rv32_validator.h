@@ -40,6 +40,7 @@ namespace policy_engine {
 
 #define REG_SP 2
 class rv32_validator_t : public tag_based_validator_t {
+
   context_t *ctx;
   operands_t *ops;
   results_t *res;
@@ -76,6 +77,20 @@ class rv32_validator_t : public tag_based_validator_t {
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
+
+  // stop when the tag at the given address changes
+  int add_address_watch(address_t addr);
+  // stop when the tag at the given address changes to the given tag
+  int add_address_watch(address_t addr, tag_t tag);
+  // stop when the tag at the given register changes
+  int add_register_watch(int reg_num);
+  // stop when the tag at the given register changes to the given tag
+  int add_register_watch(int reg_num, tag_t tag);
+  // stop when the tag at the given csr changes
+  int add_csr_watch(int csr_num);
+  // stop when the tag at the given csr changes to the given tag
+  int add_csr_watch(int csr_num, tag_t tag);
+  void remove_watch(int id);
 };
 
 } // namespace policy_engine
