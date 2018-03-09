@@ -38,35 +38,52 @@ using namespace policy_engine;
 meta_set_cache_t ms_cache;
 meta_set_factory_t *ms_factory;
 rv32_validator_t *rv_validator;
+std::string policy_dir;
+std::string tags_file;
 
 static bool DOA = false;
 
 extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader) {
-  try {
-    printf("setting callbacks\n");
-    ms_factory = new meta_set_factory_t(&ms_cache, getenv("GENERATED_POLICY_DIR"));
-    soc_tag_configuration_t *soc_config =
-      new soc_tag_configuration_t(ms_factory,
-				  std::string(getenv("GENERATED_POLICY_DIR")) + "/../soc_cfg/miv_cfg.yml");
-    rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
-
-    address_t base_address = 0x80000000; // FIXME - need to be able to query for this
-    metadata_cache_t md_cache;
-    metadata_memory_map_t map(base_address, &md_cache);
-    std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
-    if (!load_tags(&map, tags_file)) {
-      printf("failed read\n");
-    } else {
-      rv_validator->apply_metadata(&map);
+  if(!DOA)
+    try {
+      printf("setting callbacks\n");
+      ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
+      soc_tag_configuration_t *soc_config =
+        new soc_tag_configuration_t(ms_factory, policy_dir + "/soc_cfg/miv_cfg.yml");
+      rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
+      
+      address_t base_address = 0x80000000; // FIXME - need to be able to query for this
+      metadata_cache_t md_cache;
+      metadata_memory_map_t map(base_address, &md_cache);
+      //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
+      if (!load_tags(&map, tags_file)) {
+        printf("failed read\n");
+      } else {
+        rv_validator->apply_metadata(&map);
+      }
+    } catch (exception_t &e) {
+      printf("validator exception %s while setting callbacks - policy code DOA\n", e.what().c_str());
+      DOA = true;
+    } catch (std::exception &e) {
+      printf("c++ exception %s while setting callbacks - policy code DOA\n", e.what());
+      DOA = true;
+    } catch (...) {
+      printf("c++ exception while setting callbacks - policy code DOA\n");
+      DOA = true;
     }
-  } catch (exception_t &e) {
-    printf("validator exception %s while setting callbacks - policy code DOA\n", e.what().c_str());
-    DOA = true;
+}
+
+extern "C" void e_v_set_metadata(const char *policy_path, const char *tag_info_file) {
+  try {
+    policy_dir = std::string(policy_path);
+    tags_file = std::string(tag_info_file);
+    printf("set policy dir: %s\n", policy_path);
+    printf("set taginfo file: %s\n", tag_info_file);
   } catch (std::exception &e) {
-    printf("c++ exception %s while setting callbacks - policy code DOA\n", e.what());
-    DOA = true;
+      printf("c++ exception %s while setting metadata - policy code DOA\n", e.what());
+      DOA = true;
   } catch (...) {
-    printf("c++ exception while setting callbacks - policy code DOA\n");
+    printf("c++ exception while setting metadata - policy code DOA\n");
     DOA = true;
   }
 }
