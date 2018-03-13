@@ -138,23 +138,73 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   return policy_result == POLICY_SUCCESS;
 }
 
-void rv32_validator_t::commit() {
+bool rv32_validator_t::commit() {
+  bool hit_watch = false;
   if (res->pcResult) {
-    pc_tag = m_to_t(ms_cache->canonize(*res->pc));
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
+    if(pc_tag != new_tag){
+      printf("Watch tag pc");
+      hit_watch = true;
+    }
+    pc_tag = new_tag;
   }
   if (has_pending_RD && res->rdResult) {
-    ireg_tags[pending_RD] = m_to_t(ms_cache->canonize(*res->rd));
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
+    for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
+      if(pending_RD == *it && ireg_tags[pending_RD] != new_tag){
+        printf("Watch tag reg");
+        hit_watch = true;
+      }
+    }
+    ireg_tags[pending_RD] = new_tag;
   }
   if (has_pending_mem && res->rdResult) {
-//    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
-    if (!tag_bus.store_tag(mem_addr, m_to_t(ms_cache->canonize(*res->rd)))) {
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
+    tag_t old_tag;
+    if (!tag_bus.load_tag(mem_addr, old_tag)) {
       printf("failed to store MR tag\n");
+      // might as well halt
+      hit_watch = true;
+    }
+//    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
+    for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
+      if(pending_RD == *it && old_tag != new_tag){
+        printf("Watch tag mem");
+        hit_watch = true;
+      }
+    }
+    if (!tag_bus.store_tag(mem_addr, new_tag)) {
+      printf("failed to store MR tag\n");
+      // might as well halt
+      hit_watch = true;
     }
   }
   if (has_pending_CSR && res->csrResult) {
-    csr_tags[pending_CSR] = m_to_t(ms_cache->canonize(*res->csr));
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->csr));
+    for(std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
+      if(pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
+        printf("Watch tag CSR");
+        hit_watch = true;
+      }
+    }
+    csr_tags[pending_CSR] = new_tag;
   }
+  return hit_watch;
 }
+
+void rv32_validator_t::set_pc_watch(bool watching){
+  watch_pc = watching;
+}
+void rv32_validator_t::set_reg_watch(address_t addr){
+  watch_regs.push_back(addr);
+}
+void rv32_validator_t::set_csr_watch(address_t addr){
+  watch_csrs.push_back(addr);
+}
+void rv32_validator_t::set_mem_watch(address_t addr){
+  watch_addrs.push_back(addr);
+}
+  
 
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
