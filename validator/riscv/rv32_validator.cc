@@ -190,7 +190,7 @@ bool rv32_validator_t::commit() {
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
       printf("failed to store MR tag\n");
       fflush(stdout);
-     // might as well halt
+      // might as well halt
       hit_watch = true;
     }
   }
@@ -207,6 +207,20 @@ bool rv32_validator_t::commit() {
   }
   return hit_watch;
 }
+
+void rv32_validator_t::set_pc_watch(bool watching){
+  watch_pc = watching;
+}
+void rv32_validator_t::set_reg_watch(address_t addr){
+  watch_regs.push_back(addr);
+}
+void rv32_validator_t::set_csr_watch(address_t addr){
+  watch_csrs.push_back(addr);
+}
+void rv32_validator_t::set_mem_watch(address_t addr){
+  watch_addrs.push_back(addr);
+}
+  
 
 void rv32_validator_t::set_pc_watch(bool watching){
   watch_pc = watching;

@@ -47,6 +47,11 @@ protected:
   results_t *res;
 
   public:
+
+  tag_t pc_tag;
+  tag_file_t<32> ireg_tags;
+  tag_file_t<0x1000> csr_tags;
+    
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
 			RegisterReader_t rr);
@@ -64,10 +69,6 @@ protected:
 
 #define REG_SP 2
 class rv32_validator_t : public rv32_validator_base_t {
-
-  tag_file_t<32> ireg_tags;
-  tag_file_t<0x1000> csr_tags;
-  tag_t pc_tag;
   uint32_t pending_RD;
   address_t mem_addr;
   uint32_t pending_CSR;
