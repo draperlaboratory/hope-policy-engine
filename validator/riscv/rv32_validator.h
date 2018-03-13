@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <vector>
 
 #include "soc_tag_configuration.h"
 #include "tag_based_validator.h"
@@ -44,6 +45,7 @@ protected:
   context_t *ctx;
   operands_t *ops;
   results_t *res;
+
   public:
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
@@ -77,6 +79,16 @@ class rv32_validator_t : public rv32_validator_base_t {
   void handle_violation(context_t *ctx, operands_t *ops);
   
   public:
+
+  bool watch_pc;
+  std::vector<address_t> watch_regs;
+  std::vector<address_t> watch_csrs;
+  std::vector<address_t> watch_addrs;
+
+  tag_t pc_tag;
+  tag_file_t<32> ireg_tags;
+  tag_file_t<0x1000> csr_tags;
+    
   rv32_validator_t(meta_set_cache_t *ms_cache,
 		   meta_set_factory_t *ms_factory,
 		   soc_tag_configuration_t *tag_config,
@@ -87,8 +99,14 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ops);
     free(res);
   }
-  virtual bool validate(address_t pc, insn_bits_t insn);
-  virtual void commit();
+
+  bool validate(address_t pc, insn_bits_t insn);
+  bool commit();
+
+  void set_pc_watch(bool watching);
+  void set_reg_watch(address_t addr);
+  void set_csr_watch(address_t addr);
+  void set_mem_watch(address_t addr);
   
   virtual void prepare_eval(address_t pc, insn_bits_t insn);
   virtual void complete_eval();
