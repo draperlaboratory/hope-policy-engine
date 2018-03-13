@@ -103,8 +103,9 @@ bool rv32_validator_t::commit() {
   bool hit_watch = false;
   if (res->pcResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
-    if(pc_tag != new_tag){
+    if(watch_pc && pc_tag != new_tag){
       printf("Watch tag pc");
+      fflush(stdout);
       hit_watch = true;
     }
     pc_tag = new_tag;
@@ -114,6 +115,7 @@ bool rv32_validator_t::commit() {
     for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
       if(pending_RD == *it && ireg_tags[pending_RD] != new_tag){
         printf("Watch tag reg");
+        fflush(stdout);
         hit_watch = true;
       }
     }
@@ -123,7 +125,8 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
     if (!tag_bus.load_tag(mem_addr, old_tag)) {
-      printf("failed to store MR tag\n");
+      printf("failed to load MR tag\n");
+      fflush(stdout);
       // might as well halt
       hit_watch = true;
     }
@@ -131,12 +134,14 @@ bool rv32_validator_t::commit() {
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(pending_RD == *it && old_tag != new_tag){
         printf("Watch tag mem");
+        fflush(stdout);
         hit_watch = true;
       }
     }
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
       printf("failed to store MR tag\n");
-      // might as well halt
+      fflush(stdout);
+     // might as well halt
       hit_watch = true;
     }
   }
@@ -145,6 +150,7 @@ bool rv32_validator_t::commit() {
     for(std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
       if(pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR");
+        fflush(stdout);
         hit_watch = true;
       }
     }
