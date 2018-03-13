@@ -32,6 +32,7 @@
 #include "metadata_memory_map.h"
 #include "tag_file.h"
 #include "validator_exception.h"
+#include "policy_utils.h"
 
 using namespace policy_engine;
 
@@ -103,13 +104,64 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
 
 extern "C" uint32_t e_v_commit() {
 //  printf("committing\n");
+  bool hit_watch = false;
   if (!DOA) {
     try {
-      rv_validator->commit();
+      hit_watch = rv_validator->commit();
     } catch (...) {
       printf("c++ exception while commiting - policy code DOA\n");
       DOA = true;
     }
   }
-  return 1;
+  return hit_watch;
+}
+
+extern "C" void e_v_pc_tag(char* dest, int n) {
+  const meta_set_t *ms = (const meta_set_t*) rv_validator->pc_tag;
+  meta_set_to_string(ms, dest, n);
+}
+
+extern "C" void e_v_csr_tag(char* dest, int n, uint64_t addr) {
+  if(addr < 0x1000){
+    const meta_set_t *ms = (const meta_set_t*) rv_validator->csr_tags[addr];
+    meta_set_to_string((const meta_set_t*)ms, dest, n);
+  }
+  else
+    strncpy(dest, "Out of range", n);
+}
+
+extern "C" void e_v_reg_tag(char* dest, int n, uint64_t addr) {
+  if(addr < 32){
+    const meta_set_t *ms = (const meta_set_t*) rv_validator->ireg_tags[addr];
+    meta_set_to_string((const meta_set_t*)ms, dest, n);
+  }
+  else
+    strncpy(dest, "Out of range", n);
+}
+
+extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
+  if(addr > 0){ // TODO: range checking
+    tag_t t;
+    if(rv_validator->get_tag(addr, t)){
+      const meta_set_t *ms = (const meta_set_t*) t;
+      meta_set_to_string((const meta_set_t*)ms, dest, n);
+    }
+    else
+      strncpy(dest, "Bad address", n);
+  }
+  else
+    strncpy(dest, "Out of range", n);
+}
+
+extern "C" void e_v_set_pc_watch(bool watching){
+  rv_validator->set_pc_watch(watching);
+}
+extern "C" void e_v_set_reg_watch(address_t addr){
+  rv_validator->set_reg_watch(addr);
+}
+extern "C" void e_v_set_csr_watch(address_t addr){
+  rv_validator->set_csr_watch(addr);
+}
+extern "C" void e_v_set_mem_watch(address_t addr){
+  rv_validator->set_mem_watch(addr);
 }

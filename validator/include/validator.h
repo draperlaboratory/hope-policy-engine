@@ -54,7 +54,7 @@ class abstract_validator_t {
      executed, and <code>false</code> on failure.
    */
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
-  virtual void commit() = 0;
+  virtual bool commit() = 0;
 };
 
 /**
@@ -65,7 +65,8 @@ class abstract_validator_t {
 class always_ok_validator_t final : public abstract_validator_t {
   public:
   bool validate(address_t pc, insn_bits_t insn) { return true; }
-  void commit() { }
+  // Return false means no watchpoint hit
+  bool commit() { return false; }
 };
 
 } // namespace policy_engine
