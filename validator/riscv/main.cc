@@ -25,6 +25,7 @@
  */
 
 #include <stdio.h>
+#include <string>
 
 #include "meta_cache.h"
 #include "meta_set_factory.h"
@@ -151,6 +152,44 @@ extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
   }
   else
     strncpy(dest, "Out of range", n);
+}
+
+extern "C" void e_v_violation_msg(char* dest, int n) {
+  // Maybe this belongs inside the validator?
+  const int s = 128;
+  char tmp[s];
+  
+  if(rv_validator->failed){
+    std::string msg = "Policy Violation:\n";
+    snprintf(tmp, s, "    PC = %lx", rv_validator->failed_ctx.epc);
+    msg = msg + tmp;
+    if(rv_validator->failed_ctx.bad_addr){
+      snprintf(tmp, s, "    MEM = %lx", rv_validator->failed_ctx.bad_addr);
+      msg = msg + tmp;
+    }
+    
+    msg = msg + "\n" + "Tags:\n";
+    meta_set_to_string(rv_validator->failed_ops.pc, tmp, s);
+    msg = msg + "    PC : " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.pc, tmp, s);
+    msg = msg + "    CI : " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.op1, tmp, s);
+    msg = msg + "    Op1: " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.op2, tmp, s);
+    msg = msg + "    Op2: " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.op3, tmp, s);
+    msg = msg + "    Op3: " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.mem, tmp, s);
+    msg = msg + "    Mem: " + tmp + "\n";
+    msg = msg + "Explicit Failure: " + rv_validator->failed_ctx.fail_msg + "\n";
+
+    strncpy(dest, msg.c_str(), n);
+  }
+  else {
+    strncpy(dest, "No Policy Violation", n);
+  }
+    
+
 }
 
 extern "C" void e_v_set_pc_watch(bool watching){

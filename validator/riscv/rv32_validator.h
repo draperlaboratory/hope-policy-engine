@@ -52,6 +52,7 @@ class rv32_validator_t : public tag_based_validator_t {
   bool has_pending_mem;
   bool has_pending_CSR;
 //  meta_set_t temp_ci_tag;
+
   bool watch_pc;
   std::vector<address_t> watch_regs;
   std::vector<address_t> watch_csrs;
@@ -61,7 +62,10 @@ class rv32_validator_t : public tag_based_validator_t {
   tag_t pc_tag;
   tag_file_t<32> ireg_tags;
   tag_file_t<0x1000> csr_tags;
-    
+
+  void handle_violation(context_t *ctx, operands_t *ops);
+  
+  public:
   rv32_validator_t(meta_set_cache_t *ms_cache,
 		   meta_set_factory_t *ms_factory,
 		   soc_tag_configuration_t *tag_config,
@@ -88,6 +92,12 @@ class rv32_validator_t : public tag_based_validator_t {
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
+
+  // fields used by main.cc
+  bool failed;
+  context_t failed_ctx;
+  operands_t failed_ops;
+
 };
 
 } // namespace policy_engine
