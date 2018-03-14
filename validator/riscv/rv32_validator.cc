@@ -109,6 +109,12 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
+
+void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
+  failed = true;
+
+  memcpy(&failed_ctx, ctx, sizeof(context_t));
+  memcpy(&failed_ops, ops, sizeof(operands_t));
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
@@ -125,8 +131,8 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     complete_eval();
   }
 
-//  if (policy_result != POLICY_SUCCESS)
-//    handle_violation(ctx, ops, res);
+  if (policy_result != POLICY_SUCCESS)
+    handle_violation(ctx, ops);
 
   return policy_result == POLICY_SUCCESS;
 }
@@ -158,6 +164,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  char tag_name[1024];
 
   int32_t flags;
+
+  failed = false;
   
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);

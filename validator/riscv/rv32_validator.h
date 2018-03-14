@@ -73,6 +73,9 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_mem;
   bool has_pending_CSR;
 //  meta_set_t temp_ci_tag;
+
+  void handle_violation(context_t *ctx, operands_t *ops);
+  
   public:
   rv32_validator_t(meta_set_cache_t *ms_cache,
 		   meta_set_factory_t *ms_factory,
@@ -90,19 +93,13 @@ class rv32_validator_t : public rv32_validator_base_t {
   virtual void prepare_eval(address_t pc, insn_bits_t insn);
   virtual void complete_eval();
 
-  // stop when the tag at the given address changes
-  int add_address_watch(address_t addr);
-  // stop when the tag at the given address changes to the given tag
-  int add_address_watch(address_t addr, tag_t tag);
-  // stop when the tag at the given register changes
-  int add_register_watch(int reg_num);
-  // stop when the tag at the given register changes to the given tag
-  int add_register_watch(int reg_num, tag_t tag);
-  // stop when the tag at the given csr changes
-  int add_csr_watch(int csr_num);
-  // stop when the tag at the given csr changes to the given tag
-  int add_csr_watch(int csr_num, tag_t tag);
-  void remove_watch(int id);
+  void prepare_eval(address_t pc, insn_bits_t insn);
+  void complete_eval();
+
+  // fields used by main.cc
+  bool failed;
+  context_t failed_ctx;
+  operands_t failed_ops;
 };
 
 } // namespace policy_engine
