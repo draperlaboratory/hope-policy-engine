@@ -117,6 +117,13 @@ void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   memcpy(&failed_ops, ops, sizeof(operands_t));
 }
 
+void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
+  failed = true;
+
+  memcpy(&failed_ctx, ctx, sizeof(context_t));
+  memcpy(&failed_ops, ops, sizeof(operands_t));
+}
+
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
 
@@ -137,11 +144,6 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   return policy_result == POLICY_SUCCESS;
 }
 
-<<<<<<< 42aa250eb7069058d0c0f2758c0b5f70fc722303
-void rv32_validator_t::commit() {
-  if (res->pcResult) {
-    pc_tag = m_to_t(ms_cache->canonize(*res->pc));
-=======
 bool rv32_validator_t::commit() {
   bool hit_watch = false;
   if (res->pcResult) {
@@ -152,7 +154,6 @@ bool rv32_validator_t::commit() {
       hit_watch = true;
     }
     pc_tag = new_tag;
->>>>>>> Add initial tag debug support
   }
   if (has_pending_RD && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
@@ -228,6 +229,19 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   int32_t flags;
 
   failed = false;
+  
+  memset(ctx, 0, sizeof(*ctx));
+  memset(ops, 0, sizeof(*ops));
+
+  if(res->pcResult){
+    memset(res->pc, 0, sizeof(meta_set_t));
+    res->pcResult = false;
+  }
+
+  if(res->rdResult){
+    memset(res->rd, 0, sizeof(meta_set_t));
+    res->rdResult = false;
+  }
   
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
