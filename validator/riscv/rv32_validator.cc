@@ -81,6 +81,13 @@ void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
   }
 }
 
+void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
+  failed = true;
+
+  memcpy(&failed_ctx, ctx, sizeof(context_t));
+  memcpy(&failed_ops, ops, sizeof(operands_t));
+}
+
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
   
@@ -93,8 +100,8 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     complete_eval();
   }
 
-//  if (policy_result != POLICY_SUCCESS)
-//    handle_violation(ctx, ops, res);
+  if (policy_result != POLICY_SUCCESS)
+    handle_violation(ctx, ops);
 
   return policy_result == POLICY_SUCCESS;
 }
@@ -123,6 +130,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  char tag_name[1024];
 
   int32_t flags;
+
+  failed = false;
   
   memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));

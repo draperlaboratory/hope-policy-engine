@@ -54,6 +54,9 @@ class rv32_validator_t : public tag_based_validator_t {
   bool has_pending_mem;
   bool has_pending_CSR;
 //  meta_set_t temp_ci_tag;
+
+  void handle_violation(context_t *ctx, operands_t *ops);
+  
   public:
   rv32_validator_t(meta_set_cache_t *ms_cache,
 		   meta_set_factory_t *ms_factory,
@@ -76,6 +79,12 @@ class rv32_validator_t : public tag_based_validator_t {
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
+
+  // fields used by main.cc
+  bool failed;
+  context_t failed_ctx;
+  operands_t failed_ops;
+
 };
 
 } // namespace policy_engine
