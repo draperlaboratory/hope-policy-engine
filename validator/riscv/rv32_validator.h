@@ -75,7 +75,7 @@ class rv32_validator_t : public rv32_validator_base_t {
 
   public:
   void handle_violation(context_t *ctx, operands_t *ops);
-  
+
   bool watch_pc;
   std::vector<address_t> watch_regs;
   std::vector<address_t> watch_csrs;

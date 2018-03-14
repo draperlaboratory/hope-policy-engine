@@ -124,6 +124,7 @@ void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   memcpy(&failed_ops, ops, sizeof(operands_t));
 }
 
+
 void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   failed = true;
 
@@ -143,6 +144,8 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
+  } else {
+    handle_violation(ctx, ops);
   }
 
   if (policy_result != POLICY_SUCCESS)
