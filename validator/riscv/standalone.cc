@@ -131,6 +131,7 @@ int main(int argc, char **argv) {
 
     // call the validator
     rv_validator->validate(rv32.get_pc(), rv32.get_insn());
+    rv_validator->commit();
   } while (rv32.step());
 #if 0
     // for debugging things
