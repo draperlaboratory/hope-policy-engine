@@ -129,6 +129,9 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 }
 
 void rv32_validator_t::commit() {
+  if (res->pcResult) {
+    pc_tag = m_to_t(ms_cache->canonize(*res->pc));
+  }
   if (has_pending_RD && res->rdResult) {
     ireg_tags[pending_RD] = m_to_t(ms_cache->canonize(*res->rd));
   }
