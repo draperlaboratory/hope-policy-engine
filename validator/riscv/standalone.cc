@@ -74,7 +74,7 @@ static std::vector<fake_riscv_t::op_t> ops= {
   // SP as well.  The next instruction is a store through SP, which will then trip a
   // policy violation because it's pointing at code, which is not marked writable.
   { 0x80000200, 0x00000093, { RA(0), SP(0x80000200) }},
-  { 0x80000204, 0x00512023, {}},
+//  { 0x80000204, 0x00512023, {}},
 };
 
 // utility function to apply a named tag to an address range
@@ -119,20 +119,24 @@ int main(int argc, char **argv) {
   // set up the initial tag state
   tag_stuff();
 
-  do {
-    tag_t ci_tag;
-
-    // get the CI tag
-    if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
-      printf("could not load tag for PC 0x%08x\n", rv32.get_pc());
-    } else {
-      // we can print the tag here
-    }
-
-    // call the validator
-    rv_validator->validate(rv32.get_pc(), rv32.get_insn());
-    rv_validator->commit();
-  } while (rv32.step());
+  #define NREPS 4
+  for (int reps = 0; reps < NREPS; reps++) {
+    do {
+      tag_t ci_tag;
+      
+      // get the CI tag
+      if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
+	printf("could not load tag for PC 0x%08x\n", rv32.get_pc());
+      } else {
+	// we can print the tag here
+      }
+      
+      // call the validator
+      rv_validator->validate(rv32.get_pc(), rv32.get_insn());
+      rv_validator->commit();
+    } while (rv32.step());
+    rv32.reset();
+  }
 #if 0
     // for debugging things
     metadata_t const *metadata = md_map->get_metadata(op.pc);
