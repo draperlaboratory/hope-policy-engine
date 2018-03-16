@@ -49,6 +49,9 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->pc = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->rd = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->csr = (meta_set_t *)malloc(sizeof(meta_set_t));
+  memset(res->pc, 0, sizeof(meta_set_t));
+  memset(res->rd, 0, sizeof(meta_set_t));
+  memset(res->csr, 0, sizeof(meta_set_t));
   res->pcResult = false;
   res->rdResult = false;
   res->csrResult = false;
