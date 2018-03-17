@@ -49,9 +49,10 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   res->pc = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->rd = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->csr = (meta_set_t *)malloc(sizeof(meta_set_t));
-  res->pcResult = false;
-  res->rdResult = false;
-  res->csrResult = false;
+  // true causes initial clear of results
+  res->pcResult = true;
+  res->rdResult = true;
+  res->csrResult = true;
 
   meta_set_t const *ms;
 
