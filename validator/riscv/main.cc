@@ -33,6 +33,7 @@
 #include "tag_file.h"
 #include "validator_exception.h"
 #include "policy_utils.h"
+#include "platform_types.h"
 
 using namespace policy_engine;
 
@@ -141,17 +142,60 @@ extern "C" void e_v_reg_tag(char* dest, int n, uint64_t addr) {
 }
 
 extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
-  if(addr > 0){ // TODO: range checking
+  if(addr <= ADDRESS_T_MAX){
+    address_t a = (address_t)addr;
     tag_t t;
-    if(rv_validator->get_tag(addr, t)){
+    if(rv_validator->get_tag(a, t)){
       const meta_set_t *ms = (const meta_set_t*) t;
       meta_set_to_string((const meta_set_t*)ms, dest, n);
     }
-    else
-      strncpy(dest, "Bad address", n);
+    else {
+      char tmp[128];
+      snprintf(&tmp[0], 128, "Bad Address: %x\n", a);
+      strncpy(dest, &tmp[0], n);
+    }
   }
   else
     strncpy(dest, "Out of range", n);
+}
+
+extern "C" void e_v_violation_msg(char* dest, int n) {
+  // Maybe this belongs inside the validator?
+  const int s = 512;
+  char tmp[s];
+
+  if(rv_validator->failed){
+    std::string msg = "Policy Violation:\n";
+    snprintf(tmp, s, "    PC = %lx", rv_validator->failed_ctx.epc);
+    msg = msg + tmp;
+    if(rv_validator->failed_ctx.bad_addr){
+      snprintf(tmp, s, "    MEM = %lx", rv_validator->failed_ctx.bad_addr);
+      msg = msg + tmp;
+    }
+    
+    msg = msg + "\n" + "Tags:\n";
+    meta_set_to_string(rv_validator->failed_ops.pc, tmp, s);
+    msg = msg + "    PC : " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.ci, tmp, s);
+    msg = msg + "    CI : " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.op1, tmp, s);
+    msg = msg + "    Op1: " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.op2, tmp, s);
+    msg = msg + "    Op2: " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.op3, tmp, s);
+    msg = msg + "    Op3: " + tmp + "\n";
+    meta_set_to_string(rv_validator->failed_ops.mem, tmp, s);
+    msg = msg + "    Mem: " + tmp + "\n";
+    if(rv_validator->failed_ctx.fail_msg)
+      msg = msg + "Explicit Failure: " + rv_validator->failed_ctx.fail_msg + "\n";
+    else
+      msg = msg + "Implicit Failure.\n";
+      
+    strncpy(dest, msg.c_str(), n);
+  }
+  else {
+    strncpy(dest, "No Policy Violation", n);
+  }
 }
 
 extern "C" void e_v_set_pc_watch(bool watching){
