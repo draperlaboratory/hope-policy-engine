@@ -86,11 +86,14 @@ struct meta_tree_t {
 
 class metadata_factory_t {
   std::unordered_map<meta_t, std::string> reverse_encoding_map; // for rendering
+  std::unordered_map<meta_t, std::string> abbrev_reverse_encoding_map; // for rendering
   std::unordered_map<std::string, meta_t> encoding_map;
   std::unordered_map<std::string, metadata_t*> path_map;
   std::unordered_map<std::string, metadata_t *> group_map;
 
   meta_tree_t meta_tree;
+
+  std::string abbreviate(std::string const &dotted_string);
 
   void init_encoding_map(YAML::Node &rawEnc);
   void init_group_map(YAML::Node &groupAST);
@@ -111,7 +114,8 @@ class metadata_factory_t {
     return it->second;
   }
 
-  std::string render(metadata_t const *metadata);
+  std::string render(meta_t meta, bool abbrev = false);
+  std::string render(metadata_t const *metadata, bool abbrev = false);
 };
 
 } // namespace policy_engine
