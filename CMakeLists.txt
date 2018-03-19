@@ -26,6 +26,7 @@ add_library(rv32_validator
   validator/riscv/inst_decoder.c
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
+  validator/riscv/fake_riscv.cc
   
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.

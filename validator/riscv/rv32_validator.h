@@ -38,12 +38,31 @@
 
 namespace policy_engine {
 
-#define REG_SP 2
-class rv32_validator_t : public tag_based_validator_t {
+class rv32_validator_base_t : public tag_based_validator_t {
+protected: 
+  tag_bus_t tag_bus;
   context_t *ctx;
   operands_t *ops;
   results_t *res;
-  tag_bus_t tag_bus;
+  public:
+  rv32_validator_base_t(meta_set_cache_t *ms_cache,
+			meta_set_factory_t *ms_factory,
+			RegisterReader_t rr);
+
+  void apply_metadata(metadata_memory_map_t *md_map);
+  
+  // called before we call the policy code - initializes ground state of input/output structures
+  void setup_validation();
+  
+  // Provides the tag for a given address.  Used for debugging.
+  virtual bool get_tag(address_t addr, tag_t &tag) {
+    return tag_bus.load_tag(addr, tag);
+  }
+};
+
+#define REG_SP 2
+class rv32_validator_t : public rv32_validator_base_t {
+
   tag_file_t<32> ireg_tags;
   tag_file_t<0x1000> csr_tags;
   tag_t pc_tag;
@@ -63,22 +82,16 @@ class rv32_validator_t : public tag_based_validator_t {
 		   soc_tag_configuration_t *tag_config,
 		   RegisterReader_t rr);
 
-  void apply_metadata(metadata_memory_map_t *md_map);
   virtual ~rv32_validator_t() {
     free(ctx);
     free(ops);
     free(res);
   }
-  bool validate(address_t pc, insn_bits_t insn);
-  void commit();
+  virtual bool validate(address_t pc, insn_bits_t insn);
+  virtual void commit();
   
-  // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t &tag) {
-    return tag_bus.load_tag(addr, tag);
-  }
-
-  void prepare_eval(address_t pc, insn_bits_t insn);
-  void complete_eval();
+  virtual void prepare_eval(address_t pc, insn_bits_t insn);
+  virtual void complete_eval();
 
   // fields used by main.cc
   bool failed;

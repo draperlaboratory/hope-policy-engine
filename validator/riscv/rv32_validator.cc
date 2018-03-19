@@ -38,38 +38,28 @@ static const char *tag_name(meta_set_t const *tag) {
   return tag_name;
 }
 
-rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
-				   meta_set_factory_t *ms_factory,
-				   soc_tag_configuration_t *config,
-				   RegisterReader_t rr) :
-  tag_based_validator_t(ms_cache, ms_factory, rr) {
+rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
+					     meta_set_factory_t *ms_factory,
+					     RegisterReader_t rr)
+  : tag_based_validator_t(ms_cache, ms_factory, rr) {
+  
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
   res = (results_t *)malloc(sizeof(results_t));
   res->pc = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->rd = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->csr = (meta_set_t *)malloc(sizeof(meta_set_t));
+  memset(res->pc, 0, sizeof(meta_set_t));
+  memset(res->rd, 0, sizeof(meta_set_t));
+  memset(res->csr, 0, sizeof(meta_set_t));
   res->pcResult = false;
   res->rdResult = false;
   res->csrResult = false;
-
-  meta_set_t const *ms;
-
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
-  ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.RegZero");
-  ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("requires.dover.SOC.CSR.Default");
-  csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.PC");
-  pc_tag = m_to_t(ms);
-
-  config->apply(&tag_bus, this);
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
 
-void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
+void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
   for (auto &e: *md_map) {
     for (address_t start = e.first.start; start < e.first.end; start += 4) {
 //      std::string s = render_metadata(e.second);
@@ -88,8 +78,50 @@ void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   memcpy(&failed_ops, ops, sizeof(operands_t));
 }
 
+void rv32_validator_base_t::setup_validation() {
+  memset(ctx, 0, sizeof(*ctx));
+  memset(ops, 0, sizeof(*ops));
+
+  if (res->pcResult) {
+    memset(res->pc, 0, sizeof(meta_set_t));
+    res->pcResult = false;
+  }
+
+  if (res->rdResult) {
+    memset(res->rd, 0, sizeof(meta_set_t));
+    res->rdResult = false;
+  }
+
+  if (res->csrResult) {
+    memset(res->csr, 0, sizeof(meta_set_t));
+    res->csrResult = false;
+  }
+}
+
+rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
+				   meta_set_factory_t *ms_factory,
+				   soc_tag_configuration_t *config,
+				   RegisterReader_t rr) :
+  rv32_validator_base_t(ms_cache, ms_factory, rr) {
+
+  meta_set_t const *ms;
+
+  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
+  ireg_tags.reset(m_to_t(ms));
+  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.RegZero");
+  ireg_tags[0] = m_to_t(ms);
+  ms = ms_factory->get_meta_set("requires.dover.SOC.CSR.Default");
+  csr_tags.reset(m_to_t(ms));
+  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.PC");
+  pc_tag = m_to_t(ms);
+
+  config->apply(&tag_bus, this);
+}
+
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
+
+  setup_validation();
   
   prepare_eval(pc, insn);
   
@@ -107,6 +139,9 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 }
 
 void rv32_validator_t::commit() {
+  if (res->pcResult) {
+    pc_tag = m_to_t(ms_cache->canonize(*res->pc));
+  }
   if (has_pending_RD && res->rdResult) {
     ireg_tags[pending_RD] = m_to_t(ms_cache->canonize(*res->rd));
   }
@@ -133,23 +168,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
   failed = false;
   
-  memset(ctx, 0, sizeof(*ctx));
-  memset(ops, 0, sizeof(*ops));
-
-  if(res->pcResult){
-    memset(res->pc, 0, sizeof(meta_set_t));
-    res->pcResult = false;
-  }
-
-  if(res->rdResult){
-    memset(res->rd, 0, sizeof(meta_set_t));
-    res->rdResult = false;
-  }
-
-  if(res->csrResult){
-    memset(res->csr, 0, sizeof(meta_set_t));
-    res->csrResult = false;
-  }
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
