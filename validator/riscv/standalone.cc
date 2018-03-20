@@ -65,7 +65,7 @@ static void init(const char *policy_dir, const char *soc_cfg) {
       new soc_tag_configuration_t(ms_factory, soc_cfg);
     rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
   } catch (exception_t &e) {
-    printf("exception: %s\n", e.what().c_str());
+    printf("exception: %s\n", e.what());
   }
 }
 
