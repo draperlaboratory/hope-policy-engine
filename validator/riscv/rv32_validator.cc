@@ -124,14 +124,6 @@ void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   memcpy(&failed_ops, ops, sizeof(operands_t));
 }
 
-
-void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
-  failed = true;
-
-  memcpy(&failed_ctx, ctx, sizeof(context_t));
-  memcpy(&failed_ops, ops, sizeof(operands_t));
-}
-
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
 
@@ -227,21 +219,6 @@ void rv32_validator_t::set_mem_watch(address_t addr){
   watch_addrs.push_back(addr);
 }
   
-
-void rv32_validator_t::set_pc_watch(bool watching){
-  watch_pc = watching;
-}
-void rv32_validator_t::set_reg_watch(address_t addr){
-  watch_regs.push_back(addr);
-}
-void rv32_validator_t::set_csr_watch(address_t addr){
-  watch_csrs.push_back(addr);
-}
-void rv32_validator_t::set_mem_watch(address_t addr){
-  watch_addrs.push_back(addr);
-}
-  
-
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
