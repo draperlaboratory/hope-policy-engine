@@ -56,20 +56,6 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->pcResult = true;
   res->rdResult = true;
   res->csrResult = true;
-
-  meta_set_t const *ms;
-
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
-  ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.RegZero");
-  ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("requires.dover.SOC.CSR.Default");
-  csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.PC");
-  pc_tag = m_to_t(ms);
-
-  config->apply(&tag_bus, this);
-  failed = false;
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
@@ -128,6 +114,8 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
+  failed = false;
+}
 
 void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   failed = true;
