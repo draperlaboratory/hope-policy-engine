@@ -107,6 +107,10 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   soc_tag_configuration_t *config,
 				   RegisterReader_t rr) :
   rv32_validator_base_t(ms_cache, ms_factory, rr) {
+  // true causes initial clear of results
+  res->pcResult = true;
+  res->rdResult = true;
+  res->csrResult = true;
 
   meta_set_t const *ms;
 
@@ -135,11 +139,9 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
-  }
-  else {
+  } else {
     handle_violation(ctx, ops);
   }
-  
   return policy_result == POLICY_SUCCESS;
 }
 
@@ -185,7 +187,7 @@ bool rv32_validator_t::commit() {
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
       printf("failed to store MR tag\n");
       fflush(stdout);
-     // might as well halt
+      // might as well halt
       hit_watch = true;
     }
   }
@@ -216,7 +218,6 @@ void rv32_validator_t::set_mem_watch(address_t addr){
   watch_addrs.push_back(addr);
 }
   
-
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;

@@ -31,6 +31,13 @@
 
 using namespace policy_engine;
 
+std::string metadata_factory_t::abbreviate(std::string const &dotted_string) {
+  size_t last = dotted_string.rfind('.');
+  if (last == std::string::npos)
+    return dotted_string;
+  return dotted_string.substr(last + 1, std::string::npos);
+}
+
 void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
   YAML::Node root = rawEnc["Metadata"];
   YAML::Node node;
@@ -39,6 +46,7 @@ void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
     node = root[i];
     encoding_map[node["name"].as<std::string>()] = node["id"].as<meta_t>();
     reverse_encoding_map[node["id"].as<meta_t>()] = node["name"].as<std::string>();
+    abbrev_reverse_encoding_map[node["id"].as<meta_t>()] = abbreviate(node["name"].as<std::string>());
   }
 }
 
@@ -123,7 +131,23 @@ metadata_factory_t::metadata_factory_t(std::string policy_dir)
   init_group_map(groupAST);
 }
 
-std::string metadata_factory_t::render(metadata_t const *metadata) {
+std::string metadata_factory_t::render(meta_t meta, bool abbrev) {
+  if (abbrev) {
+    auto const &iter = abbrev_reverse_encoding_map.find(meta);
+    if (iter == abbrev_reverse_encoding_map.end())
+      return "<unknown: " + std::to_string(meta) + ">";
+    else
+      return iter->second;
+  } else {
+    auto const &iter = reverse_encoding_map.find(meta);
+    if (iter == reverse_encoding_map.end())
+      return "<unknown: " + std::to_string(meta) + ">";
+    else
+      return iter->second;
+  }
+}
+
+std::string metadata_factory_t::render(metadata_t const *metadata, bool abbrev) {
   std::ostringstream os;
   bool first = true;
   for (auto &meta: *metadata) {
@@ -131,11 +155,7 @@ std::string metadata_factory_t::render(metadata_t const *metadata) {
       first = false;
     else
       os << ", ";
-    auto const &iter = reverse_encoding_map.find(meta);
-    if (iter == reverse_encoding_map.end())
-      os << "<unknown: " << meta << ">";
-    else
-      os << iter->second;
+    os << render(meta, abbrev);
   }
   return os.str();
 }

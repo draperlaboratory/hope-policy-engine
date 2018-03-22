@@ -80,8 +80,6 @@ class rv32_validator_t : public rv32_validator_base_t {
 
   void handle_violation(context_t *ctx, operands_t *ops);
   
-  public:
-
   bool watch_pc;
   std::vector<address_t> watch_regs;
   std::vector<address_t> watch_csrs;
@@ -97,6 +95,7 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ops);
     free(res);
   }
+
   bool validate(address_t pc, insn_bits_t insn);
   bool commit();
 
@@ -110,14 +109,13 @@ class rv32_validator_t : public rv32_validator_base_t {
   void set_csr_watch(address_t addr);
   void set_mem_watch(address_t addr);
   
-  virtual void prepare_eval(address_t pc, insn_bits_t insn);
-  virtual void complete_eval();
+  void prepare_eval(address_t pc, insn_bits_t insn);
+  void complete_eval();
 
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
-
 };
 
 } // namespace policy_engine
