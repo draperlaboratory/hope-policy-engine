@@ -45,7 +45,7 @@ void init(const char *policy_dir) {
     md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
   } catch (exception_t &e) {
-    printf("exception: %s\n", e.what().c_str());
+    printf("exception: %s\n", e.what());
   }
 }
 

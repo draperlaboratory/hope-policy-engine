@@ -48,7 +48,7 @@ class tag_based_validator_t : public abstract_renode_validator_t, virtual public
 			RegisterReader_t rr);
   virtual ~tag_based_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
-  virtual void commit() = 0;
+  virtual bool commit() = 0;
 
   // Provides the tag for a given address.  Used for debugging.
   virtual bool get_tag(address_t addr, tag_t &tag) = 0;
