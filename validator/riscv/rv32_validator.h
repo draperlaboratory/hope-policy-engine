@@ -77,6 +77,16 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_CSR;
 //  meta_set_t temp_ci_tag;
 
+  bool watch_pc;
+  std::vector<address_t> watch_regs;
+  std::vector<address_t> watch_csrs;
+  std::vector<address_t> watch_addrs;
+
+ public:
+  tag_t pc_tag;
+  tag_file_t<32> ireg_tags;
+  tag_file_t<0x1000> csr_tags;
+
   void handle_violation(context_t *ctx, operands_t *ops);
   
   public:
@@ -98,6 +108,16 @@ class rv32_validator_t : public rv32_validator_base_t {
   }
   bool validate(address_t pc, insn_bits_t insn);
   bool commit();
+
+  void set_pc_watch(bool watching);
+  void set_reg_watch(address_t addr);
+  void set_csr_watch(address_t addr);
+  void set_mem_watch(address_t addr);
+  
+  // Provides the tag for a given address.  Used for debugging.
+  virtual bool get_tag(address_t addr, tag_t &tag) {
+    return tag_bus.load_tag(addr, tag);
+  }
 
   void set_pc_watch(bool watching);
   void set_reg_watch(address_t addr);

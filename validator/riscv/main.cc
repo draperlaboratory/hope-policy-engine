@@ -25,6 +25,7 @@
  */
 
 #include <stdio.h>
+#include <string>
 
 #include "meta_cache.h"
 #include "meta_set_factory.h"

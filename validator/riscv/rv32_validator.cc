@@ -49,6 +49,7 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->pc = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->rd = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->csr = (meta_set_t *)malloc(sizeof(meta_set_t));
+
   memset(res->pc, 0, sizeof(meta_set_t));
   memset(res->rd, 0, sizeof(meta_set_t));
   memset(res->csr, 0, sizeof(meta_set_t));
@@ -87,10 +88,12 @@ void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
 }
 
 void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
-  failed = true;
-
-  memcpy(&failed_ctx, ctx, sizeof(context_t));
-  memcpy(&failed_ops, ops, sizeof(operands_t));
+  if(!failed){
+    failed = true;
+    printf("handle violation\n");
+    memcpy(&failed_ctx, ctx, sizeof(context_t));
+    memcpy(&failed_ops, ops, sizeof(operands_t));
+  }
 }
 
 void rv32_validator_base_t::setup_validation() {
@@ -146,10 +149,10 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   }
-
-  if (policy_result != POLICY_SUCCESS)
+  else {
     handle_violation(ctx, ops);
-
+  }
+  
   return policy_result == POLICY_SUCCESS;
 }
 
@@ -239,6 +242,24 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
   failed = false;
   
+  memset(ctx, 0, sizeof(*ctx));
+  memset(ops, 0, sizeof(*ops));
+
+  if(res->pcResult){
+    memset(res->pc, 0, sizeof(meta_set_t));
+    res->pcResult = false;
+  }
+
+  if(res->rdResult){
+    memset(res->rd, 0, sizeof(meta_set_t));
+    res->rdResult = false;
+  }
+
+  if(res->csrResult){
+    memset(res->csr, 0, sizeof(meta_set_t));
+    res->csrResult = false;
+  }
+
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
