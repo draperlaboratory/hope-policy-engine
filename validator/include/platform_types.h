@@ -36,6 +36,8 @@ namespace policy_engine {
 typedef uint32_t address_t;
 typedef uint32_t insn_bits_t;
 
+#define PLATFORM_WORD_SIZE 4
+
 }
 
 #endif
