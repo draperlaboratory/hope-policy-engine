@@ -73,7 +73,7 @@ target_include_directories(md_code PRIVATE
 add_executable(md_entity
 	tagging_tools/md_entity.cc
 	)
-target_link_libraries(md_entity tagging_tools validator yaml-cpp)
+target_link_libraries(md_entity tagging_tools validator yaml-cpp gflags)
 target_include_directories(md_entity PRIVATE
   ./validator/include/policy-glue
   )
