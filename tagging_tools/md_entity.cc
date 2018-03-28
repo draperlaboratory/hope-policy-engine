@@ -55,15 +55,31 @@ static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::
   return sym;
 }
 
+static const char *usage_msg =
+    "md_entity usage: md_entity <flags> policy_dir elf_file tag_info_file [entity files]\n"
+    "  Applies metadata to the memory map of an ELF image according to bindings\n"
+    "  described in entity YML files.  The file entities.yml in the given policy\n"
+    "  directory will always be processed.  Additional optional entity files may be\n"
+    "  provided on the command line.\n";
+static void usage() {
+  puts(usage_msg);
+}
+
 int main(int argc, char **argv) {
   stdio_reporter_t err;
-  gflags::SetUsageMessage("md_entity usage: md_entity <flags> policy_dir elf_file tag_info_file entity_map_yml\n");
+  if (argc < 4) {
+    usage();
+    return 0;
+  }
+  gflags::SetUsageMessage(usage_msg);
   gflags::ParseCommandLineFlags(&argc, &argv, false);
 
   const char *policy_dir = argv[1];
   const char *elf_file_name = argv[2];
   const char *tag_file_name = argv[3];
-  std::string entity_yml = std::string(policy_dir) + "/entities.yml";
+  int yaml_count = argc - 4;
+  char **yaml_files = &argv[4];
+  std::string entity_yaml = std::string(policy_dir) + "/entities.yml";
 
   try {
     FILE *elf_in;
@@ -83,42 +99,39 @@ int main(int argc, char **argv) {
       }
     }
 
-#if 0
-    for (auto s: symtab.sorted_symbols()) {
-      printf("%s\n", s->get_name().c_str());
-    }
-    symbol_t *sym = symtab.find_symbol("ucHeap");
-    if (sym)
-      printf("found malloc at 0x%08x\n", sym->get_address());
-#endif
-    std::list<std::unique_ptr<entity_binding_t>> bindings;
-    load_entity_bindings(entity_yml.c_str(), bindings);
-    for (auto &e: bindings) {
-      entity_symbol_binding_t *sb = dynamic_cast<entity_symbol_binding_t *>(e.get());
-      if (sb != nullptr) {
-	symbol_t *sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity);
-	if (sym) {
-	  // go ahead and mark it
-	  address_t end_addr;
-	  if (sb->is_singularity)
-	    end_addr = sym->get_address() + PLATFORM_WORD_SIZE;
-	  else
-	    end_addr = sym->get_address() + sym->get_size(); // TODO: align to platform word boundary?
-	  if (!md_tool.apply_tag(sym->get_address(), end_addr, sb->entity_name.c_str())) {
-	    err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
+    do {
+      std::list<std::unique_ptr<entity_binding_t>> bindings;
+      load_entity_bindings(entity_yaml.c_str(), bindings);
+      for (auto &e: bindings) {
+	entity_symbol_binding_t *sb = dynamic_cast<entity_symbol_binding_t *>(e.get());
+	if (sb != nullptr) {
+	  symbol_t *sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity);
+	  if (sym) {
+	    // go ahead and mark it
+	    address_t end_addr;
+	    if (sb->is_singularity)
+	      end_addr = sym->get_address() + PLATFORM_WORD_SIZE;
+	    else
+	      end_addr = sym->get_address() + sym->get_size(); // TODO: align to platform word boundary?
+	    if (!md_tool.apply_tag(sym->get_address(), end_addr, sb->entity_name.c_str())) {
+	      err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
+	    }
 	  }
-	}
-      } else {
-	entity_range_binding_t *rb = dynamic_cast<entity_range_binding_t *>(e.get());
-	symbol_t *sym = get_symbol(&symtab, &err, rb->elf_start_name, false);
-	symbol_t *end = get_symbol(&symtab, &err, rb->elf_end_name, false);
-	if (sym && end) {
-	  if (!md_tool.apply_tag(sym->get_address(), end->get_address(), rb->entity_name.c_str())) {
-	    err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
+	} else {
+	  entity_range_binding_t *rb = dynamic_cast<entity_range_binding_t *>(e.get());
+	  symbol_t *sym = get_symbol(&symtab, &err, rb->elf_start_name, false);
+	  symbol_t *end = get_symbol(&symtab, &err, rb->elf_end_name, false);
+	  if (sym && end) {
+	    if (!md_tool.apply_tag(sym->get_address(), end->get_address(), rb->entity_name.c_str())) {
+	      err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
+	    }
 	  }
 	}
       }
-    }
+      if (yaml_count)
+	entity_yaml = *yaml_files++;
+    } while (yaml_count--);
+
     if (err.errors == 0) {
       if (!md_tool.save_tag_info(tag_file_name)) {
 	err.error("couldn't save tags to %s\n", tag_file_name);
