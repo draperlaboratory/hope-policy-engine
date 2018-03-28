@@ -44,6 +44,15 @@ std::string render_metadata(metadata_t const *metadata) {
 }
 
 void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
+  if (base == -1) {
+    base = start;
+    assert(map.size() == 0); // first range added
+  } else if (start < base) {
+    // inserting before the existing base - have to insert a bit
+    int n_insert = base - start;
+    map.insert(map.begin(), n_insert, nullptr);
+    base = start;
+  }
   int s = (start - base) / stride;
   int e = (end - base) / stride;
   if (e > map.size()) {

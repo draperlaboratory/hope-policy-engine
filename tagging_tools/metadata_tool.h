@@ -47,8 +47,8 @@ class metadata_tool_t {
   metadata_factory_t *md_factory;
   metadata_memory_map_t md_map;
   public:
-  metadata_tool_t(const char *policy_dir, address_t base_address) //, reporter_t err)
-    : /* err(err), */md_map(base_address, &md_cache) {
+  metadata_tool_t(const char *policy_dir) //, reporter_t err)
+    : /* err(err), */md_map(&md_cache) {
     md_factory = new metadata_factory_t(policy_dir);
   }
   ~metadata_tool_t() { delete md_factory; }
