@@ -24,20 +24,32 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLATFORM_TYPES_H
-#define PLATFORM_TYPES_H
+#include <elf.h>
 
-#include <cstdint>
+#include "elf_utils.h"
 
-#define ADDRESS_T_MAX UINT32_MAX
+using namespace policy_engine;
 
-namespace policy_engine {
-
-typedef uint32_t address_t;
-typedef uint32_t insn_bits_t;
-
-#define PLATFORM_WORD_SIZE 4
-
+void policy_engine::populate_symbol_table(symbol_table_t *symtab, elf_image_t *img) {
+  Elf_Sym const *syms = img->get_symbols();
+  for (int i = 0; i < img->get_symbol_count(); i++) {
+    Elf_Sym const *esym = &syms[i];
+    if (esym->st_shndx != SHN_UNDEF && esym->st_shndx != SHN_ABS) {
+      symbol_t::visibility_t visibility;
+      symbol_t::kind_t kind;
+      switch (ELF_ST_BIND(esym->st_info)) {
+        case STB_LOCAL: visibility = symbol_t::PRIVATE; break;
+        case STB_GLOBAL: visibility = symbol_t::PUBLIC; break;
+        default: visibility = symbol_t::PRIVATE; break;
+      }
+      switch (ELF_ST_TYPE(esym->st_info)) {
+        case STT_FUNC: kind = symbol_t::CODE; break;
+        default: kind = symbol_t::DATA; break;
+      }
+      symbol_t *sym = new symbol_t(img->get_string(esym->st_name), esym->st_value & ~1, esym->st_size, visibility, kind);
+//    printf("%s\n", sym->name.c_str());
+      symtab->add_symbol(sym);
+    }
+  }
 }
 
-#endif

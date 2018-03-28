@@ -24,20 +24,48 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLATFORM_TYPES_H
-#define PLATFORM_TYPES_H
+#ifndef ENTITY_BINDING_H
+#define ENTITY_BINDING_H
 
-#include <cstdint>
-
-#define ADDRESS_T_MAX UINT32_MAX
+#include <string>
+#include <list>
+#include <memory>
 
 namespace policy_engine {
 
-typedef uint32_t address_t;
-typedef uint32_t insn_bits_t;
+struct entity_binding_t {
+  virtual ~entity_binding_t() { }
+  /**
+     Name of the policy entity.
+   */
+  std::string entity_name;
+};
 
-#define PLATFORM_WORD_SIZE 4
+struct entity_symbol_binding_t : entity_binding_t {
+  virtual ~entity_symbol_binding_t() { }
+  /**
+     ELF symbol the policy entity refers to. The ELF symbol must have a size if is_singularity
+     is false.
+   */
+  std::string elf_name;
 
-}
+  /**
+     If true, we mark only the first word at the start symbol.
+  */
+  bool is_singularity;
+
+  entity_symbol_binding_t() : is_singularity(false) { }
+};
+
+struct entity_range_binding_t : entity_binding_t {
+  virtual ~entity_range_binding_t() { }
+  std::string elf_start_name;
+  std::string elf_end_name;
+};
+
+void load_entity_bindings(const char *file_name,
+			  std::list<std::unique_ptr<entity_binding_t>> &bindings);
+
+} // namespace policy_engine
 
 #endif

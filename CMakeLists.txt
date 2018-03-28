@@ -43,7 +43,12 @@ target_include_directories(rv32_validator PRIVATE
   )
 
 add_library(tagging_tools
-  tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc tagging_tools/asm_annotater.cc
+  tagging_tools/tag_file.cc
+  tagging_tools/metadata_memory_map.cc
+  tagging_tools/asm_annotater.cc
+  tagging_tools/elf_loader.cc
+  tagging_tools/elf_utils.cc
+  tagging_tools/entity_binding.cc
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -63,6 +68,14 @@ target_include_directories(md_code PRIVATE
   # policy directory dependency is because riscv_isa.h drags it in.
   # There is no actual dependency.
   ./policy/include
+  )
+
+add_executable(md_entity
+	tagging_tools/md_entity.cc
+	)
+target_link_libraries(md_entity tagging_tools validator yaml-cpp gflags)
+target_include_directories(md_entity PRIVATE
+  ./validator/include/policy-glue
   )
 
 add_executable(md_asm_ann

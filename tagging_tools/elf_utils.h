@@ -24,20 +24,16 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLATFORM_TYPES_H
-#define PLATFORM_TYPES_H
+#ifndef ELF_UTILS_H
+#define ELF_UTILS_H
 
-#include <cstdint>
-
-#define ADDRESS_T_MAX UINT32_MAX
+#include "elf_loader.h"
+#include "symbol_table.h"
 
 namespace policy_engine {
 
-typedef uint32_t address_t;
-typedef uint32_t insn_bits_t;
+void populate_symbol_table(symbol_table_t *symtab, elf_image_t *img);
 
-#define PLATFORM_WORD_SIZE 4
-
-}
+} // namespace policy_engine
 
 #endif

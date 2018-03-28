@@ -24,20 +24,20 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLATFORM_TYPES_H
-#define PLATFORM_TYPES_H
-
-#include <cstdint>
-
-#define ADDRESS_T_MAX UINT32_MAX
+#ifndef REPORTER_H
+#define REPORTER_H
 
 namespace policy_engine {
 
-typedef uint32_t address_t;
-typedef uint32_t insn_bits_t;
+/**
+   Generic reporter class, allowing error/informational messages to be channeled.
+*/
+struct reporter_t {
+  virtual void error(const char *fmt, ...) = 0;
+  virtual void warning(const char *fmt, ...) = 0;
+  virtual void info(const char *fmt, ...) = 0;
+};
 
-#define PLATFORM_WORD_SIZE 4
-
-}
+} // namespace policy_engine
 
 #endif
