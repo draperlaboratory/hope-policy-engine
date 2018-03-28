@@ -55,9 +55,10 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
         new soc_tag_configuration_t(ms_factory, policy_dir + "/soc_cfg/miv_cfg.yml");
       rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
       
-      address_t base_address = 0x80000000; // FIXME - need to be able to query for this
+//      address_t base_address = 0x80000000; // FIXME - need to be able to query for this
       metadata_cache_t md_cache;
-      metadata_memory_map_t map(base_address, &md_cache);
+//      metadata_memory_map_t map(base_address, &md_cache);
+      metadata_memory_map_t map(&md_cache);
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
       if (!load_tags(&map, tags_file)) {
         printf("failed read\n");

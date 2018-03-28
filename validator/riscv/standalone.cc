@@ -113,8 +113,9 @@ int main(int argc, char **argv) {
  
   // load up our YAML files, setup validator, etc
   init(policy_dir, soc_cfg);
-  address_t base_address = 0x80000000; // FIXME - need to be able to query for this
-  md_map = new metadata_memory_map_t(base_address, &md_cache);
+//  address_t base_address = 0x80000000; // FIXME - need to be able to query for this
+//  md_map = new metadata_memory_map_t(base_address, &md_cache);
+  md_map = new metadata_memory_map_t(&md_cache);
 
   // set up the initial tag state
   tag_stuff();

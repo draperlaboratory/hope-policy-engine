@@ -39,7 +39,6 @@
 
 using namespace policy_engine;
 
-DEFINE_int32(base_address, 0x80000000, "Base address for memory map");
 DEFINE_bool(update, true, "update existing tag info file");
 
 static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::string name, bool needs_size) {
@@ -84,7 +83,7 @@ int main(int argc, char **argv) {
   try {
     FILE *elf_in;
 
-    metadata_tool_t md_tool(policy_dir, FLAGS_base_address);
+    metadata_tool_t md_tool(policy_dir);
     elf_in = fopen(elf_file_name, "rb");
     FILE_reader_t reader(elf_in);
     elf_image_t img(&reader, &err);

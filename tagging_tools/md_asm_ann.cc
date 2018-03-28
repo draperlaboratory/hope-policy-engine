@@ -67,7 +67,6 @@ static void usage() {
   puts(usage_str);
 }
 
-DEFINE_int32(base_address, 0x80000000, "Base address for memory map");
 DEFINE_string(output, "", "Output asm file");
 
 int main(int argc, char **argv) {
@@ -86,7 +85,7 @@ int main(int argc, char **argv) {
   }
   
   metadata_cache_t md_cache;
-  metadata_memory_map_t md_map(FLAGS_base_address, &md_cache);
+  metadata_memory_map_t md_map(&md_cache);
 
   std::unique_ptr<std::ifstream> asm_in;
   std::unique_ptr<std::ofstream> asm_out;
