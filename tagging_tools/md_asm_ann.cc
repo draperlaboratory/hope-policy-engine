@@ -55,42 +55,24 @@ std::string annotater_t::filter(address_t addr, std::string line) {
   line = asm_annotater_t::pad(line, 80);
   line += md_factory.render(metadata, true);
   return line;
-#if 0
-  tag_space_t *space = tag_space_map.find(addr);
-  if (!space) {
-    printf("warning: no tag space found for 0x%x\n", addr);
-    return line;
-  }
-  tag_set_t *ts = space->get_tags(addr);
-  if (!ts)
-    return line;
-  line = asm_annotater_t::pad(line, 80);
-  for (auto e: *ts) {
-    switch (e) {
-      case CFI_JUMP: line += "CFI_JUMP "; break;
-      case CFI_TARGET: line += "CFI_TARGET "; break;
-      case STACK_PROLOG: line += "PROLOG "; break;
-      case STACK_EPILOG: line += "EPILOG "; break;
-    default: line += "<what?>"; break;
-    }
-  }
-#endif
-  return line;
 }
 
+const char *usage_str =
+  "usage: md_asm_ann policy_dir taginfo_file asm_file\n"
+  "  Annotates the given asm file with descriptions of tags on each instruction.\n"
+  "  The output will, by default, be written to <asm_file>.tagged, unless you \n"
+  "  specify the --output switch.\n";
+
 static void usage() {
-  printf("usage: md_asm_ann policy_dir taginfo_file asm_file\n");
+  puts(usage_str);
 }
 
 DEFINE_int32(base_address, 0x80000000, "Base address for memory map");
 DEFINE_string(output, "", "Output asm file");
 
 int main(int argc, char **argv) {
-  gflags::SetUsageMessage("ann usage:\n");
+  gflags::SetUsageMessage(usage_str);
   gflags::ParseCommandLineFlags(&argc, &argv, false);
-//  printf("base addr = 0x%08x\n", FLAGS_base_address);
-//  printf("output file = %s\n", FLAGS_output.c_str());
-#if 1
   if (argc != 4) {
     usage();
     return 0;
@@ -138,5 +120,4 @@ int main(int argc, char **argv) {
   annotater_t ann(*md_factory, md_map, *asm_in, *asm_out);
   ann.execute();
   return 0;
-#endif  
 }
