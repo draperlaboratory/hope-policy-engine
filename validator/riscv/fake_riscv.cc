@@ -8,7 +8,8 @@ void fake_riscv_t::apply_group_tags(metadata_factory_t *md_factory, metadata_mem
     uint32_t rs1, rs2, rs3, rd;
     int32_t imm;
     const char *name;
-    int32_t flags = decode(op.insn, &rs1, &rs2, &rs3, &rd, &imm, &name);
+	uint32_t opdef;
+    int32_t flags = decode(op.insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
     metadata_t const *metadata = md_factory->lookup_group_metadata(name);
     if (!metadata) {
       printf("0x%08x: 0x%08x  %s - no group found for instruction\n", op.pc, op.insn, name);
