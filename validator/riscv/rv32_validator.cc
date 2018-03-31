@@ -222,6 +222,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
   const char *name;
+  uint32_t opdef;
   address_t offset;
   tag_t ci_tag;
 //  char tag_name[1024];
@@ -248,7 +249,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     res->csrResult = false;
   }
 
-  flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
+  flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
