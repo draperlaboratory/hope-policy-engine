@@ -222,7 +222,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_STORE | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
         case 0x1023:
@@ -231,7 +231,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_STORE | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
         case 0x2023:
@@ -240,7 +240,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_STORE | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
         case 0x3023:
@@ -249,7 +249,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_STORE | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
         case 0xf:
@@ -376,7 +376,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
         case 0x3027:
@@ -385,7 +385,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
         case 0x4027:
@@ -394,7 +394,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RS1 | HAS_RS2 | HAS_IMM | HAS_IMM;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 25) | 0xFFFFFF80 : (ibits & 0xFE000000) >> 25);
+            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFE000000) >> 20) | 0xFFFFF000 : (ibits & 0xFE000000) >> 20);
             *imm |= ((ibits & 0x00000F80) >> 7);
             return flags;
     }
