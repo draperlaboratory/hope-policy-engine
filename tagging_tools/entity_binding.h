@@ -24,35 +24,47 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef TAG_BASED_VALIDATOR_H
-#define TAG_BASED_VALIDATOR_H
+#ifndef ENTITY_BINDING_H
+#define ENTITY_BINDING_H
 
 #include <string>
-
-#include "renode_validator.h"
-#include "tag_utils.h"
-#include "tag_converter.h"
-#include "meta_set_factory.h"
+#include <list>
+#include <memory>
 
 namespace policy_engine {
 
-class tag_based_validator_t : public abstract_renode_validator_t, virtual public tag_converter_t {
-  protected:
-
-  meta_set_cache_t *ms_cache;
-  meta_set_factory_t *ms_factory;
-  
-  public:
-  tag_based_validator_t(meta_set_cache_t *ms_cache,
-			meta_set_factory_t *ms_factory,
-			RegisterReader_t rr);
-  virtual ~tag_based_validator_t() { }
-  virtual bool validate(address_t pc, insn_bits_t insn) = 0;
-  virtual bool commit() = 0;
-
-  // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t &tag) = 0;
+struct entity_binding_t {
+  virtual ~entity_binding_t() { }
+  /**
+     Name of the policy entity.
+   */
+  std::string entity_name;
 };
+
+struct entity_symbol_binding_t : entity_binding_t {
+  virtual ~entity_symbol_binding_t() { }
+  /**
+     ELF symbol the policy entity refers to. The ELF symbol must have a size if is_singularity
+     is false.
+   */
+  std::string elf_name;
+
+  /**
+     If true, we mark only the first word at the start symbol.
+  */
+  bool is_singularity;
+
+  entity_symbol_binding_t() : is_singularity(false) { }
+};
+
+struct entity_range_binding_t : entity_binding_t {
+  virtual ~entity_range_binding_t() { }
+  std::string elf_start_name;
+  std::string elf_end_name;
+};
+
+void load_entity_bindings(const char *file_name,
+			  std::list<std::unique_ptr<entity_binding_t>> &bindings);
 
 } // namespace policy_engine
 

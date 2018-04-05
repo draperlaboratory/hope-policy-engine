@@ -37,7 +37,7 @@ class exception_t : public std::exception {
   public:
   exception_t() : msg("unknown exception") { }
   exception_t(std::string msg) : msg(msg) { }
-  virtual std::string what() { return msg; }
+  virtual const char *what() { return msg.c_str(); }
 };
 
 class configuration_exception_t : public exception_t {

@@ -64,7 +64,9 @@ class metadata_memory_map_t {
     return nullptr;
   }
 
-  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
+//  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
+//  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(-1), md_cache(mc) { }
+  metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
 
   template <class Type, class UnqualifiedType = std::remove_cv<Type> >
     class ForwardIterator 

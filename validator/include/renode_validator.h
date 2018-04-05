@@ -49,7 +49,7 @@ class abstract_renode_validator_t : abstract_validator_t {
   }
   virtual ~abstract_renode_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
-  virtual void commit() = 0;
+  virtual bool commit() = 0;
 };
 
 

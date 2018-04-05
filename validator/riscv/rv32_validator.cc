@@ -38,20 +38,79 @@ static const char *tag_name(meta_set_t const *tag) {
   return tag_name;
 }
 
-rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
-				   meta_set_factory_t *ms_factory,
-				   soc_tag_configuration_t *config,
-				   RegisterReader_t rr) :
-  tag_based_validator_t(ms_cache, ms_factory, rr) {
+rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
+					     meta_set_factory_t *ms_factory,
+					     RegisterReader_t rr)
+  : tag_based_validator_t(ms_cache, ms_factory, rr) {
+  
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
   res = (results_t *)malloc(sizeof(results_t));
   res->pc = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->rd = (meta_set_t *)malloc(sizeof(meta_set_t));
   res->csr = (meta_set_t *)malloc(sizeof(meta_set_t));
-  res->pcResult = false;
-  res->rdResult = false;
-  res->csrResult = false;
+
+  memset(res->pc, 0, sizeof(meta_set_t));
+  memset(res->rd, 0, sizeof(meta_set_t));
+  memset(res->csr, 0, sizeof(meta_set_t));
+  // true causes initial clear of results
+  res->pcResult = true;
+  res->rdResult = true;
+  res->csrResult = true;
+}
+
+extern std::string render_metadata(metadata_t const *metadata);
+
+void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
+  for (auto &e: *md_map) {
+    for (address_t start = e.first.start; start < e.first.end; start += 4) {
+//      std::string s = render_metadata(e.second);
+//      printf("0x%08x: %s\n", start, s.c_str());
+      if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
+	throw configuration_exception_t("unable to apply metadata");
+      }
+    }
+  }
+}
+
+void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
+  if(!failed){
+    failed = true;
+    printf("handle violation\n");
+    memcpy(&failed_ctx, ctx, sizeof(context_t));
+    memcpy(&failed_ops, ops, sizeof(operands_t));
+  }
+}
+
+void rv32_validator_base_t::setup_validation() {
+  memset(ctx, 0, sizeof(*ctx));
+  memset(ops, 0, sizeof(*ops));
+
+  if (res->pcResult) {
+    memset(res->pc, 0, sizeof(meta_set_t));
+    res->pcResult = false;
+  }
+
+  if (res->rdResult) {
+    memset(res->rd, 0, sizeof(meta_set_t));
+    res->rdResult = false;
+  }
+
+  if (res->csrResult) {
+    memset(res->csr, 0, sizeof(meta_set_t));
+    res->csrResult = false;
+  }
+}
+
+rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
+				   meta_set_factory_t *ms_factory,
+				   soc_tag_configuration_t *config,
+				   RegisterReader_t rr) :
+  rv32_validator_base_t(ms_cache, ms_factory, rr) {
+  // true causes initial clear of results
+  res->pcResult = true;
+  res->rdResult = true;
+  res->csrResult = true;
 
   meta_set_t const *ms;
 
@@ -65,24 +124,13 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
-}
-
-extern std::string render_metadata(metadata_t const *metadata);
-
-void rv32_validator_t::apply_metadata(metadata_memory_map_t *md_map) {
-  for (auto &e: *md_map) {
-    for (address_t start = e.first.start; start < e.first.end; start += 4) {
-//      std::string s = render_metadata(e.second);
-//      printf("0x%08x: %s\n", start, s.c_str());
-      if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
-	throw configuration_exception_t("unable to apply metadata");
-      }
-    }
-  }
+  failed = false;
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
+
+  setup_validation();
   
   prepare_eval(pc, insn);
   
@@ -91,29 +139,85 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
+  } else {
+    handle_violation(ctx, ops);
   }
-
-//  if (policy_result != POLICY_SUCCESS)
-//    handle_violation(ctx, ops, res);
-
   return policy_result == POLICY_SUCCESS;
 }
 
-void rv32_validator_t::commit() {
+bool rv32_validator_t::commit() {
+  bool hit_watch = false;
+  if (res->pcResult) {
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
+    if(watch_pc && pc_tag != new_tag){
+      printf("Watch tag pc");
+      fflush(stdout);
+      hit_watch = true;
+    }
+    pc_tag = new_tag;
+  }
   if (has_pending_RD && res->rdResult) {
-    ireg_tags[pending_RD] = m_to_t(ms_cache->canonize(*res->rd));
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
+    for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
+      if(pending_RD == *it && ireg_tags[pending_RD] != new_tag){
+        printf("Watch tag reg");
+        fflush(stdout);
+        hit_watch = true;
+      }
+    }
+    ireg_tags[pending_RD] = new_tag;
   }
   if (has_pending_mem && res->rdResult) {
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
+    tag_t old_tag;
+    if (!tag_bus.load_tag(mem_addr, old_tag)) {
+      printf("failed to load MR tag\n");
+      fflush(stdout);
+      // might as well halt
+      hit_watch = true;
+    }
 //    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
-    if (!tag_bus.store_tag(mem_addr, m_to_t(ms_cache->canonize(*res->rd)))) {
+    for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
+      if(pending_RD == *it && old_tag != new_tag){
+        printf("Watch tag mem");
+        fflush(stdout);
+        hit_watch = true;
+      }
+    }
+    if (!tag_bus.store_tag(mem_addr, new_tag)) {
       printf("failed to store MR tag\n");
+      fflush(stdout);
+      // might as well halt
+      hit_watch = true;
     }
   }
   if (has_pending_CSR && res->csrResult) {
-    csr_tags[pending_CSR] = m_to_t(ms_cache->canonize(*res->csr));
+    tag_t new_tag = m_to_t(ms_cache->canonize(*res->csr));
+    for(std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
+      if(pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
+        printf("Watch tag CSR");
+        fflush(stdout);
+        hit_watch = true;
+      }
+    }
+    csr_tags[pending_CSR] = new_tag;
   }
+  return hit_watch;
 }
 
+void rv32_validator_t::set_pc_watch(bool watching){
+  watch_pc = watching;
+}
+void rv32_validator_t::set_reg_watch(address_t addr){
+  watch_regs.push_back(addr);
+}
+void rv32_validator_t::set_csr_watch(address_t addr){
+  watch_csrs.push_back(addr);
+}
+void rv32_validator_t::set_mem_watch(address_t addr){
+  watch_addrs.push_back(addr);
+}
+  
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
@@ -123,6 +227,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  char tag_name[1024];
 
   int32_t flags;
+
+  failed = false;
   
   memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));
@@ -141,6 +247,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     memset(res->csr, 0, sizeof(meta_set_t));
     res->csrResult = false;
   }
+
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 

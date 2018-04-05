@@ -38,7 +38,7 @@ typedef uint32_t (*MemoryReader_t)(uint32_t);
 
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
 uint32_t e_v_validate(uint32_t pc, uint32_t instr);
-void e_v_commit();
+uint32_t e_v_commit();
   
 #ifdef __cplusplus
 }

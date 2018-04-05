@@ -44,7 +44,7 @@ void init(const char *policy_dir) {
     md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
   } catch (exception_t &e) {
-    printf("exception: %s\n", e.what().c_str());
+    printf("exception: %s\n", e.what());
   }
 }
 
@@ -96,28 +96,26 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
 }
 
 void usage() {
-  printf("usage: md_range <policy_dir> <base_address> <range_file> <tag_file>\n");
+  printf("usage: md_range <policy_dir> <range_file> <tag_file>\n");
 }
 
 int main(int argc, char **argv) {
   const char *policy_dir;
-  address_t base_address;
   const char *range_file_name;
   const char *file_name;
 
-  if (argc != 5) {
+  if (argc != 4) {
     usage();
     return 0;
   }
 
   policy_dir = argv[1];
-  base_address = strtol(argv[2], 0, 16);
-  range_file_name = argv[3];
-  file_name = argv[4];
+  range_file_name = argv[2];
+  file_name = argv[3];
 
   init(policy_dir);
 
-  metadata_memory_map_t map(base_address, &md_cache);
+  metadata_memory_map_t map(&md_cache);
 
   if (!load_range_file(&map, range_file_name))
     return 1;
