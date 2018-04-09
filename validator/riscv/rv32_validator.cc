@@ -253,12 +253,13 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
+  if ((flags & HAS_CSR_LOAD) || (flags & HAS_CSR_STORE)) ops->op2 = t_to_m(csr_tags[imm]);
   if (flags & HAS_RS2) ops->op2 = t_to_m(ireg_tags[rs2]);
   if (flags & HAS_RS3) ops->op3 = t_to_m(ireg_tags[rs3]);
   has_pending_CSR = (flags & HAS_CSR_STORE) != 0;
   has_pending_RD = (flags & HAS_RD) != 0;
   has_pending_mem = (flags & HAS_STORE) != 0;
-  pending_CSR = rs3;
+  pending_CSR = imm;
 
   // Handle memory address calculation
   if (flags & (HAS_LOAD | HAS_STORE)) {
