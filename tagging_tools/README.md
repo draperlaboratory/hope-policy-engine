@@ -38,8 +38,8 @@ The range file has a format like this:
 So, for example:
 
 ```
-0x80000000 0x80010000 requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR
-0x80010000 0x80020000 requires.dover.Kernel.Code.ElfSection.SHF_WRITE
+0x80000000 0x80010000 Require.Tools.Elf.Section.SHF_EXECINSTR
+0x80010000 0x80020000 Require.Tools.Elf.Section.SHF_WRITE
 ```
 
 The same range can be specified more than once if you wish to apply multiple tags to it.
@@ -113,17 +113,17 @@ Entity YAML files have the following format:
 ```
 entities:
   symbol: {
-    name: requires.application.malloc,
-    elf_name: malloc,
+    name: Require.Code.FRTOS.pvPortMalloc
+    elf_name: pvPortMalloc,
     tag_all: false
     }
   symbol: {
-    name: requires.application.longjmp,
+    name: Require.application.longjmp,
     elf_name: longjmp,
     tag_all: true
     }
   range: {
-    name: requires.application.isr
+    name: Require.application.isr
     elf_start: isr_start,
     elf_end:   isr_end
     }

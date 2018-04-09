@@ -114,13 +114,13 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
   meta_set_t const *ms;
 
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.RegZero");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.RZero");
   ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("requires.dover.SOC.CSR.Default");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.CSR.Default");
   csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.PC");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Env");
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
@@ -259,6 +259,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   has_pending_RD = (flags & HAS_RD) != 0;
   has_pending_mem = (flags & HAS_STORE) != 0;
   pending_CSR = rs3;
+
+  // Handle memory address calculation
   if (flags & (HAS_LOAD | HAS_STORE)) {
 //    address_t maddr = reg_reader(rs1);
     mem_addr = reg_reader(rs1);
@@ -289,6 +291,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
+
 }
 
 void rv32_validator_t::complete_eval() {

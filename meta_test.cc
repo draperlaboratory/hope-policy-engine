@@ -36,12 +36,12 @@ int main() {
   meta_tree_t tree;
   tree.populate(reqsAST);
   try {
-  dump_meta(&tree, "requires.dover.SOC.IO.UART0");
-  dump_meta(&tree, "requires.dover.riscv.Mach.Reg");
-  dump_meta(&tree, "requires.dover.riscv.Mach.RegZero");
-  dump_meta(&tree, "requires.dover.SOC.CSR.Default");
-  dump_meta(&tree, "requires.dover.riscv.Mach.PC");
-  dump_meta(&tree, "requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
+  dump_meta(&tree, "Require.SOC.IO.UART_0");
+  dump_meta(&tree, "Require.ISA.RISCV.Reg.Default");
+  dump_meta(&tree, "Require.ISA.RISCV.Reg.RZero");
+  dump_meta(&tree, "Require.ISA.RISCV.CSR.Default");
+  dump_meta(&tree, "Require.ISA.RISCV.Reg.Env");
+  dump_meta(&tree, "Require.Tools.Elf.Section.SHF_EXECINSTR");
   } catch (const char *s) {
     printf("error: %s\n", s);
   }
@@ -51,15 +51,15 @@ int main() {
   meta_set_factory_t ms_factory(&cache);
   meta_set_t *ms = ms_factory.get_meta_set("dover.SOC.IO.UART0");
   printf("1\n");
-//  ms = ms_factory.get_meta_set("dover.Kernel.Code.ElfSection.SHF_EXECINSTR");
+//  ms = ms_factory.get_meta_set("Tools.Elf.Section.SHF_EXECINSTR");
   printf("2\n");
-  ms = ms_factory.get_meta_set("dover.riscv.Mach.Reg");
+  ms = ms_factory.get_meta_set("Require.ISA.RISCV.Reg.Default");
   printf("3\n");
-  ms = ms_factory.get_meta_set("dover.riscv.Mach.RegZero");
+  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.RZero");
   printf("4\n");
-  ms = ms_factory.get_meta_set("dover.SOC.CSR.default");
+  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.Default");
   printf("5\n");
-  ms = ms_factory.get_meta_set("dover.riscv.Mach.PC");
+  ms = ms_factory.get_meta_set("Require.ISA.RISCV.Reg.Env");
   printf("ms: ");
   for (int i = 0; i < META_SET_WORDS; i++)
     printf("0x%x ", ms->tags[1]);

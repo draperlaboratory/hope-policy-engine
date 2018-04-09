@@ -38,9 +38,9 @@ class RangeFile:
      def __del__(self):
           self.done()
 
-RWX_X = 'requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR'
-RWX_R = 'requires.dover.Kernel.Code.ElfSection.SHF_ALLOC'
-RWX_W = 'requires.dover.Kernel.Code.ElfSection.SHF_WRITE'
+RWX_X = 'Require.Tools.Elf.Section.SHF_EXECINSTR'
+RWX_R = 'Require.Tools.Elf.Section.SHF_ALLOC'
+RWX_W = 'Require.Tools.Elf.Section.SHF_WRITE'
 
 def generate_rwx_ranges(ef, range_file):
      for s in ef.iter_sections():
