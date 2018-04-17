@@ -114,13 +114,13 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
   meta_set_t const *ms;
 
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.Reg");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.RegZero");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.RZero");
   ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("requires.dover.SOC.CSR.Default");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.CSR.Default");
   csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("requires.dover.riscv.Mach.PC");
+  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Env");
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
@@ -222,6 +222,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
   const char *name;
+  uint32_t opdef;
   address_t offset;
   tag_t ci_tag;
 //  char tag_name[1024];
@@ -248,16 +249,19 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     res->csrResult = false;
   }
 
-  flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name);
+  flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
 //  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
+  if ((flags & HAS_CSR_LOAD) || (flags & HAS_CSR_STORE)) ops->op2 = t_to_m(csr_tags[imm]);
   if (flags & HAS_RS2) ops->op2 = t_to_m(ireg_tags[rs2]);
   if (flags & HAS_RS3) ops->op3 = t_to_m(ireg_tags[rs3]);
   has_pending_CSR = (flags & HAS_CSR_STORE) != 0;
   has_pending_RD = (flags & HAS_RD) != 0;
   has_pending_mem = (flags & HAS_STORE) != 0;
-  pending_CSR = rs3;
+  pending_CSR = imm;
+
+  // Handle memory address calculation
   if (flags & (HAS_LOAD | HAS_STORE)) {
 //    address_t maddr = reg_reader(rs1);
     mem_addr = reg_reader(rs1);
@@ -288,6 +292,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
+
 }
 
 void rv32_validator_t::complete_eval() {

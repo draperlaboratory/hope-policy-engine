@@ -57,8 +57,8 @@ extern "C" {
                   uint32_t *rs3,   // register id
                   uint32_t *rd,    // register id
                   int32_t *imm,    // signed immediate value
-                  const char **name); // Instruction name
-
+                  const char **name, // Instruction name
+				  uint32_t *op);     // Opcode defined in inst_decode.h
 
   /**
    * Structure that holds any special evaluation context, for

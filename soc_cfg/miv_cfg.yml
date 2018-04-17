@@ -1,24 +1,24 @@
 SOC:
   RAM: {
-    name: requires.dover.Kernel.MemoryMap.Default,
+    name: Require.SOC.Memory.Ram_0,
     start: 0x80000000,
     end:   0x80800000,
     heterogeneous: true
     }
   UART0: {
-    name: requires.dover.SOC.IO.UART0,
+    name: Require.SOC.IO.UART_0,
     start: 0x70001000,
     end:   0x70002000,
     heterogeneous: false
     }
   MTIME: {
-    name: requires.dover.SOC.IO.UART0,
+    name: Require.SOC.IO.UART_0,
     start: 0x4400bff8,
     end:   0x4400c000,
     heterogeneous: false
     }
   MTIME_CMP: {
-    name: requires.dover.SOC.IO.UART0,
+    name: Require.SOC.IO.UART_0,
     start: 0x44004000,
     end:   0x44004010,
     heterogeneous: false
