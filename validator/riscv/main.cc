@@ -175,7 +175,7 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
       msg = msg + tmp;
     }
     
-    msg = msg + "\n" + "Tags:\n";
+    msg = msg + "\n" + "Metadata:\n";
     meta_set_to_string(rv_validator->failed_ops.pc, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.ci, tmp, s);
