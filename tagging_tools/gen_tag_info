@@ -38,9 +38,9 @@ class RangeFile:
      def __del__(self):
           self.done()
 
-RWX_X = 'requires.dover.Kernel.Code.ElfSection.SHF_EXECINSTR'
-RWX_R = 'requires.dover.Kernel.Code.ElfSection.SHF_ALLOC'
-RWX_W = 'requires.dover.Kernel.Code.ElfSection.SHF_WRITE'
+RWX_X = 'Require.Tools.Elf.Section.SHF_EXECINSTR'
+RWX_R = 'Require.Tools.Elf.Section.SHF_ALLOC'
+RWX_W = 'Require.Tools.Elf.Section.SHF_WRITE'
 
 def generate_rwx_ranges(ef, range_file):
      for s in ef.iter_sections():
@@ -59,9 +59,9 @@ def generate_rwx_ranges(ef, range_file):
                print('R {0}: 0x{1:X}'.format(s.name, start))
 
 policy_dir = sys.argv[1]
-base_address_string = sys.argv[2]
-taginfo_file_name = sys.argv[3]
-elf_file_name = sys.argv[4]
+#base_address_string = sys.argv[2]
+taginfo_file_name = sys.argv[2]
+elf_file_name = sys.argv[3]
 
 try:
      os.remove(taginfo_file_name)
@@ -78,7 +78,8 @@ with open(elf_file_name, 'rb') as f:
 
      range_file.finish();
      #range_file.print()
-     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
+     #     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
+     proc = subprocess.Popen([md_range, policy_dir, range_file.name(), taginfo_file_name])
      proc.wait()
      range_file.done()
 
@@ -88,7 +89,7 @@ with open(elf_file_name, 'rb') as f:
                section_addr_string = '0x{:08x}'.format(s['sh_addr'])
                proc = subprocess.Popen([md_code,
                                         policy_dir,
-                                        base_address_string,
+                                        #base_address_string,
                                         section_addr_string,
                                         taginfo_file_name],
                                        stdin=subprocess.PIPE,

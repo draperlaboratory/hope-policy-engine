@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.5)
 project(policy-engine)
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_C_COMPILER gcc)
 set (CMAKE_CXX_COMPILER g++)
 
 find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
+
+#find_package(gflags, REQUIRED)
+
 include_directories("./validator/include")
 include_directories("./tagging_tools")
 
@@ -26,6 +29,7 @@ add_library(rv32_validator
   validator/riscv/inst_decoder.c
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
+  validator/riscv/fake_riscv.cc
   
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
@@ -39,7 +43,12 @@ target_include_directories(rv32_validator PRIVATE
   )
 
 add_library(tagging_tools
-  tagging_tools/tag_file.cc tagging_tools/metadata_memory_map.cc
+  tagging_tools/tag_file.cc
+  tagging_tools/metadata_memory_map.cc
+  tagging_tools/asm_annotater.cc
+  tagging_tools/elf_loader.cc
+  tagging_tools/elf_utils.cc
+  tagging_tools/entity_binding.cc
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -54,6 +63,26 @@ add_executable(md_code
 	)
 target_link_libraries(md_code tagging_tools validator yaml-cpp)
 target_include_directories(md_code PRIVATE
+  ./validator/include/policy-glue
+
+  # policy directory dependency is because riscv_isa.h drags it in.
+  # There is no actual dependency.
+  ./policy/include
+  )
+
+add_executable(md_entity
+	tagging_tools/md_entity.cc
+	)
+target_link_libraries(md_entity tagging_tools validator yaml-cpp gflags)
+target_include_directories(md_entity PRIVATE
+  ./validator/include/policy-glue
+  )
+
+add_executable(md_asm_ann
+	tagging_tools/md_asm_ann.cc
+	)
+target_link_libraries(md_asm_ann tagging_tools validator yaml-cpp gflags)
+target_include_directories(md_asm_ann PRIVATE
   ./validator/include/policy-glue
 
   # policy directory dependency is because riscv_isa.h drags it in.

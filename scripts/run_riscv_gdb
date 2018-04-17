@@ -9,6 +9,6 @@ EOF
 full_path=`readlink -f $1`
 echo "sysbus LoadELF @$full_path" >> $renode_file
 # doesn't work to use RISCV gdb with validator yet
-#echo "sysbus.cpu SetExternalValidator @/home/eli/src/policy-engine/build/librv32-renode-validator.so" >> $renode_file
+#echo "sysbus.cpu SetExternalValidator @/home/eli/src/policy-engine/build/librv32-renode-validator.so @/home/eli/src/policy-engine/policy @/home/eli/src/policy-engine/application_tags.taginfo" >> $renode_file
 echo "sysbus.cpu StartGdbServer 55555" >> $renode_file
 renode $renode_file

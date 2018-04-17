@@ -27,10 +27,16 @@
 #ifndef PLATFORM_TYPES_H
 #define PLATFORM_TYPES_H
 
+#include <cstdint>
+
+#define ADDRESS_T_MAX UINT32_MAX
+
 namespace policy_engine {
 
 typedef uint32_t address_t;
 typedef uint32_t insn_bits_t;
+
+#define PLATFORM_WORD_SIZE 4
 
 }
 

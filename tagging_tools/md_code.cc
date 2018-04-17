@@ -45,12 +45,12 @@ void init(const char *policy_dir) {
     md_factory = new metadata_factory_t(policy_dir);
     init_metadata_renderer(md_factory);
   } catch (exception_t &e) {
-    printf("exception: %s\n", e.what().c_str());
+    printf("exception: %s\n", e.what());
   }
 }
 
 void usage() {
-  printf("usage: md_code <policy-dir> <base_address> <code_address> <tag_file>\n");
+  printf("usage: md_code <policy-dir> <code_address> <tag_file>\n");
   printf("  Reads a stream of binary instructions from stdin, applying metadata\n");
   printf("  for each instruction related to the group of operations that instruction\n");
   printf("  may represent.\n");
@@ -83,28 +83,26 @@ class rv32_insn_stream_t : public abstract_instruction_stream_t {
 int main(int argc, char **argv) {
 try {
   const char *policy_dir;
-  address_t base_address;
   address_t code_address;
   const char *file_name;
 
-  if (argc != 5) {
+  if (argc != 4) {
     usage();
     return 0;
   }
 
   policy_dir = argv[1];
-  base_address = strtol(argv[2], 0, 16);
-  code_address = strtol(argv[3], 0, 16);
-  file_name = argv[4];
+  code_address = strtol(argv[2], 0, 16);
+  file_name = argv[3];
 
   init(policy_dir);
-  metadata_memory_map_t map(base_address, &md_cache);
+  metadata_memory_map_t map(&md_cache);
   if (!load_tags(&map, file_name)) {
     printf("failed read\n");
     fprintf(stderr, "failed to read tags from %s\n", file_name);
     return 1;
   }
-  printf("base addr = 0x%08x\ncode addr = 0x%08x\n", base_address, code_address);
+  printf("code addr = 0x%08x\n", code_address);
 // use this for debugging with gdb
 //  FILE *foo = fopen("/tmp/bits.bin", "rb");
 //  rv32_insn_stream_t s(foo);
@@ -116,7 +114,8 @@ try {
       uint32_t rs1, rs2, rs3, rd;
       int32_t imm;
       const char *name;
-      int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name);
+	  uint32_t opdef;
+      int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
       metadata_t const *metadata = md_factory->lookup_group_metadata(name);
       if (!metadata) {
 	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
