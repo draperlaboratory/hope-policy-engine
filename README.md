@@ -194,7 +194,7 @@ the prerequisites to build renode.  When you get pull the renode project, the
 first time you build it, it will populate submodules.  The submodules will not
 be on the proper branch, because of some git submodule issues that we haven't
 sorted out.  So build the project once, then go to the src/Infrastructure
-directory, and do a `git checkout dover` to ensure that it is on the proper
+directory, and do a `git checkout coreguard` to ensure that it is on the proper
 branch.  Then go back to the top level renode directory, and run `./build.sh -c`
 followed by `./build.sh`.
 
@@ -221,7 +221,7 @@ are installed.
 
 Pull the repository containing the repositories:
 
-<https://github.com/DoverMicrosystems/policy-SSITH.git>
+<https://github.com/DoverMicrosystems/policies.git>
 
 This be in the same directory as the `policy-engine` repository (they
 should have the same parent directory).
@@ -234,7 +234,7 @@ The policy engine requires `cmake` and a few C++ libraries to build.
 On Ubuntu, you can get these with
 
 ```
-sudo apt-get install cmake libboost-dev libboost-program-options-dev libyaml-cpp-dev
+sudo apt-get install cmake libboost-dev libboost-program-options-dev libyaml-cpp-dev libgflags-dev
 ```
 
 Then build the policy-engine project, proper:
@@ -246,7 +246,9 @@ cmake ..
 make
 ```
 
-This will build the renode validator, plus the standalone validator test app.  For example, from the build directory, you should see a simple policy violation error when you run:
+This will build the renode validator, plus the standalone validator
+test app.  For example, from the build directory, you should see a
+simple policy violation error when you run:
 
 ```
 ./standalone ../policy ../soc_cfg/miv_cfg.yml
