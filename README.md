@@ -37,19 +37,19 @@ fiddling with it.
 # Basic Validation API
 
 In this framework, there is a very basic API coupling to the simulator.  At each
-instruction, the simulator calls a validate method before executing the
-instruction, and a commit method after executing the instruction.
+instruction, the simulator calls a `validate` method before executing the
+instruction, and a `commit` method after executing the instruction.
 
 At the top most level, an implementation of a validator under this framework
 doesn't know anything at all about tags, and could do something completely
 arbitrary to effect its validation.
 
-The validate method currently returns a simple true or false, indicating whether
-or not to let the instruction execution proceed.  The validate method is passed
+The `validate` method currently returns a simple true or false, indicating whether
+or not to let the instruction execution proceed.  The `validate method` is passed
 the address of the instruction being executed, and the instruction bits.  This
 choice of information is purely for efficiency of the simulation.
 
-The commit method is called to notify the validator that the instruction
+The `commit` method is called to notify the validator that the instruction
 actually retired, to allow the validator to do bookkeeping as needed.
 
 # Integration of Policy Code
