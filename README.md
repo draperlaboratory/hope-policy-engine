@@ -200,6 +200,18 @@ followed by `./build.sh`.
 
 You will not have to build this again anytime soon.
 
+## Build renode-plugins/Validator
+
+Pull the `renode-plugins` repo, 
+
+<https://github.com/DoverMicrosystems/renode-plugins>
+
+```
+cd ValidatorPlugin
+make
+make install
+```
+
 
 ## Build the policy-tool
 
