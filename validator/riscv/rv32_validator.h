@@ -43,10 +43,10 @@ class rv32_validator_base_t : public tag_based_validator_t {
 protected: 
   tag_bus_t tag_bus;
   context_t *ctx;
+
+public:
   operands_t *ops;
   results_t *res;
-
-  public:
 
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
@@ -71,6 +71,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_RD;
   bool has_pending_mem;
   bool has_pending_CSR;
+  int logIdx;
 //  meta_set_t temp_ci_tag;
 
  public:
@@ -108,7 +109,9 @@ class rv32_validator_t : public rv32_validator_base_t {
   void set_reg_watch(address_t addr);
   void set_csr_watch(address_t addr);
   void set_mem_watch(address_t addr);
-  
+  const char* get_first_rule_descr();
+  const char* get_next_rule_descr();
+
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
 
