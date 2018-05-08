@@ -66,12 +66,14 @@ static void usage() {
 
 int main(int argc, char **argv) {
   stdio_reporter_t err;
+
+  gflags::SetUsageMessage(usage_msg);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
   if (argc < 4) {
     usage();
     return 0;
   }
-  gflags::SetUsageMessage(usage_msg);
-  gflags::ParseCommandLineFlags(&argc, &argv, false);
 
   const char *policy_dir = argv[1];
   const char *elf_file_name = argv[2];
