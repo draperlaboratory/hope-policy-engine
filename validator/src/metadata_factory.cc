@@ -26,7 +26,9 @@
 
 #include <string.h>
 #include <sstream>
+#include <exception>
 
+#include "validator_exception.h"
 #include "metadata_factory.h"
 
 using namespace policy_engine;
@@ -113,10 +115,14 @@ void metadata_factory_t::init_group_map(YAML::Node &n) {
 #include <linux/limits.h>
 YAML::Node metadata_factory_t::load_yaml(const char *yml_file) {
   char path_buff[PATH_MAX];
-  strcpy(path_buff, policy_dir.c_str());
-  strcat(path_buff, "/");
-  strcat(path_buff, yml_file);
-  return YAML::LoadFile(path_buff);
+  try {
+    strcpy(path_buff, policy_dir.c_str());
+    strcat(path_buff, "/");
+    strcat(path_buff, yml_file);
+    return YAML::LoadFile(path_buff);
+  } catch (std::exception &e) {
+    throw configuration_exception_t(std::string("while parsing ") + path_buff + std::string(": ") + e.what());
+  }
 }
 
 metadata_factory_t::metadata_factory_t(std::string policy_dir)
