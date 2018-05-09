@@ -106,7 +106,7 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
 				   RegisterReader_t rr) :
-  rv32_validator_base_t(ms_cache, ms_factory, rr) {
+    rv32_validator_base_t(ms_cache, ms_factory, rr), watch_pc(false) {
   // true causes initial clear of results
   res->pcResult = true;
   res->rdResult = true;
