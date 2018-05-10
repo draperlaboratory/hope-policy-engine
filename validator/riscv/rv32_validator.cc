@@ -106,7 +106,7 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
 				   RegisterReader_t rr) :
-  rv32_validator_base_t(ms_cache, ms_factory, rr) {
+    rv32_validator_base_t(ms_cache, ms_factory, rr), watch_pc(false) {
   // true causes initial clear of results
   res->pcResult = true;
   res->rdResult = true;
@@ -156,6 +156,7 @@ bool rv32_validator_t::commit() {
     }
     pc_tag = new_tag;
   }
+
   if (has_pending_RD && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
@@ -165,8 +166,14 @@ bool rv32_validator_t::commit() {
         hit_watch = true;
       }
     }
-    ireg_tags[pending_RD] = new_tag;
+    // printf("Update reg: %d\n", pending_RD);
+    //fflush(stdout);
+
+    // dont update metadata on regZero
+    if(pending_RD)
+        ireg_tags[pending_RD] = new_tag;
   }
+  
   if (has_pending_mem && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;

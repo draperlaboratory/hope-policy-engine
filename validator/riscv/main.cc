@@ -175,19 +175,19 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
       msg = msg + tmp;
     }
     
-    msg = msg + "\n" + "Tags:\n";
+    msg = msg + "\n" + "Metadata:\n";
     meta_set_to_string(rv_validator->failed_ops.pc, tmp, s);
-    msg = msg + "    PC : " + tmp + "\n";
+    msg = msg + "    Env   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.ci, tmp, s);
-    msg = msg + "    CI : " + tmp + "\n";
+    msg = msg + "    Code  : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.op1, tmp, s);
-    msg = msg + "    Op1: " + tmp + "\n";
+    msg = msg + "    Op1   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.op2, tmp, s);
-    msg = msg + "    Op2: " + tmp + "\n";
+    msg = msg + "    Op2   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.op3, tmp, s);
-    msg = msg + "    Op3: " + tmp + "\n";
+    msg = msg + "    Op3   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.mem, tmp, s);
-    msg = msg + "    Mem: " + tmp + "\n";
+    msg = msg + "    Mem   : " + tmp + "\n";
     if(rv_validator->failed_ctx.fail_msg)
       msg = msg + "Explicit Failure: " + rv_validator->failed_ctx.fail_msg + "\n";
     else
