@@ -37,51 +37,9 @@
 
 namespace policy_engine {
 
-struct meta_tree_t {
-  struct meta_node_t;
-  struct meta_node_t {
-    std::vector<std::string> meta_names;
-    std::unordered_map<std::string, meta_node_t *> children;
-    meta_node_t *add_node(std::string name) {
-      meta_node_t *res = new meta_node_t();
-      children[name] = res;
-      return res;
-    }
-  };
-  meta_node_t *root;
-  bool find_metadata(std::vector<std::string> path, std::vector<std::string> &md) {
-    meta_node_t *n = root;
-//    printf("searching: ");
-    for (auto name: path) {
-//      printf("%s ", name.c_str());
-      n = n->children[name];
-      if (!n) {
-	return false;
-      }
-    }
-//    printf("\n");
-    md = n->meta_names;
-    return true;
-  }
-  meta_tree_t() : root(new meta_node_t()) { }
-  void populate(meta_node_t *child, YAML::Node node) {
-    for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
-      std::string key = it->first.as<std::string>();
-      if (key == "metadata") {
-	YAML::Node mnode = it->second;
-	for (size_t i = 0; i < mnode.size(); i++) {
-	  std::string name = mnode[i]["name"].as<std::string>();
-	  child->meta_names.push_back(name);
-	}
-      } else {
-	meta_node_t *new_child = child->add_node(key);
-	populate(new_child, it->second);
-      }
-    }
-  }
-  void populate(YAML::Node n) {
-    populate(root, n);
-  }
+struct entity_init_t {
+  std::string entity_name;
+  std::vector<std::string> meta_names;
 };
 
 class metadata_factory_t {
@@ -91,10 +49,11 @@ class metadata_factory_t {
   std::unordered_map<std::string, metadata_t*> path_map;
   std::unordered_map<std::string, metadata_t *> group_map;
 
-  meta_tree_t meta_tree;
+  std::map<std::string, entity_init_t> entity_initializers;
 
   std::string abbreviate(std::string const &dotted_string);
 
+  void init_entity_initializers(YAML::Node const &reqsAST, std::string prefix);
   void init_encoding_map(YAML::Node &rawEnc);
   void init_group_map(YAML::Node &groupAST);
   YAML::Node load_yaml(const char *yml_file);
@@ -116,6 +75,11 @@ class metadata_factory_t {
 
   std::string render(meta_t meta, bool abbrev = false);
   std::string render(metadata_t const *metadata, bool abbrev = false);
+  void enumerate(std::list<std::string> &elts) {
+    for (auto const &p: entity_initializers) {
+      elts.push_back(p.first);
+    }
+  }
 };
 
 } // namespace policy_engine

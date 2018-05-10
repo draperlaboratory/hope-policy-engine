@@ -114,13 +114,13 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
   meta_set_t const *ms;
 
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Default");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.RZero");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.RZero");
   ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.CSR.Default");
+  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.Default");
   csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Env");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Env");
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);

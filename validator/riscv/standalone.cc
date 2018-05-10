@@ -91,7 +91,7 @@ static void apply_tag(address_t start, address_t end, const char *tag_name) {
 // want on the instructions, etc
 static void tag_stuff() {
   rv32.apply_group_tags(md_factory, md_map);
-  rv32.apply_tag(md_factory, md_map, "Require.Tools.Elf.Section.SHF_EXECINSTR");
+  rv32.apply_tag(md_factory, md_map, "Tools.Elf.Section.SHF_EXECINSTR");
   rv_validator->apply_metadata(md_map);
 }
 

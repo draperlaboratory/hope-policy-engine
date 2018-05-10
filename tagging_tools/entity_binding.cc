@@ -37,14 +37,15 @@ static void expect_field(YAML::Node const *n, const char *field, std::string ent
     throw configuration_exception_t("expected field " + std::string(field) + " in entity " + entity_name);
 }
 
-static void process_element(std::string element_name,
-			    const YAML::Node &n,
+static void process_element(const YAML::Node &n,
 			    std::list<std::unique_ptr<entity_binding_t>> &bindings) {
   std::string elt_path;
-
+  
   if (!n["name"])
-    throw configuration_exception_t("entity must have a name");
+    throw configuration_exception_t("binding must have an entity name");
   std::string entity_name = n["name"].as<std::string>();
+  expect_field(&n, "kind", entity_name);
+  std::string element_name = n["kind"].as<std::string>();
   if (element_name == "symbol") {
     entity_symbol_binding_t *binding = new entity_symbol_binding_t;
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
@@ -63,21 +64,42 @@ static void process_element(std::string element_name,
     binding->elf_start_name = n["elf_start"].as<std::string>();
     binding->elf_end_name = n["elf_end"].as<std::string>();
     bindings.push_back(std::move(u));
+  } else if (element_name == "soc") {
+    entity_soc_binding_t *binding = new entity_soc_binding_t;
+    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
+    binding->entity_name = entity_name;
+    bindings.push_back(std::move(u));
+  } else if (element_name == "isa") {
+    entity_isa_binding_t *binding = new entity_isa_binding_t;
+    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
+    binding->entity_name = entity_name;
+    bindings.push_back(std::move(u));
+  } else if (element_name == "image") {
+    entity_image_binding_t *binding = new entity_image_binding_t;
+    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
+    binding->entity_name = entity_name;
+    bindings.push_back(std::move(u));
   } else {
-    throw configuration_exception_t("unexpected element " + element_name);
+    throw configuration_exception_t("unexpected kind " + element_name);
   }
 }
 
 void policy_engine::load_entity_bindings(const char *file_name,
-					 std::list<std::unique_ptr<entity_binding_t>> &bindings) {
-  YAML::Node n = YAML::LoadFile(file_name);
-  if (n["entities"]) {
-    YAML::Node soc = n["entities"];
-    for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-      process_element(it->first.as<std::string>(), it->second, bindings);
+					 std::list<std::unique_ptr<entity_binding_t>> &bindings,
+					 reporter_t *err) {
+  try {
+    YAML::Node n = YAML::LoadFile(file_name);
+//  if (n["entities"]) {
+//    YAML::Node soc = n["entities"];
+//    for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
+    for (YAML::const_iterator it = n.begin(); it != n.end(); ++it) {
+      process_element(*it, bindings);
     }
-  } else {
-    throw configuration_exception_t("Expected a root 'entities' node");
+  } catch (std::exception &e) {
+    err->error("while parsing %s: %s\n", file_name, e.what());
   }
+//  } else {
+//    throw configuration_exception_t("Expected a root 'entities' node");
+//  }
 }
 
