@@ -31,6 +31,8 @@
 #include <list>
 #include <memory>
 
+#include "basic_elf_io.h"
+
 namespace policy_engine {
 
 struct entity_binding_t {
@@ -63,8 +65,21 @@ struct entity_range_binding_t : entity_binding_t {
   std::string elf_end_name;
 };
 
+struct entity_soc_binding_t : entity_binding_t {
+  virtual ~entity_soc_binding_t() { }
+};
+
+struct entity_isa_binding_t : entity_binding_t {
+  virtual ~entity_isa_binding_t() { }
+};
+
+struct entity_image_binding_t : entity_binding_t {
+  virtual ~entity_image_binding_t() { }
+};
+
 void load_entity_bindings(const char *file_name,
-			  std::list<std::unique_ptr<entity_binding_t>> &bindings);
+			  std::list<std::unique_ptr<entity_binding_t>> &bindings,
+			  reporter_t *err);
 
 } // namespace policy_engine
 

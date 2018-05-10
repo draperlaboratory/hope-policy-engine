@@ -200,6 +200,48 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
   }
 }
 
+extern "C" void e_v_rule_eval_log(char* dest, int n) {
+    const int s = 512;
+    char tmp[s];
+    std::string msg = "";
+    const char* rule;
+
+    msg = msg + "\n" + "Metadata:\n";
+    meta_set_to_string(rv_validator->ops->pc, tmp, s);
+    msg = msg + "    Env   : " + tmp + "\n";
+    meta_set_to_string(rv_validator->ops->ci, tmp, s);
+    msg = msg + "    Code  : " + tmp + "\n";
+    meta_set_to_string(rv_validator->ops->op1, tmp, s);
+    msg = msg + "    Op1   : " + tmp + "\n";
+    meta_set_to_string(rv_validator->ops->op2, tmp, s);
+    msg = msg + "    Op2   : " + tmp + "\n";
+    meta_set_to_string(rv_validator->ops->op3, tmp, s);
+    msg = msg + "    Op3   : " + tmp + "\n";
+    meta_set_to_string(rv_validator->ops->mem, tmp, s);
+    msg = msg + "    Mem   : " + tmp + "\n";
+
+    msg = msg + "\n" + "Rules:\n";
+    rule = rv_validator->get_first_rule_descr();
+    while(rule){
+        msg = msg + rule + "\n";
+        rule = rv_validator->get_next_rule_descr();
+    }
+    
+    msg = msg + "\n" + "Results:\n";
+    meta_set_to_string(rv_validator->res->pc, tmp, s);
+    msg = msg + "    Env   : " + tmp + "\n";
+    if(rv_validator->res->rdResult){
+        meta_set_to_string(rv_validator->res->rd, tmp, s);
+        msg = msg + "    RD    : " + tmp + "\n";
+    }
+    if(rv_validator->res->csrResult){
+        meta_set_to_string(rv_validator->res->csr, tmp, s);
+        msg = msg + "    CSR   : " + tmp + "\n";
+    }
+    
+    strncpy(dest, msg.c_str(), n);
+}
+
 extern "C" void e_v_set_pc_watch(bool watching){
   rv_validator->set_pc_watch(watching);
 }

@@ -9,8 +9,11 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-md_range = script_path + '/../build/md_range'
-md_code = script_path + '/../build/md_code'
+tools_dir = script_path + '/../build/'
+md_range = tools_dir + 'md_range'
+md_code = tools_dir + 'md_code'
+md_asm_ann = tools_dir + 'md_asm_ann'
+md_entity = tools_dir + 'md_entity'
 
 class RangeFile:
      def __init__(self):
@@ -38,9 +41,9 @@ class RangeFile:
      def __del__(self):
           self.done()
 
-RWX_X = 'Require.Tools.Elf.Section.SHF_EXECINSTR'
-RWX_R = 'Require.Tools.Elf.Section.SHF_ALLOC'
-RWX_W = 'Require.Tools.Elf.Section.SHF_WRITE'
+RWX_X = 'Tools.Elf.Section.SHF_EXECINSTR'
+RWX_R = 'Tools.Elf.Section.SHF_ALLOC'
+RWX_W = 'Tools.Elf.Section.SHF_WRITE'
 
 def generate_rwx_ranges(ef, range_file):
      for s in ef.iter_sections():
@@ -62,6 +65,8 @@ policy_dir = sys.argv[1]
 #base_address_string = sys.argv[2]
 taginfo_file_name = sys.argv[2]
 elf_file_name = sys.argv[3]
+asm_file_name = sys.argv[4]
+entities_file = policy_dir + '/entities.yml'
 
 try:
      os.remove(taginfo_file_name)
@@ -96,3 +101,12 @@ with open(elf_file_name, 'rb') as f:
                )
                proc.communicate(s.data())
                proc.wait()
+
+#proc = subprocess.Popen([md_entity, policy_dir, elf_file_name, taginfo_file_name, entities_file])
+#proc.wait()
+
+#proc = subprocess.Popen(["riscv32-unknown-elf-objdump", "-dS", elf_file_name, elf_file_name + ".text"])
+#proc.wait()
+
+#proc = subprocess.Popen([md_asm_ann, policy_dir, taginfo_file_name, asm_file_name])
+#proc.wait()

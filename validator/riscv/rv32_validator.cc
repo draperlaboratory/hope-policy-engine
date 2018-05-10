@@ -29,6 +29,7 @@
 #include "validator_exception.h"
 
 #include "policy_utils.h"
+#include "policy_eval.h"
 
 using namespace policy_engine;
 
@@ -114,13 +115,13 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
   meta_set_t const *ms;
 
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Default");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.RZero");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.RZero");
   ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.CSR.Default");
+  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.Default");
   csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Env");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Env");
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
@@ -147,6 +148,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 
 bool rv32_validator_t::commit() {
   bool hit_watch = false;
+
   if (res->pcResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
     if(watch_pc && pc_tag != new_tag){
@@ -224,7 +226,16 @@ void rv32_validator_t::set_csr_watch(address_t addr){
 void rv32_validator_t::set_mem_watch(address_t addr){
   watch_addrs.push_back(addr);
 }
-  
+
+const char* rv32_validator_t::get_first_rule_descr(){
+    logIdx = 0;
+    return nextLogRule(&logIdx);
+}
+
+const char* rv32_validator_t::get_next_rule_descr(){
+    return nextLogRule(&logIdx);
+}
+
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
@@ -300,6 +311,9 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
 
+  // prepare the eval logging structure
+  logRuleInit();
+  
 }
 
 void rv32_validator_t::complete_eval() {
