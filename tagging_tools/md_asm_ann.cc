@@ -37,6 +37,14 @@
 
 using namespace policy_engine;
 
+#define GCC_VERSION (__GNUC__ * 10000 \
+                     + __GNUC_MINOR__ * 100 \
+                     + __GNUC_PATCHLEVEL__)
+
+#if GCC_VERSION < 40900
+  #include "make_unique.h"
+#endif
+
 class annotater_t : public asm_annotater_t {
   metadata_factory_t &md_factory;
   metadata_memory_map_t &md_map;
