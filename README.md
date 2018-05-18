@@ -244,7 +244,7 @@ The policy engine requires `cmake` and a few C++ libraries to build.
 On Ubuntu, you can get these with
 
 ```
-sudo apt-get install cmake libboost-dev libboost-program-options-dev libyaml-cpp-dev
+sudo apt-get install cmake libboost-dev libboost-program-options-dev libyaml-cpp-dev libgflags-dev
 ```
 
 Then build the policy-engine project, proper:
