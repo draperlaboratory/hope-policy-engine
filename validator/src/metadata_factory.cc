@@ -63,7 +63,7 @@ std::vector<std::string> metadata_factory_t::split_dotted_name(const std::string
 #include <stdio.h>
 
 static void dump_node(YAML::Node node) {
-  printf("node: %p\n", node);
+  printf("node: %p\n", &node);
   switch (node.Type()) {
     case YAML::NodeType::Null: printf("  null\n"); break;
     case YAML::NodeType::Scalar: printf("  scalar\n"); break;

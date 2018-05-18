@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(policy-engine)
 
 set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_C_STANDARD 99)
 set (CMAKE_C_COMPILER gcc)
 set (CMAKE_CXX_COMPILER g++)
 
@@ -73,7 +74,7 @@ target_include_directories(md_code PRIVATE
 add_executable(md_entity
 	tagging_tools/md_entity.cc
 	)
-target_link_libraries(md_entity tagging_tools validator yaml-cpp gflags)
+target_link_libraries(md_entity tagging_tools validator yaml-cpp gflags pthread)
 target_include_directories(md_entity PRIVATE
   ./validator/include/policy-glue
   )
@@ -81,7 +82,7 @@ target_include_directories(md_entity PRIVATE
 add_executable(md_asm_ann
 	tagging_tools/md_asm_ann.cc
 	)
-target_link_libraries(md_asm_ann tagging_tools validator yaml-cpp gflags)
+target_link_libraries(md_asm_ann tagging_tools validator yaml-cpp gflags pthread)
 target_include_directories(md_asm_ann PRIVATE
   ./validator/include/policy-glue
 
