@@ -288,7 +288,7 @@ pip3 install pyelftools
 Then invoke the tagging tool, adjusting the paths appropriately:
 
 ```
-hope-policy-engine/tagging_tools/gen_tag_info hope-policy-engine/policy 0x80000000 hope-policy-engine/application_tags.taginfo hello_world
+hope-policy-engine/tagging_tools/gen_tag_info hope-policy-engine/policy hope-policy-engine/application_tags.taginfo hello_world
 ```
 
 You can ignore the warnings about missing tags for floating point
