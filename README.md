@@ -285,10 +285,13 @@ sudo apt-get install python3-pip
 pip3 install pyelftools
 ```
 
-Then invoke the tagging tool, adjusting the paths appropriately:
+Then invoke the tagging tool, the following is run from the root directory,
+adjusting the paths appropriately if running from somewhere else:
 
 ```
-hope-policy-engine/tagging_tools/gen_tag_info hope-policy-engine/policy 0x80000000 hope-policy-engine/application_tags.taginfo hello_world
+hope-policy-engine/tagging_tools/gen_tag_info hope-policy-engine/policy/ \
+    hope-policy-engine/application_tags.taginfo \
+    hope-FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/build/hello_world
 ```
 
 You can ignore the warnings about missing tags for floating point

@@ -1,5 +1,0 @@
-#!/bin/bash
-dot="$(cd "$(dirname "$0")"; pwd)"
-policy_output_path="$dot/policy"
-~/.local/bin/policy-tool -d -m $dot/../hope-policies -o $policy_output_path osv.main.cfi-heap-nop-rwx-stack
-
