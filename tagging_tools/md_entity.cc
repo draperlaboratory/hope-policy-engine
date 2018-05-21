@@ -58,7 +58,7 @@ static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::
 static const char *usage_msg =
     "md_entity usage: md_entity <flags> policy_dir elf_file tag_info_file [entity files]\n"
     "  Applies metadata to the memory map of an ELF image according to bindings\n"
-    "  described in entity YML files.  The file entities.yml in the given policy\n"
+    "  described in entity YML files.  The file policy_entities.yml in the given policy\n"
     "  directory will always be processed.  Additional optional entity files may be\n"
     "  provided on the command line.\n";
 static void usage() {
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   const char *tag_file_name = argv[3];
   int yaml_count = argc - 4;
   char **yaml_files = &argv[4];
-  std::string entity_yaml = std::string(policy_dir) + "/entities.yml";
+  std::string entity_yaml = std::string(policy_dir) + "/policy_entities.yml";
 
   try {
     FILE *elf_in;

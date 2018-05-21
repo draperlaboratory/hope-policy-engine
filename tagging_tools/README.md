@@ -102,7 +102,7 @@ usage: md_entity <flags> policy_dir elf_file tag_info_file [entity files]
 updated or written from scratch.
 
 Entities are specified by an entities file in YAML format.  By default the tool will process
-`policy_dir/entities.yml`, which must always be present, but may be empty (see below).
+`policy_dir/policy_entities.yml`, which must always be present, but may be empty (see below).
 In addition, `md_entity` will process any additional entity YAML files provided on the
 command line.
 

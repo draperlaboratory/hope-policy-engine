@@ -66,7 +66,7 @@ policy_dir = sys.argv[1]
 taginfo_file_name = sys.argv[2]
 elf_file_name = sys.argv[3]
 asm_file_name = sys.argv[4]
-entities_file = policy_dir + '/entities.yml'
+entities_file = policy_dir + '/policy_entities.yml'
 
 try:
      os.remove(taginfo_file_name)
