@@ -4,6 +4,9 @@ import os
 import tempfile
 import sys
 import subprocess
+import struct
+import argparse
+import pdb
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
@@ -13,86 +16,183 @@ md_range = script_path + '/../build/md_range'
 md_code = script_path + '/../build/md_code'
 
 class RangeFile:
-     def __init__(self):
-          self.file = tempfile.NamedTemporaryFile(mode='a', delete = False, prefix='ranges_');
-     def write_range(self, start, end, tag):
-          self.file.write('0x%x 0x%x %s\n' % (start, end, tag))
-     def finish(self):
-          self.file.close();
-     def name(self):
-          if self.file is None:
-               raise Exception('file does not exist')
-          return self.file.name
-     def done(self):
-          if self.file is not None:
-               try:
-                    os.remove(self.file.name)
-                    self.file = None
-               except:
-                    pass
-     def print(self):
-          print(self.file.name)
-          with open(self.file.name, 'r') as f:
-               for l in f.readlines():
-                    print(l)
-     def __del__(self):
-          self.done()
+    def __init__(self):
+        self.file = tempfile.NamedTemporaryFile(mode='a', delete = False, prefix='ranges_');
+
+    def write_range(self, start, end, tag):
+        self.file.write('0x%x 0x%x %s\n' % (start, end, tag))
+
+    def finish(self):
+        self.file.close();
+
+    def name(self):
+        if self.file is None:
+             raise Exception('file does not exist')
+        return self.file.name
+
+    def done(self):
+        if self.file is not None:
+             try:
+                  os.remove(self.file.name)
+                  self.file = None
+             except:
+                  pass
+
+    def print(self):
+        print(self.file.name)
+        with open(self.file.name, 'r') as f:
+            for l in f.readlines():
+                print(l)
+
+    def __del__(self):
+        self.done()
 
 RWX_X = 'Require.Tools.Elf.Section.SHF_EXECINSTR'
 RWX_R = 'Require.Tools.Elf.Section.SHF_ALLOC'
 RWX_W = 'Require.Tools.Elf.Section.SHF_WRITE'
 
+CFI = 'Require.dover.Tools.GCC.CFI_Target'
+
+metadata_ops = {
+    "DMD_SET_BASE_ADDRESS_OP" : 0x01,
+    "DMD_TAG_ADDRESS_OP" : 0x02,
+    "DMD_TAG_ADDRESS_RANGE_OP" : 0x03,
+    "DMD_TAG_POLICY_SYMBOL" : 0x04,
+    "DMD_TAG_POLICY_RANGE" : 0x05,
+    "DMD_TAG_POLICY_SYMBOL_RANKED" : 0x06,
+    "DMD_TAG_POLICY_RANGE_RANKED" : 0x07,
+    "DMD_END_BLOCK" : 0x08,
+    "DMD_END_BLOCK_WEAK_DECL_HACK" : 0x09
+}
+
+tag_specifiers = {
+    "DMT_CFI3L_VALID_TGT" : 0x01,
+    "DMT_STACK_PROLOGUE_AUTHORITY": 0x02,
+    "DMT_STACK_EPILOGUE_AUTHORITY": 0x03
+}
+
+
 def generate_rwx_ranges(ef, range_file):
-     for s in ef.iter_sections():
-          flags = s['sh_flags']
-          start = s['sh_addr']
-          end = start + s['sh_size']
-          if flags & SH_FLAGS.SHF_EXECINSTR:
-               range_file.write_range(start, end, RWX_X)
-               range_file.write_range(start, end, RWX_R)
-               print('X {0}: 0x{1:X}'.format(s.name, start))
-          elif flags & SH_FLAGS.SHF_WRITE:
-               range_file.write_range(start, end, RWX_W)
-               print('W {0}: 0x{1:X}'.format(s.name, start))
-          elif flags & SH_FLAGS.SHF_ALLOC:
-               range_file.write_range(start, end, RWX_R)
-               print('R {0}: 0x{1:X}'.format(s.name, start))
+    for s in ef.iter_sections():
+        flags = s['sh_flags']
+        start = s['sh_addr']
+        end = start + s['sh_size']
+        if flags & SH_FLAGS.SHF_EXECINSTR:
+            range_file.write_range(start, end, RWX_X)
+            range_file.write_range(start, end, RWX_R)
+            print('X {0}: 0x{1:X}'.format(s.name, start))
+        elif flags & SH_FLAGS.SHF_WRITE:
+            range_file.write_range(start, end, RWX_W)
+            print('W {0}: 0x{1:X}'.format(s.name, start))
+        elif flags & SH_FLAGS.SHF_ALLOC:
+            range_file.write_range(start, end, RWX_R)
+            print('R {0}: 0x{1:X}'.format(s.name, start))
 
-policy_dir = sys.argv[1]
-#base_address_string = sys.argv[2]
-taginfo_file_name = sys.argv[2]
-elf_file_name = sys.argv[3]
 
-try:
-     os.remove(taginfo_file_name)
-except OSError as err:
-     print('could not remove ' + taginfo_file_name)
+def bytes_to_uint(it, size):
+    data = []
+    for _ in range(size):
+        data.append(next(it))
+    return int.from_bytes(data, byteorder='little', signed=False)
 
-with open(elf_file_name, 'rb') as f:
-     ef = ELFFile(f)
 
-     range_file = RangeFile()
+def generate_cfi_ranges(ef, range_file):
+    metadata = ef.get_section_by_name(".dover_metadata").data()
+    assert metadata[0] == metadata_ops['DMD_SET_BASE_ADDRESS_OP'], "Invalid metadata found in ELF file!"
+    it = iter(metadata)
+    metadata_hex = list(map(hex, metadata))
+    # print(metadata_hex)
+    for byte in it:
+        if (byte == metadata_ops['DMD_SET_BASE_ADDRESS_OP']):
+            base_address = bytes_to_uint(it, 8)
+            print("new base address is " + hex(base_address) + "\n")
+        elif (byte == metadata_ops['DMD_TAG_ADDRESS_OP']):
+            address = bytes_to_uint(it, 4) + base_address
+            tag_specifier = bytes_to_uint(it, 1)
+            print("tag is " + hex(tag_specifier) + " at address " + hex(address) + '\n')
+            if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
+                range_file.write_range(address, address, CFI)
+        elif (byte == metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
+            start_address = bytes_to_uint(it, 4) + base_address
+            end_address = bytes_to_uint(it, 4) + base_address
+            tag_specifier = bytes_to_uint(it, 1)
+            print("tag is " + hex(tag_specifier) + " for address range " + hex(start_address) + "-" + hex(end_address) + '\n')
+            if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
+                range_file.write_range(start_address, end_address, CFI)
+        elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL']):
+            print("Saw policy symbol!\n")
+        elif (byte == metadata_ops['DMD_TAG_POLICY_RANGE']):
+            print("Saw policy range!\n")
+            for _ in range(4*3):
+                #skip start, end, & 32-bit tag-type
+                next(it)
+        elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL_RANKED']):
+            print("Saw policy symbol ranked\n")
+        elif (byte == metadata_ops['DMD_TAG_POLICY_RANGE_RANKED']):
+            print("Saw policy symbol range ranked\n")
+            #skip start, end ,tag category, rank, tag type
+            for _ in range(4*5):
+                next(it)
+        elif (byte == metadata_ops['DMD_END_BLOCK_WEAK_DECL_HACK']):
+            print("saw end block tag!\n")
+        elif (byte == metadata_ops['DMD_END_BLOCK']):
+            print("saw end block tag!\n")
+            for _ in range(4):
+                next(it)
+        else:
+            print("Error: found unknown byte in metadata!" + hex(byte) + "\n")
 
-     # write any ranges for the RWX policy
-     generate_rwx_ranges(ef, range_file)
 
-     range_file.finish();
-     #range_file.print()
-     #     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
-     proc = subprocess.Popen([md_range, policy_dir, range_file.name(), taginfo_file_name])
-     proc.wait()
-     range_file.done()
+def main():
+    parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-d", "--policy-dir", action="store",
+                        help="Directory with generated policy yaml")
+    parser.add_argument("-t", "--tag-file", action="store",
+                        help="File to output tag info")
+    parser.add_argument("-b", "--bin", action="store",
+                        help="Program binary to parse for tags")
+    parser.add_argument("-p", "--policy", action="store", default='rwx',
+                        help="Which policy to generate tags for (currently: rwx or cfi)")
 
-     # tag the code for group tags
-     for s in ef.iter_sections():
-          if s['sh_flags'] & SH_FLAGS.SHF_EXECINSTR:
-               section_addr_string = '0x{:08x}'.format(s['sh_addr'])
-               proc = subprocess.Popen([md_code,
-                                        policy_dir,
-                                        #base_address_string,
-                                        section_addr_string,
-                                        taginfo_file_name],
-                                       stdin=subprocess.PIPE,
-               )
-               proc.communicate(s.data())
-               proc.wait()
+    args = parser.parse_args()
+
+    try:
+        os.remove(args.tag_file)
+    except OSError as err:
+        print('could not remove ' + args.tag_file)
+
+    with open(args.bin, 'rb') as f:
+        ef = ELFFile(f)
+
+        range_file = RangeFile()
+
+        generate_ranges_func = 'generate_' + args.policy + '_ranges'
+        if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
+            globals()[generate_ranges_func](ef, range_file)
+        else:
+            raise KeyError('No such policy generation function: ' + generate_ranges_func)
+
+        range_file.finish();
+        #range_file.print()
+        #     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
+        proc = subprocess.Popen([md_range, args.policy_dir, range_file.name(), args.tag_file])
+        proc.wait()
+        range_file.done()
+
+        # tag the code for group tags
+        for s in ef.iter_sections():
+            if s['sh_flags'] & SH_FLAGS.SHF_EXECINSTR:
+                section_addr_string = '0x{:08x}'.format(s['sh_addr'])
+                proc = subprocess.Popen([md_code,
+                                         args.policy_dir,
+                                         #base_address_string,
+                                         section_addr_string,
+                                         args.tag_file],
+                                        stdin=subprocess.PIPE,
+                )
+                proc.communicate(s.data())
+                proc.wait()
+
+if (__name__ == "__main__"):
+    main()
