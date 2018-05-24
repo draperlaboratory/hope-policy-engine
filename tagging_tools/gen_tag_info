@@ -6,7 +6,7 @@ import sys
 import subprocess
 import struct
 import argparse
-import pdb
+import random
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
@@ -111,7 +111,7 @@ def generate_cfi_ranges(ef, range_file):
             tag_specifier = bytes_to_uint(it, 1)
             print("tag is " + hex(tag_specifier) + " at address " + hex(address) + '\n')
             if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
-                range_file.write_range(address, address, CFI)
+                range_file.write_range(address, address+4, CFI)
         elif (byte == metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
             start_address = bytes_to_uint(it, 4) + base_address
             end_address = bytes_to_uint(it, 4) + base_address
@@ -167,11 +167,14 @@ def main():
 
         range_file = RangeFile()
 
-        generate_ranges_func = 'generate_' + args.policy + '_ranges'
-        if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
-            globals()[generate_ranges_func](ef, range_file)
-        else:
-            raise KeyError('No such policy generation function: ' + generate_ranges_func)
+        # generate_ranges_func = 'generate_' + args.policy + '_ranges'
+        # if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
+        #     globals()[generate_ranges_func](ef, range_file)
+        # else:
+        #     raise KeyError('No such policy generation function: ' + generate_ranges_func)
+
+        generate_rwx_ranges(ef, range_file)
+        generate_cfi_ranges(ef, range_file)
 
         range_file.finish();
         #range_file.print()
