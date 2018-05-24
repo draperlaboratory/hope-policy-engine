@@ -140,7 +140,9 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   } else {
+    printf("violation address: 0x%x\n",pc);
     handle_violation(ctx, ops);
+    
   }
   return policy_result == POLICY_SUCCESS;
 }
