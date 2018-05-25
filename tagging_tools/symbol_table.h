@@ -29,6 +29,7 @@
 
 #include <map>
 #include <list>
+#include <string>
 #include <algorithm>
 
 #include "platform_types.h"
