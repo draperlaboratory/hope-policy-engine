@@ -7,6 +7,8 @@ import subprocess
 import struct
 import argparse
 import random
+import logging
+import pdb
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
@@ -16,6 +18,8 @@ from collections import defaultdict
 script_path = os.path.dirname(os.path.realpath(__file__))
 md_range = script_path + '/../build/md_range'
 md_code = script_path + '/../build/md_code'
+
+PTR_SIZE = 4
 
 class RangeFile:
     def __init__(self):
@@ -41,48 +45,67 @@ class RangeFile:
                   pass
 
     def print(self):
-        print(self.file.name)
+        logging.debug(self.file.name)
         with open(self.file.name, 'r') as f:
             for l in f.readlines():
-                print(l)
+                logging.debug(l)
 
     def __del__(self):
         self.done()
 
 class RangeMap:
     def __init__(self):
-        self.range_map = defaultdict(list)
+        self.range_map = []
+
+    def __contains__(self, key):
+        start, end, tags = key
+        return any(start >= s and end < e for s, e, t in self.range_map)
+
+    def __getitem__(self, index):
+        return self.range_map[index]
+
+    def sort(self):
+        self.range_map = sorted(self.range_map)
 
     def add_range(self, start, end, tag=None):
-        for curr_range, tags in self.range_map.items():
-            curr_start, curr_end = curr_range
+        for curr_start, curr_end, tags in self.range_map:
             if curr_start == start and curr_end == end:
                 tags.append(tag)
-            elif curr_start < end:
-                del self.range_map[curr_range]
-                idx = sorted([curr_start, curr_end, start, end])
-                for i in range(len(idx[:-1])):
-                    if idx[i] >= curr_start and idx[i+1] <= curr_end:
-                        self.range_map[(idx[i], idx[i+1] - 1)].extend(tags)
-                    if idx[i] >= start and idx[i] <= end:
-                        self.range_map[(idx[i], idx[i+1] - 1)].append(tag)
                 return
-        self.range_map[(start, end)].append(tag)
+
+        self.range_map.append((start, end, [tag]))
+
+    def merge_ranges(self):
+        rangemap = sorted(self.range_map)
+        curr_s, curr_e, curr_tags = rangemap[0]
+        for i, (s, e, tags) in enumerate(rangemap[1:], start=1):
+            if s > curr_s:
+                if e > curr_e:
+                    rangemap[i-1] = (curr_s, s - 1, curr_tags)
+                    rangemap[i] = (s, curr_e, curr_tags + tags)
+                    rangemap.insert(i+1, (curr_e + 1, e, tags))
+                else:
+                    rangemap[i-i] = (curr_s, e, curr_tags + tags)
+                    rangemap[i] = (e + 1, curr_e, curr_tags)
+            elif s == curr_s:
+                if e == curr_e:
+                    rangemap[i-1] = (s, e, curr_tags + tags)
+                    del rangemap[i]
+                else:
+                    rangemap[i-1] = (curr_s, curr_e, curr_tags + tags)
+                    rangemap[i] = (curr_e + 1, e, tags)
+            curr_s, curr_e, curr_tags = rangemap[i]
 
     def get_tags(self, addr):
         for curr_range, tags in self.range_map.items():
             (curr_start, curr_end) = curr_range
-            if (addr >= curr_start and addr <= curr_end):
+            if (addr >= curr_start and addr < curr_end):
                 return tags
         return []
 
     def get_ranges(self, tag):
         return [curr_range for curr_range, tags in self.range_map.items()
                 if tag in tags or (not tag and len(tags) == 0)]
-
-    def get_ranges_single(self, tag):
-        return [curr_range for curr_range, tags in self.range_map.items()
-                if tag in tags and len(tags) == 1]
 
 
 RWX_X = 'Require.Tools.Elf.Section.SHF_EXECINSTR'
@@ -119,13 +142,13 @@ def generate_rwx_ranges(ef, range_file):
         if flags & SH_FLAGS.SHF_EXECINSTR:
             range_file.write_range(start, end, RWX_X)
             range_file.write_range(start, end, RWX_R)
-            print('X {0}: 0x{1:X}'.format(s.name, start))
+            logging.info('X {0}: 0x{1:X}'.format(s.name, start))
         elif flags & SH_FLAGS.SHF_WRITE:
             range_file.write_range(start, end, RWX_W)
-            print('W {0}: 0x{1:X}'.format(s.name, start))
+            logging.info('W {0}: 0x{1:X}'.format(s.name, start))
         elif flags & SH_FLAGS.SHF_ALLOC:
             range_file.write_range(start, end, RWX_R)
-            print('R {0}: 0x{1:X}'.format(s.name, start))
+            logging.info('R {0}: 0x{1:X}'.format(s.name, start))
 
 
 def bytes_to_uint(it, size):
@@ -144,7 +167,7 @@ def add_code_section_ranges(ef, range_map):
         if (flags & SH_FLAGS.SHF_ALLOC):
             start = s['sh_addr']
             end = start + s['sh_size']
-            end = round_up(end, 4)
+            end = round_up(end, PTR_SIZE)
             if ((flags & (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_WRITE | SH_FLAGS.SHF_EXECINSTR)) ==
                 (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
                 range_map.add_range(start, end)
@@ -163,62 +186,78 @@ def parse_asm_symbols(ef, range_file):
                 #     base_address = symsec['sh_addr']
                 # address = base_address + symbol.entry['st_value']
                 address = symbol.entry['st_value']
-                print(symbol.name + "addr=" + hex(address))
-                range_file.write_range(address, address+4, CFI)
+                logging.debug(symbol.name + "addr=" + hex(address))
+                range_file.write_range(address, address + PTR_SIZE, CFI)
 
 def generate_cfi_ranges(ef, range_file):
     metadata = ef.get_section_by_name(".dover_metadata").data()
     assert metadata[0] == metadata_ops['DMD_SET_BASE_ADDRESS_OP'], "Invalid metadata found in ELF file!"
+
     it = iter(metadata)
     metadata_hex = list(map(hex, metadata))
+
     range_map = RangeMap()
-    add_code_section_ranges(ef, range_map)
+    code_range_map = RangeMap()
+    add_code_section_ranges(ef, code_range_map)
 
     for byte in it:
         if (byte == metadata_ops['DMD_SET_BASE_ADDRESS_OP']):
-            base_address = bytes_to_uint(it, 8)
-            print("new base address is " + hex(base_address) + "\n")
+            base_address = bytes_to_uint(it, 8) #apparently GCC emits a 64-bit base
+            logging.debug("new base address is " + hex(base_address) + "\n")
         elif (byte == metadata_ops['DMD_TAG_ADDRESS_OP']):
-            address = bytes_to_uint(it, 4) + base_address
+            address = bytes_to_uint(it, PTR_SIZE) + base_address
             tag_specifier = bytes_to_uint(it, 1)
-            print("tag is " + hex(tag_specifier) + " at address " + hex(address) + '\n')
+            logging.debug("tag is " + hex(tag_specifier) +
+                          " at address " + hex(address) + '\n')
             if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
-                range_file.write_range(address, address+4, CFI)
-                range_map.add_range(address, address+4, CFI)
+                range_file.write_range(address, address + PTR_SIZE, CFI)
+                range_map.add_range(address, address + PTR_SIZE, CFI)
         elif (byte == metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
-            start_address = bytes_to_uint(it, 4) + base_address
-            end_address = bytes_to_uint(it, 4) + base_address
+            start_address = bytes_to_uint(it, PTR_SIZE) + base_address
+            end_address = bytes_to_uint(it, PTR_SIZE) + base_address
             tag_specifier = bytes_to_uint(it, 1)
-            print("tag is " + hex(tag_specifier) + " for address range " + hex(start_address) + "-" + hex(end_address) + '\n')
+            logging.debug("tag is " + hex(tag_specifier) +
+                          " for address range " +
+                          hex(start_address) + ":" + hex(end_address) + '\n')
             if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
                 range_file.write_range(start_address, end_address, CFI)
                 range_map.add_range(start_address, end_address, CFI)
         elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL']):
-            print("Saw policy symbol!\n")
+            logging.critical("Saw policy symbol!\n")
+            sys.exit(-1)
         elif (byte == metadata_ops['DMD_TAG_POLICY_RANGE']):
-            print("Saw policy range!\n")
-            for _ in range(4*3):
+            logging.critical("Saw policy range!\n")
+            sys.exit(-1)
+            for _ in range(PTR_SIZE*3):
                 #skip start, end, & 32-bit tag-type
                 next(it)
         elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL_RANKED']):
-            print("Saw policy symbol ranked\n")
+            logging.critical("Saw policy symbol ranked\n")
+            sys.exit(-1)
         elif (byte == metadata_ops['DMD_TAG_POLICY_RANGE_RANKED']):
-            print("Saw policy symbol range ranked\n")
+            sys.exit(-1)
+            logging.critical("Saw policy symbol range ranked\n")
             #skip start, end ,tag category, rank, tag type
-            for _ in range(4*5):
+            for _ in range(PTR_SIZE*5):
                 next(it)
         elif (byte == metadata_ops['DMD_END_BLOCK_WEAK_DECL_HACK']):
-            print("saw end block tag!\n")
+            logging.critical("saw end weak decl tag!\n")
+            sys.exit(-1)
         elif (byte == metadata_ops['DMD_END_BLOCK']):
-            print("saw end block tag!\n")
-            end_address = bytes_to_uint(it, 4)
-            range_map.add_range(base_address, end_address, "COMPILER_ANNOTATED")
+            #need extra word here to tag last instruction since end_address is the address of last instruction
+            end_address = bytes_to_uint(it, PTR_SIZE) + PTR_SIZE
+            logging.debug("saw end block tag range = " + hex(base_address) +
+                          ":" + hex(base_address + end_address))
+            range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
         else:
-            print("Error: found unknown byte in metadata!" + hex(byte) + "\n")
+            logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
+            sys.exit(-1)
 
-    asm_ranges = range_map.get_ranges_single(None)
-    for (start, end) in asm_ranges:
-        range_file.write_range(start, end, NoCFI)
+    for (start, end, tags) in code_range_map:
+        for s in range(start, end, PTR_SIZE):
+            e = s + PTR_SIZE
+            if (s, e, tags) not in range_map:
+                range_file.write_range(s, e, NoCFI)
 
 
 def main():
@@ -230,10 +269,17 @@ def main():
                         help="File to output tag info")
     parser.add_argument("-b", "--bin", action="store",
                         help="Program binary to parse for tags")
-    parser.add_argument("-p", "--policy", action="store", default='rwx',
-                        help="Which policy to generate tags for (currently: rwx or cfi)")
+    parser.add_argument("-p", "--policies", action="store", nargs='+',
+                        help="List of policies to generate tags for (currently: rwx or cfi)")
+    parser.add_argument("--log", action="store", default='WARNING',
+                        help="Logging level (DEBUG, WARNING, INFO)")
 
     args = parser.parse_args()
+
+    numeric_level = getattr(logging, args.log.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % args.log)
+    logging.basicConfig(level=numeric_level, stream=sys.stderr)
 
     try:
         os.remove(args.tag_file)
@@ -245,14 +291,12 @@ def main():
 
         range_file = RangeFile()
 
-        # generate_ranges_func = 'generate_' + args.policy + '_ranges'
-        # if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
-        #     globals()[generate_ranges_func](ef, range_file)
-        # else:
-        #     raise KeyError('No such policy generation function: ' + generate_ranges_func)
-
-        generate_rwx_ranges(ef, range_file)
-        generate_cfi_ranges(ef, range_file)
+        for policy in args.policies:
+            generate_ranges_func = 'generate_' + policy + '_ranges'
+            if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
+                globals()[generate_ranges_func](ef, range_file)
+            else:
+                raise KeyError('No such policy generation function: ' + generate_ranges_func)
 
         range_file.finish();
         range_file.print()
