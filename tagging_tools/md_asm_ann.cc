@@ -37,6 +37,25 @@
 
 using namespace policy_engine;
 
+#if defined(__clang__)
+  // Clang pretends to be __GNUC__ 4.2.1; make_unique seems to be
+  // supported on clang 3.4+.
+  #define CLANG_VERSION (__clang_major__ * 10000 \
+                          + __clang_minor__ * 100 \
+                          + __clang_patchlevel__)
+  #if CLANG_VERSION < 30400
+    #include "make_unique.h"
+  #endif
+#elif defined(__GNUC__)
+  #define GCC_VERSION (__GNUC__ * 10000 \
+                          + __GNUC_MINOR__ * 100 \
+                          + __GNUC_PATCHLEVEL__)
+  
+  #if GCC_VERSION < 40900
+    #include "make_unique.h"
+  #endif
+#endif
+
 class annotater_t : public asm_annotater_t {
   metadata_factory_t &md_factory;
   metadata_memory_map_t &md_map;

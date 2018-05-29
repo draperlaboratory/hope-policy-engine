@@ -162,6 +162,7 @@ the CPU).
 See README in tagging_tools directory.
 
 # Getting Started
+
 ## Build a FreeRTOS project
 
 Pull the FreeRTOS repos:
