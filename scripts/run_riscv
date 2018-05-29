@@ -9,5 +9,5 @@ showAnalyzer sysbus.uart
 EOF
 full_path=`readlink -f $1`
 echo "sysbus LoadELF @$full_path" >> $renode_file
-echo "sysbus.cpu SetExternalValidator @$SCRIPT_DIR/../build/librv32-renode-validator.so @$SCRIPT_DIR/../policy @$SCRIPT_DIR/..//application_tags.taginfo" >> $renode_file
-~/hope-repos/renode/renode $renode_file
+echo "sysbus.cpu SetExternalValidator @$SCRIPT_DIR/../build/librv32-renode-validator.so @$SCRIPT_DIR/../policy @$SCRIPT_DIR/../application_tags.taginfo" >> $renode_file
+$SCRIPT_DIR/../../renode/renode $renode_file
