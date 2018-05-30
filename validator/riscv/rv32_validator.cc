@@ -180,7 +180,7 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
     if (!tag_bus.load_tag(mem_addr, old_tag)) {
-      printf("failed to load MR tag\n");
+        printf("failed to load MR tag @ 0x%x\n", mem_addr);
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -194,7 +194,7 @@ bool rv32_validator_t::commit() {
       }
     }
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
-      printf("failed to store MR tag\n");
+        printf("failed to store MR tag @ 0x%x\n", mem_addr);
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -289,7 +289,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
     if (!tag_bus.load_tag(mem_addr, mtag)) {
-      printf("failed to load MR tag\n");
+        printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);
     } else {
       ops->mem = t_to_m(mtag);
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));
