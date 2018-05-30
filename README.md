@@ -163,106 +163,6 @@ See README in tagging_tools directory.
 
 # Getting Started
 
-## Build gcc
-
-Pull the RISCV gnu toolchain from
-<https://github.com/riscv/riscv-gnu-toolchain>.  Note that this is the
-official version from the RISC-V foundation github, not the custom
-Dover/Draper version.
-
-Follow the instructions in that repository's README to pull its submodules and
-install relevant prerequisites (the "Getting the sources" and "Prerequisites"
-section in the README).  Then, configure it as follows:
-
-```
-mkdir build
-cd build
-../configure --prefix=<wherever you want it installed> --with-arch=rv32g --with-abi=ilp32
-make
-```
-
-(On Arch Linux one also has to pass `--with-guile=no` to `configure`,
-since [the guile version that comes with Arch is
-incompatible](https://github.com/riscv/riscv-binutils-gdb/issues/82)
-and for some reason it gets picked up by `riscv-binutils-gdb`)
-
-The resulting binaries have names like "riscv32-unknown-elf-*".  A
-later step will expect to find these on your PATH.
-
-You will not have to build this again anytime soon.
-
-
-## Build Renode
-
-Pull our modified version of Renode:
-
-<https://github.com/draperlaboratory/hope-renode.git>
-
-You need to follow the instructions in the Renode repos README.rst for getting
-the prerequisites and building renode.
-
-The first time you build Renode, it will populate submodules.  The submodules
-will not be on the proper branch, because of some git submodule issues that we
-haven't sorted out.  So build the project once, then go to the
-src/Infrastructure directory, and do a `git checkout dover` to ensure that it
-is on the proper branch.  Then go back to the top level renode directory, and
-run `./build.sh -c` followed by `./build.sh`.
-
-You will not have to build this again anytime soon.
-
-
-## Build the policy-tool
-
-Pull the policy tool:
-
-<https://github.com/draperlaboratory/hope-policy-tool.git>
-
-The policy tool uses `stack` to build.  If you don't have stack
-installed, you can find [installation instructions at the Stack
-website](https://docs.haskellstack.org/en/stable/README/).
-
-Once you have stack installed, build the policy tool by running `stack
-install` from the top level `policy-tool` directory.  This may take a
-while the first time, as a local instance of GHC and all dependencies
-are installed.
-
-
-## Build the policy-engine Project
-
-Pull the repository containing the repositories:
-
-<https://github.com/draperlaboratory/hope-policies.git>
-
-This be in the same directory as the `policy-engine` repository (they
-should have the same parent directory).
-
-Go to the policy engine project.  Run the policy tool with
-`./bld_policy`.  This will populate the local `policy` directory with
-the RWX policy.
-
-The policy engine requires `cmake` and a few C++ libraries to build.
-On Ubuntu, you can get these with
-
-```
-sudo apt-get install cmake libboost-dev libboost-program-options-dev libyaml-cpp-dev libgflags-dev
-```
-
-Then build the policy-engine project, proper:
-
-```
-mkdir build
-cd build
-cmake ..
-make
-```
-
-This will build the renode validator, plus the standalone validator test app.  For example, from the build directory, you should see a simple policy violation error when you run:
-
-```
-./standalone ../policy ../soc_cfg/miv_cfg.yml
-```
-
-
 ## Build a FreeRTOS project
 
 Pull the FreeRTOS repos:
@@ -285,10 +185,13 @@ sudo apt-get install python3-pip
 pip3 install pyelftools
 ```
 
-Then invoke the tagging tool, adjusting the paths appropriately:
+Then invoke the tagging tool, the following is run from the root directory,
+adjusting the paths appropriately if running from somewhere else:
 
 ```
-hope-policy-engine/tagging_tools/gen_tag_info hope-policy-engine/policy hope-policy-engine/application_tags.taginfo hello_world
+policy-engine/tagging_tools/gen_tag_info policy-engine/policy/ \
+    policy-engine/application_tags.taginfo \
+    FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/build/hello_world
 ```
 
 You can ignore the warnings about missing tags for floating point
@@ -304,18 +207,14 @@ the policy directory.  This will be changed in the future to be configurable.
 
 ## Run Under Renode
 
-In your `hope-policy-engine/scripts` directory, there is a `run_riscv` script.
+In your `policy-engine/scripts` directory, there is a `run_riscv` script.
 You will have to change paths in there to point at your renode build, and at
 your policy-engine build.
 
 You have to export a variable to point to policy stuff:
 
-```
-export GENERATED_POLICY_DIR=<whatever>/policy-engine/policy
-```
-
 Then you can use the run_riscv script to run your app under renode:
 
 ```
-hope-policy-engine/scripts/run_riscv hope-FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/build/hello_world
+policy-engine/scripts/run_riscv FreeRTOS/Demo/RISCV_MIV_GCC/hello_world/build/hello_world
 ```

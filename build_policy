@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+dot="$(cd "$(dirname "$0")"; pwd)"
+policy_output_path="$dot/policy"
+policy-tool -d -m $dot/../policies -o $policy_output_path osv.frtos.main.rwx
+
+cp -r soc_cfg policy
