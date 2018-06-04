@@ -20,6 +20,7 @@ md_code = script_path + '/../build/md_code'
 
 PTR_SIZE = 4
 
+
 class RangeFile:
     def __init__(self):
         self.file = tempfile.NamedTemporaryFile(mode='a', delete = False, prefix='ranges_');
@@ -48,6 +49,12 @@ class RangeFile:
         with open(self.file.name, 'r') as f:
             for l in f.readlines():
                 logging.debug(l)
+
+    def print_file(self, file_name):
+        with open(file_name, 'w') as perm_file:
+            with open(self.file.name, 'r') as f:
+                for l in f.readlines():
+                    perm_file.write(l)
 
     def __del__(self):
         self.done()
@@ -132,6 +139,15 @@ tag_specifiers = {
     "DMT_STACK_EPILOGUE_AUTHORITY": 0x03
 }
 
+policy_map = {
+    "cfi": {
+        "target": {
+            "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
+            "policy_name": "Require.dover.Tools.GCC.CFI_Target"
+        }
+    }
+}
+
 
 def generate_rwx_ranges(ef, range_file):
     for s in ef.iter_sections():
@@ -159,6 +175,7 @@ def bytes_to_uint(it, size):
 
 def round_up(x, align):
     return ~((~x) & ~align)
+
 
 def add_code_section_ranges(ef, range_map):
     for s in ef.iter_sections():
@@ -188,16 +205,27 @@ def parse_asm_symbols(ef, range_file):
                 logging.debug(symbol.name + "addr=" + hex(address))
                 range_file.write_range(address, address + PTR_SIZE, CFI)
 
-def generate_cfi_ranges(ef, range_file):
+
+def check_and_write_range(range_file, start, end, tag_specifier,
+                          policy, range_map=None):
+    policy_mappings = policy_map[policy]
+    for policy, tags in policy_mappings.items():
+        if tags['tag_specifier'] == tag_specifier:
+            range_file.write_range(start, end, tags['policy_name'])
+            if range_map:
+                range_map.add_range(start, end, tags['policy_name'])
+
+
+def generate_policy_ranges(ef, range_file, policy):
     metadata = ef.get_section_by_name(".dover_metadata").data()
     assert metadata[0] == metadata_ops['DMD_SET_BASE_ADDRESS_OP'], "Invalid metadata found in ELF file!"
 
     it = iter(metadata)
-    metadata_hex = list(map(hex, metadata))
 
-    range_map = RangeMap()
-    code_range_map = RangeMap()
-    add_code_section_ranges(ef, code_range_map)
+    if policy == "cfi":
+        range_map = RangeMap()
+    else:
+        range_map = None
 
     for byte in it:
         if (byte == metadata_ops['DMD_SET_BASE_ADDRESS_OP']):
@@ -208,9 +236,10 @@ def generate_cfi_ranges(ef, range_file):
             tag_specifier = bytes_to_uint(it, 1)
             logging.debug("tag is " + hex(tag_specifier) +
                           " at address " + hex(address) + '\n')
-            if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
-                range_file.write_range(address, address + PTR_SIZE, CFI)
-                range_map.add_range(address, address + PTR_SIZE, CFI)
+
+            check_and_write_range(range_file, address, address + PTR_SIZE, tag_specifier,
+                                  policy, range_map)
+
         elif (byte == metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
             start_address = bytes_to_uint(it, PTR_SIZE) + base_address
             end_address = bytes_to_uint(it, PTR_SIZE) + base_address
@@ -218,9 +247,10 @@ def generate_cfi_ranges(ef, range_file):
             logging.debug("tag is " + hex(tag_specifier) +
                           " for address range " +
                           hex(start_address) + ":" + hex(end_address) + '\n')
-            if (tag_specifier == tag_specifiers["DMT_CFI3L_VALID_TGT"]):
-                range_file.write_range(start_address, end_address, CFI)
-                range_map.add_range(start_address, end_address, CFI)
+
+            check_and_write_range(range_file, start_address, end_address, tag_specifier,
+                                  policy, range_map)
+
         elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL']):
             logging.critical("Saw policy symbol!\n")
             sys.exit(-1)
@@ -247,16 +277,34 @@ def generate_cfi_ranges(ef, range_file):
             end_address = bytes_to_uint(it, PTR_SIZE) + PTR_SIZE
             logging.debug("saw end block tag range = " + hex(base_address) +
                           ":" + hex(base_address + end_address))
-            range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
+            if range_map:
+                range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
         else:
             logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
             sys.exit(-1)
+
+    return range_map
+
+
+def generate_cfi_ranges(ef, range_file):
+    code_range_map = RangeMap()
+    add_code_section_ranges(ef, code_range_map)
+    range_map = generate_policy_ranges(ef, range_file, "cfi")
 
     for (start, end, tags) in code_range_map:
         for s in range(start, end, PTR_SIZE):
             e = s + PTR_SIZE
             if (s, e, tags) not in range_map:
                 range_file.write_range(s, e, NoCFI)
+
+
+def write_section_range(ef, range_file, section_name, tag):
+    section = ef.get_section_by_name("." + section_name)
+    if not section:
+        logging.fatal("Couldn't find section {} in elf file!".format(section_name))
+    start = section['sh_addr']
+    end = start + section['sh_size']
+    range_file.write_range(start, end, tag)
 
 
 def main():
@@ -292,6 +340,11 @@ def main():
 
         policies = args.policies.split('.')[-1].split('-')
 
+        #md_range appears to not work properly when the big rwx ranges aren't first
+        if "rwx" in policies:
+            rwx_index = policies.index("rwx")
+            policies[0], policies[rwx_index] = policies[rwx_index], policies[0]
+
         for policy in policies:
             generate_ranges_func = 'generate_' + policy + '_ranges'
             logging.info("Generating tags for policy {}".format(policy))
@@ -301,7 +354,7 @@ def main():
                 raise KeyError('No such policy generation function: ' + generate_ranges_func)
 
         range_file.finish();
-        range_file.print()
+        # range_file.print()
         #     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
         proc = subprocess.Popen([md_range, args.policy_dir, range_file.name(), args.tag_file])
         proc.wait()
