@@ -121,6 +121,9 @@ RWX_W = 'Require.Tools.Elf.Section.SHF_WRITE'
 CFI = 'Require.dover.Tools.GCC.CFI_Target'
 NoCFI = 'Require.dover.Tools.GCC.NoCFI'
 
+Prologue = 'Require.dover.Tools.GCC.Prologue'
+Epilogue = 'Require.dover.Tools.GCC.Epilogue'
+
 metadata_ops = {
     "DMD_SET_BASE_ADDRESS_OP" : 0x01,
     "DMD_TAG_ADDRESS_OP" : 0x02,
@@ -144,6 +147,16 @@ policy_map = {
         "target": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
             "policy_name": "Require.dover.Tools.GCC.CFI_Target"
+        }
+    },
+    "stack": {
+        "prologue": {
+            "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
+            "policy_name": "Require.dover.Tools.GCC.Prologue"
+        },
+        "epilogue": {
+            "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
+            "policy_name": "Require.dover.Tools.GCC.Epilogue"
         }
     }
 }
@@ -305,6 +318,10 @@ def write_section_range(ef, range_file, section_name, tag):
     start = section['sh_addr']
     end = start + section['sh_size']
     range_file.write_range(start, end, tag)
+
+
+def generate_stack_ranges(ef, range_file):
+    generate_policy_ranges(ef, range_file, "stack")
 
 
 def main():
