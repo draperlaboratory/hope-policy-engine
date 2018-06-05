@@ -122,19 +122,19 @@ CFI = 'Require.dover.Tools.GCC.CFI_Target'
 NoCFI = 'Require.dover.Tools.GCC.NoCFI'
 
 metadata_ops = {
-    "DMD_SET_BASE_ADDRESS_OP" : 0x01,
-    "DMD_TAG_ADDRESS_OP" : 0x02,
-    "DMD_TAG_ADDRESS_RANGE_OP" : 0x03,
-    "DMD_TAG_POLICY_SYMBOL" : 0x04,
-    "DMD_TAG_POLICY_RANGE" : 0x05,
-    "DMD_TAG_POLICY_SYMBOL_RANKED" : 0x06,
-    "DMD_TAG_POLICY_RANGE_RANKED" : 0x07,
-    "DMD_END_BLOCK" : 0x08,
-    "DMD_END_BLOCK_WEAK_DECL_HACK" : 0x09
+    "DMD_SET_BASE_ADDRESS_OP": 0x01,
+    "DMD_TAG_ADDRESS_OP": 0x02,
+    "DMD_TAG_ADDRESS_RANGE_OP": 0x03,
+    "DMD_TAG_POLICY_SYMBOL": 0x04,
+    "DMD_TAG_POLICY_RANGE": 0x05,
+    "DMD_TAG_POLICY_SYMBOL_RANKED": 0x06,
+    "DMD_TAG_POLICY_RANGE_RANKED": 0x07,
+    "DMD_END_BLOCK": 0x08,
+    "DMD_END_BLOCK_WEAK_DECL_HACK": 0x09
 }
 
 tag_specifiers = {
-    "DMT_CFI3L_VALID_TGT" : 0x01,
+    "DMT_CFI3L_VALID_TGT": 0x01,
     "DMT_STACK_PROLOGUE_AUTHORITY": 0x02,
     "DMT_STACK_EPILOGUE_AUTHORITY": 0x03
 }
@@ -144,6 +144,16 @@ policy_map = {
         "target": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
             "policy_name": "Require.dover.Tools.GCC.CFI_Target"
+        }
+    },
+    "stack": {
+        "prologue": {
+            "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
+            "policy_name": "Require.dover.Tools.GCC.Prologue"
+        },
+        "epilogue": {
+            "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
+            "policy_name": "Require.dover.Tools.GCC.Epilogue"
         }
     }
 }
@@ -307,17 +317,21 @@ def write_section_range(ef, range_file, section_name, tag):
     range_file.write_range(start, end, tag)
 
 
+def generate_stack_ranges(ef, range_file):
+    generate_policy_ranges(ef, range_file, "stack")
+
+
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-d", "--policy-dir", action="store",
+    parser.add_argument("-d", "--policy-dir", action="store", required=True,
                         help="Directory with generated policy yaml")
-    parser.add_argument("-t", "--tag-file", action="store",
+    parser.add_argument("-t", "--tag-file", action="store", required=True,
                         help="File to output tag info")
-    parser.add_argument("-b", "--bin", action="store",
+    parser.add_argument("-b", "--bin", action="store", required=True,
                         help="Program binary to parse for tags")
-    parser.add_argument("-p", "--policies", action="store",
-                        help="List of policies to generate tags for (currently: rwx or cfi)")
+    parser.add_argument("-p", "--policies", action="store", required=True,
+                        help="Policy string to generate tags for (e.g. osv.frtos.main.cfi-rwx))")
     parser.add_argument("--log", action="store", default='WARNING',
                         help="Logging level (DEBUG, WARNING, INFO)")
 
@@ -339,11 +353,6 @@ def main():
         range_file = RangeFile()
 
         policies = args.policies.split('.')[-1].split('-')
-
-        #md_range appears to not work properly when the big rwx ranges aren't first
-        if "rwx" in policies:
-            rwx_index = policies.index("rwx")
-            policies[0], policies[rwx_index] = policies[rwx_index], policies[0]
 
         for policy in policies:
             generate_ranges_func = 'generate_' + policy + '_ranges'
