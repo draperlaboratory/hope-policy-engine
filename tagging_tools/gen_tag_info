@@ -364,7 +364,6 @@ def main():
 
         range_file.finish();
         # range_file.print()
-        range_file.print_file("/home/aharris/range_file.txt")
         #     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
         proc = subprocess.Popen([md_range, args.policy_dir, range_file.name(), args.tag_file])
         proc.wait()
