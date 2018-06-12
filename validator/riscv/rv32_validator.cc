@@ -77,7 +77,6 @@ void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
 void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   if(!failed){
     failed = true;
-    printf("handle violation\n");
     memcpy(&failed_ctx, ctx, sizeof(context_t));
     memcpy(&failed_ops, ops, sizeof(operands_t));
   }
@@ -136,7 +135,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   prepare_eval(pc, insn);
   
   policy_result = eval_policy(ctx, ops, res);
-//  policy_result = POLICY_SUCCESS;
+  ctx->policy_result = policy_result;
 
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();

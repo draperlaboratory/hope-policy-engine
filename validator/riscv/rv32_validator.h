@@ -42,9 +42,9 @@ namespace policy_engine {
 class rv32_validator_base_t : public tag_based_validator_t {
 protected: 
   tag_bus_t tag_bus;
-  context_t *ctx;
 
 public:
+  context_t *ctx;
   operands_t *ops;
   results_t *res;
 

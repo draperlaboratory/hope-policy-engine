@@ -38,6 +38,7 @@ extern "C" {
 
 #define POLICY_EXP_FAILURE 0
 #define POLICY_IMP_FAILURE -1
+#define POLICY_ERROR_FAILURE -2
 #define POLICY_SUCCESS 1
 
   

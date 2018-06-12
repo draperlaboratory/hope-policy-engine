@@ -38,6 +38,9 @@ extern "C" void debug_msg(context_t *ctx, const char *msg) {
 
 extern "C" void debug_status(context_t *ctx, int status) {
   switch(status) {
+  case POLICY_ERROR_FAILURE :
+    puts("Internal Policy Error");
+    break;
   case POLICY_EXP_FAILURE :
     puts("Explicit Failure");
     break;

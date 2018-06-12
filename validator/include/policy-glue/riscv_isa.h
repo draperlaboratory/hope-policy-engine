@@ -67,6 +67,7 @@ extern "C" {
 typedef struct context {
   uintptr_t epc;
   uintptr_t bad_addr;
+  int policy_result;
   const char *fail_msg;
   bool cached;
 } context_t;

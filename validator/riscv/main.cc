@@ -161,6 +161,27 @@ extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
     strncpy(dest, "Out of range", n);
 }
 
+extern "C" const char* eval_status(int status) {
+  switch(status) {
+  case POLICY_ERROR_FAILURE :
+    return "Internal Policy Error";
+    break;
+  case POLICY_EXP_FAILURE :
+    return "Explicit Failure";
+    break;
+  case POLICY_IMP_FAILURE :
+    return "Implicit Failure";
+    break;
+  case POLICY_SUCCESS :
+    return "Success";
+    break;
+  default:
+    return "INVALID POLICY RESULT";
+  }
+}
+
+
+
 extern "C" void e_v_violation_msg(char* dest, int n) {
   // Maybe this belongs inside the validator?
   const int s = 512;
@@ -188,10 +209,10 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
     msg = msg + "    Op3   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.mem, tmp, s);
     msg = msg + "    Mem   : " + tmp + "\n";
+    msg = msg + eval_status(rv_validator->ctx->policy_result) + "\n";
+
     if(rv_validator->failed_ctx.fail_msg)
-      msg = msg + "Explicit Failure: " + rv_validator->failed_ctx.fail_msg + "\n";
-    else
-      msg = msg + "Implicit Failure.\n";
+      msg = msg + rv_validator->failed_ctx.fail_msg + "\n";
       
     strncpy(dest, msg.c_str(), n);
   }
