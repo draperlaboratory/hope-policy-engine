@@ -65,7 +65,7 @@ class RangeMap:
 
     def __contains__(self, key):
         start, end, tags = key
-        return any(start >= s and end < e for s, e, t in self.range_map)
+        return any(start >= s and end <= e for s, e, t in self.range_map)
 
     def __getitem__(self, index):
         return self.range_map[index]
