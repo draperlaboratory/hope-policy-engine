@@ -49,7 +49,7 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
     assert(map.size() == 0); // first range added
   } else if (start < base) {
     // inserting before the existing base - have to insert a bit
-    int n_insert = base - start;
+    int n_insert = (base - start) / stride;
     map.insert(map.begin(), n_insert, nullptr);
     base = start;
   }
