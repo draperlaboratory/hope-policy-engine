@@ -54,10 +54,10 @@ SOC:
     heterogeneous: false
     }
   FLASH: {
-    name: Require.SOC.Memory.Ram_0,
+    name: Require.SOC.Memory.Flash_0,
     start: 0x20000000,
     end:   0x3fffffff,
-    heterogeneous: false
+    heterogeneous: true
     }
   MTIME: {
     name: Require.SOC.IO.UART_0,
