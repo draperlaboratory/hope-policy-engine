@@ -1,8 +1,26 @@
 SOC:
-  RESET: {
+  DEBUG: {
     name: Require.SOC.IO.UART_0,
-    start: 0x00001000,
-    end:   0x00001004,
+    start: 0x00000000,
+    end:   0x01ffffff,
+    heterogeneous: true
+    }
+  CLINT: {
+    name: Require.SOC.IO.CLINT,
+    start: 0x02000000,
+    end:   0x0200ffff,
+    heterogeneous: true
+    }
+  ITIM: {
+    name: Require.SOC.IO.ITIM,
+    start: 0x08000000,
+    end:   0x08001fff,
+    heterogeneous: true
+    }
+  PLIC: {
+    name: Require.SOC.IO.PLIC,
+    start: 0x0c000000,
+    end:   0x0fffffff,
     heterogeneous: true
     }
   RAM: {
