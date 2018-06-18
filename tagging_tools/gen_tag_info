@@ -65,7 +65,7 @@ class RangeMap:
 
     def __contains__(self, key):
         start, end, tags = key
-        return any(start >= s and end < e for s, e, t in self.range_map)
+        return any(start >= s and end <= e for s, e, t in self.range_map)
 
     def __getitem__(self, index):
         return self.range_map[index]
@@ -164,6 +164,8 @@ def generate_rwx_ranges(ef, range_file):
         flags = s['sh_flags']
         start = s['sh_addr']
         end = start + s['sh_size']
+        if start == end:
+            end += 4
         if flags & SH_FLAGS.SHF_EXECINSTR:
             range_file.write_range(start, end, RWX_X)
             range_file.write_range(start, end, RWX_R)
