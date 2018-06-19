@@ -1,0 +1,91 @@
+SOC:
+  DEBUG: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x00000000,
+    end:   0x01ffffff,
+    heterogeneous: true
+    }
+  CLINT: {
+    name: Require.SOC.IO.CLINT,
+    start: 0x02000000,
+    end:   0x0200ffff,
+    heterogeneous: true
+    }
+  ITIM: {
+    name: Require.SOC.IO.ITIM,
+    start: 0x08000000,
+    end:   0x08001fff,
+    heterogeneous: true
+    }
+  PLIC: {
+    name: Require.SOC.IO.PLIC,
+    start: 0x0c000000,
+    end:   0x0fffffff,
+    heterogeneous: true
+    }
+  RAM: {
+    name: Require.SOC.Memory.Ram_0,
+    start: 0x80000000,
+    end:   0xffffffff,
+    heterogeneous: true
+    }
+  AON: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10000000,
+    end:   0x10007fff,
+    heterogeneous: false
+    }
+  PRCI: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10008000,
+    end:   0x1000ffff,
+    heterogeneous: false
+    }
+  OTP: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10010000,
+    end:   0x10010fff,
+    heterogeneous: false
+    }
+  EFLASH: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10011000,
+    end:   0x10011fff,
+    heterogeneous: false
+    }
+  GPIO0: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10012000,
+    end:   0x10012fff,
+    heterogeneous: false
+    }
+  UART0: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10013000,
+    end:   0x10013fff,
+    heterogeneous: false
+    }
+  QSPI0: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x10014000,
+    end:   0x10014fff,
+    heterogeneous: false
+    }
+  FLASH: {
+    name: Require.SOC.Memory.Flash_0,
+    start: 0x20000000,
+    end:   0x3fffffff,
+    heterogeneous: true
+    }
+  MTIME: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x4400bff8,
+    end:   0x4400c000,
+    heterogeneous: false
+    }
+  MTIME_CMP: {
+    name: Require.SOC.IO.UART_0,
+    start: 0x44004000,
+    end:   0x44004010,
+    heterogeneous: false
+    }
