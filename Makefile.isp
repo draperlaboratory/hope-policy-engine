@@ -19,6 +19,8 @@ install: all
 	install -d $(ISP_PREFIX)/lib
 	install -p build/md_code $(ISP_PREFIX)/bin/
 	install -p build/md_range $(ISP_PREFIX)/bin/
+	install -p build/md_entity $(ISP_PREFIX)/bin/
+	install -p build/md_asm_ann $(ISP_PREFIX)/bin/
 	install -p build/standalone $(ISP_PREFIX)/bin/
 	install -p tagging_tools/gen_tag_info $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/

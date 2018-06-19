@@ -14,9 +14,8 @@ from elftools.elf.constants import SH_FLAGS
 from elftools.elf.sections import SymbolTableSection
 from collections import defaultdict
 
-script_path = os.path.dirname(os.path.realpath(__file__))
-md_range = script_path + '/../build/md_range'
-md_code = script_path + '/../build/md_code'
+md_range = 'md_range'
+md_code = 'md_code'
 
 PTR_SIZE = 4
 
