@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include "riscv_isa.h"
 
+
 #include "inst_decoder.h"
 
 int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uint32_t *rd, int32_t *imm, const char** name, uint32_t *op){
@@ -268,7 +269,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RD | HAS_RS1 | HAS_IMM;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFFF00000) >> 20) | 0xFFFFF000 : (ibits & 0xFFF00000) >> 20);
+            *imm |= ((ibits & 0xFFF00000) >> 20);
             if(*rd == 0){
                 flags |= HAS_CSR_STORE;
                 flags &= ~HAS_RD;
@@ -282,7 +283,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RD | HAS_RS1 | HAS_IMM;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFFF00000) >> 20) | 0xFFFFF000 : (ibits & 0xFFF00000) >> 20);
+            *imm |= ((ibits & 0xFFF00000) >> 20);
             if(*rs1 == 0){
                 flags |= HAS_CSR_LOAD;
             }
@@ -295,7 +296,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RD | HAS_RS1 | HAS_IMM;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFFF00000) >> 20) | 0xFFFFF000 : (ibits & 0xFFF00000) >> 20);
+            *imm |= ((ibits & 0xFFF00000) >> 20);
             if(*rs1 == 0){
                 flags |= HAS_CSR_LOAD;
             }
@@ -308,10 +309,9 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RD | HAS_RS1 | HAS_IMM;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFFF00000) >> 20) | 0xFFFFF000 : (ibits & 0xFFF00000) >> 20);
+            *imm |= ((ibits & 0xFFF00000) >> 20);
             if(*rd == 0){
                 flags |= HAS_CSR_STORE;
-                flags &= ~HAS_RD;
             }
             else
                 flags |= HAS_CSR_LOAD | HAS_CSR_STORE;
@@ -322,7 +322,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RD | HAS_RS1 | HAS_IMM;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFFF00000) >> 20) | 0xFFFFF000 : (ibits & 0xFFF00000) >> 20);
+            *imm |= ((ibits & 0xFFF00000) >> 20);
             if(*rs1 == 0){
                 flags |= HAS_CSR_LOAD;
             }
@@ -335,7 +335,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             flags = 0 | HAS_RD | HAS_RS1 | HAS_IMM;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
-            *imm |= ((ibits & 0x80000000) ? ((ibits & 0xFFF00000) >> 20) | 0xFFFFF000 : (ibits & 0xFFF00000) >> 20);
+            *imm |= ((ibits & 0xFFF00000) >> 20);
             if(*rs1 == 0){
                 flags |= HAS_CSR_LOAD;
             }
