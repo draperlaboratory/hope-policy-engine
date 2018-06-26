@@ -186,7 +186,7 @@ bool rv32_validator_t::commit() {
     }
 //    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
-      if(pending_RD == *it && old_tag != new_tag){
+      if(mem_addr == *it && old_tag != new_tag){
         printf("Watch tag mem");
         fflush(stdout);
         hit_watch = true;
