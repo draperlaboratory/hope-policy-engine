@@ -3,3 +3,4 @@ set -x
 dot="$(cd "$(dirname "$0")"; pwd)"
 policy_output_path="$dot/policy"
 ~/.local/bin/policy-tool -d -t $dot/../policies/entities -m $dot/../policies -o $policy_output_path osv.frtos.main.rwx
+cp -rp $dot/soc_cfg $dot/policy
