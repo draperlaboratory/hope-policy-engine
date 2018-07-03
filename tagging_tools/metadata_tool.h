@@ -78,6 +78,7 @@ class metadata_tool_t {
   bool save_tag_info(const char *tag_file_name) {
     return save_tags(&md_map, tag_file_name);
   }
+  metadata_factory_t *factory() { return md_factory; }
 };
 
 } // namespace policy_engine

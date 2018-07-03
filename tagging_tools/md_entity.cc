@@ -25,6 +25,7 @@
  */
 
 #include <stdio.h>
+#include <algorithm>
 #include <gflags/gflags.h>
 
 //#include <experimental/filesystem>
@@ -57,28 +58,57 @@ static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::
 static const char *usage_msg =
     "md_entity usage: md_entity <flags> policy_dir elf_file tag_info_file [entity files]\n"
     "  Applies metadata to the memory map of an ELF image according to bindings\n"
-    "  described in entity YML files.  The file entities.yml in the given policy\n"
+    "  described in entity YML files.  The file policy_entities.yml in the given policy\n"
     "  directory will always be processed.  Additional optional entity files may be\n"
     "  provided on the command line.\n";
 static void usage() {
   puts(usage_msg);
 }
 
+// debugging code
+void dump_ents(metadata_tool_t &md_tool) {
+  std::list<std::string> ents;
+  md_tool.factory()->enumerate(ents);
+  printf("ents:\n");
+  for (auto s: ents) {
+    printf("  %s\n", s.c_str());
+  }
+}
+
+void verify_entity_bindings(metadata_tool_t &md_tool,
+			    std::list<std::unique_ptr<entity_binding_t>> &bindings,
+			    reporter_t &err) {
+  std::list<std::string> ents;
+  md_tool.factory()->enumerate(ents);
+  for (auto s: ents) {
+    auto it = std::find_if(bindings.begin(), bindings.end(),
+			   [&](std::unique_ptr<entity_binding_t> &peb) {
+			     entity_binding_t const *eb = dynamic_cast<entity_binding_t const *>(peb.get());
+			     return eb->entity_name == s;
+			   });
+    if (it == bindings.end()) {
+      err.warning("Entity %s has no binding\n", s.c_str());
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   stdio_reporter_t err;
+
+  gflags::SetUsageMessage(usage_msg);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
   if (argc < 4) {
     usage();
     return 0;
   }
-  gflags::SetUsageMessage(usage_msg);
-  gflags::ParseCommandLineFlags(&argc, &argv, false);
 
   const char *policy_dir = argv[1];
   const char *elf_file_name = argv[2];
   const char *tag_file_name = argv[3];
   int yaml_count = argc - 4;
   char **yaml_files = &argv[4];
-  std::string entity_yaml = std::string(policy_dir) + "/entities.yml";
+  std::string entity_yaml = std::string(policy_dir) + "/policy_entities.yml";
 
   try {
     FILE *elf_in;
@@ -91,6 +121,8 @@ int main(int argc, char **argv) {
     img.load();
     populate_symbol_table(&symtab, &img);
 
+//    dump_ents(md_tool);
+
     if (FLAGS_update) {
       if (!md_tool.load_tag_info(tag_file_name)) {
 	err.error("couldn't load tags from %s\n", tag_file_name);
@@ -98,26 +130,33 @@ int main(int argc, char **argv) {
       }
     }
 
+    std::list<std::unique_ptr<entity_binding_t>> bindings;
     do {
-      std::list<std::unique_ptr<entity_binding_t>> bindings;
-      load_entity_bindings(entity_yaml.c_str(), bindings);
-      for (auto &e: bindings) {
-	entity_symbol_binding_t *sb = dynamic_cast<entity_symbol_binding_t *>(e.get());
-	if (sb != nullptr) {
-	  symbol_t *sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity);
-	  if (sym) {
-	    // go ahead and mark it
-	    address_t end_addr;
-	    if (sb->is_singularity)
-	      end_addr = sym->get_address() + PLATFORM_WORD_SIZE;
-	    else
-	      end_addr = sym->get_address() + sym->get_size(); // TODO: align to platform word boundary?
-	    if (!md_tool.apply_tag(sym->get_address(), end_addr, sb->entity_name.c_str())) {
-	      err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
-	    }
+      load_entity_bindings(entity_yaml.c_str(), bindings, &err);
+      if (yaml_count)
+	entity_yaml = *yaml_files++;
+    } while (yaml_count--);
+
+    verify_entity_bindings(md_tool, bindings, err);
+
+    for (auto &e: bindings) {
+      entity_symbol_binding_t *sb = dynamic_cast<entity_symbol_binding_t *>(e.get());
+      if (sb != nullptr) {
+	symbol_t *sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity);
+	if (sym) {
+	  // go ahead and mark it
+	  address_t end_addr;
+	  if (sb->is_singularity)
+	    end_addr = sym->get_address() + PLATFORM_WORD_SIZE;
+	  else
+	    end_addr = sym->get_address() + sym->get_size(); // TODO: align to platform word boundary?
+	  if (!md_tool.apply_tag(sym->get_address(), end_addr, sb->entity_name.c_str())) {
+	    err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
 	  }
-	} else {
-	  entity_range_binding_t *rb = dynamic_cast<entity_range_binding_t *>(e.get());
+	}
+      } else {
+	entity_range_binding_t *rb = dynamic_cast<entity_range_binding_t *>(e.get());
+	if (rb != nullptr) {
 	  symbol_t *sym = get_symbol(&symtab, &err, rb->elf_start_name, false);
 	  symbol_t *end = get_symbol(&symtab, &err, rb->elf_end_name, false);
 	  if (sym && end) {
@@ -127,9 +166,7 @@ int main(int argc, char **argv) {
 	  }
 	}
       }
-      if (yaml_count)
-	entity_yaml = *yaml_files++;
-    } while (yaml_count--);
+    }
 
     if (err.errors == 0) {
       if (!md_tool.save_tag_info(tag_file_name)) {

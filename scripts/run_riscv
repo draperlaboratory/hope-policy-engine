@@ -1,13 +1,17 @@
 #!/bin/bash
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 renode_file=/tmp/$(id -u -n)_renode.txt
+
 cat > $renode_file <<- EOF
 mach create
-machine LoadPlatformDescription @platforms/boards/miv-board.repl
-sysbus.cpu MaximumBlockSize 1
-showAnalyzer sysbus.uart
+machine LoadPlatformDescription @platforms/boards/dover-riscv-board.repl
+showAnalyzer sysbus.uart1
 EOF
-full_path=`readlink -f $1`
-echo "sysbus LoadELF @$full_path" >> $renode_file
-echo "sysbus.cpu SetExternalValidator @$SCRIPT_DIR/../build/librv32-renode-validator.so @$SCRIPT_DIR/../policy @$SCRIPT_DIR/../application_tags.taginfo" >> $renode_file
+
+application_elf_path=`readlink -f $1`
+
+echo "sysbus LoadELF @$application_elf_path" >> $renode_file
+
+echo "sysbus.ap_cpu SetExternalValidator @$SCRIPT_DIR/../build/librv32-renode-validator.so @$SCRIPT_DIR/../policy @application_elf_path.taginfo" >> $renode_file
+
 $SCRIPT_DIR/../../renode/renode $renode_file

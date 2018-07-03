@@ -38,6 +38,7 @@ extern "C" {
 
 #define POLICY_EXP_FAILURE 0
 #define POLICY_IMP_FAILURE -1
+#define POLICY_ERROR_FAILURE -2
 #define POLICY_SUCCESS 1
 
   
@@ -47,6 +48,21 @@ extern "C" {
    */
 void alloc_eval_params(context_t **ctx, operands_t **ops, results_t **res);
 void free_eval_params(context_t **ctx, operands_t **ops, results_t **res);
+
+  /**
+   * Initialize rule logging data structure
+   */
+    void logRuleInit();
+    
+  /**
+   * Log a rule during evaluation
+   */
+    void logRuleEval(const char* ruleDescription);
+
+  /**
+   * Get the next rule description from the log
+   */
+    const char* nextLogRule(int* idx);
 
   /**
    * Initialize context and set up operands before policy eval.
