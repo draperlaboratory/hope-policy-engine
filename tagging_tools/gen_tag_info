@@ -21,8 +21,8 @@ md_entity = 'md_entity'
 
 PTR_SIZE = 4
 
-CFI = 'Require.dover.Tools.GCC.CFI_Target'
-NoCFI = 'Require.dover.Tools.GCC.NoCFI'
+CFI = 'dover.Tools.GCC.CFI_Target'
+NoCFI = 'dover.Tools.GCC.NoCFI'
 
 metadata_ops = {
     "DMD_SET_BASE_ADDRESS_OP": 0x01,
@@ -46,17 +46,17 @@ policy_map = {
     "cfi": {
         "target": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "Require.dover.Tools.GCC.CFI_Target"
+            "policy_name": "dover.Tools.GCC.CFI_Target"
         }
     },
     "stack": {
         "prologue": {
             "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
-            "policy_name": "Require.dover.Tools.GCC.Prologue"
+            "policy_name": "dover.Tools.GCC.Prologue"
         },
         "epilogue": {
             "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
-            "policy_name": "Require.dover.Tools.GCC.Epilogue"
+            "policy_name": "dover.Tools.GCC.Epilogue"
         }
     }
 }
