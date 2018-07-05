@@ -177,8 +177,7 @@ def generate_policy_ranges(ef, range_file, policy):
             logging.critical("saw end weak decl tag!\n")
             sys.exit(-1)
         elif (byte == metadata_ops['DMD_END_BLOCK']):
-            #need extra word here to tag last instruction since end_address is the address of last instruction
-            end_address = bytes_to_uint(it, PTR_SIZE) + PTR_SIZE
+            end_address = bytes_to_uint(it, PTR_SIZE)
             logging.debug("saw end block tag range = " + hex(base_address) +
                           ":" + hex(base_address + end_address))
             if range_map:
