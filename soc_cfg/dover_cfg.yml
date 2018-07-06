@@ -1,0 +1,25 @@
+SOC:
+  RAM: {
+    name: SOC.Memory.Ram_0,
+    start: 0x80000000,
+    end:   0x80800000,
+    heterogeneous: true
+    }
+  UART1: {
+    name: SOC.IO.UART_0,
+    start: 0x40001000,
+    end:   0x40002000,
+    heterogeneous: false
+    }
+  MTIME: {
+    name: SOC.IO.UART_0,
+    start: 0x4400bff8,
+    end:   0x4400c000,
+    heterogeneous: false
+    }
+  MTIME_CMP: {
+    name: SOC.IO.UART_0,
+    start: 0x44004000,
+    end:   0x44004010,
+    heterogeneous: false
+    }

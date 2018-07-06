@@ -52,7 +52,7 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       printf("setting callbacks\n");
       ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
       soc_tag_configuration_t *soc_config =
-        new soc_tag_configuration_t(ms_factory, policy_dir + "/soc_cfg/miv_cfg.yml");
+        new soc_tag_configuration_t(ms_factory, policy_dir + "/soc_cfg/dover_cfg.yml");
       rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
       
 //      address_t base_address = 0x80000000; // FIXME - need to be able to query for this
