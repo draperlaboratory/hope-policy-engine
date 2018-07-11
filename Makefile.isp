@@ -17,6 +17,8 @@ policy:
 
 install: all
 	install -d $(ISP_PREFIX)/lib
+	install -d $(ISP_PREFIX)/bin
+	install -d $(ISP_PREFIX)/include
 	install -p build/md_code $(ISP_PREFIX)/bin/
 	install -p build/md_range $(ISP_PREFIX)/bin/
 	install -p build/md_entity $(ISP_PREFIX)/bin/
