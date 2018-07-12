@@ -29,6 +29,7 @@
 #include "validator_exception.h"
 
 #include "policy_utils.h"
+#include "policy_eval.h"
 
 using namespace policy_engine;
 
@@ -76,7 +77,6 @@ void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
 void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
   if(!failed){
     failed = true;
-    printf("handle violation\n");
     memcpy(&failed_ctx, ctx, sizeof(context_t));
     memcpy(&failed_ops, ops, sizeof(operands_t));
   }
@@ -106,7 +106,7 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
 				   RegisterReader_t rr) :
-  rv32_validator_base_t(ms_cache, ms_factory, rr) {
+    rv32_validator_base_t(ms_cache, ms_factory, rr), watch_pc(false) {
   // true causes initial clear of results
   res->pcResult = true;
   res->rdResult = true;
@@ -114,13 +114,13 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
   meta_set_t const *ms;
 
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Default");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.RZero");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.RZero");
   ireg_tags[0] = m_to_t(ms);
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.CSR.Default");
+  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.Default");
   csr_tags.reset(m_to_t(ms));
-  ms = ms_factory->get_meta_set("Require.ISA.RISCV.Reg.Env");
+  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Env");
   pc_tag = m_to_t(ms);
 
   config->apply(&tag_bus, this);
@@ -135,7 +135,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   prepare_eval(pc, insn);
   
   policy_result = eval_policy(ctx, ops, res);
-//  policy_result = POLICY_SUCCESS;
+  ctx->policy_result = policy_result;
 
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
@@ -149,6 +149,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 
 bool rv32_validator_t::commit() {
   bool hit_watch = false;
+
   if (res->pcResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
     if(watch_pc && pc_tag != new_tag){
@@ -158,6 +159,7 @@ bool rv32_validator_t::commit() {
     }
     pc_tag = new_tag;
   }
+
   if (has_pending_RD && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
@@ -167,27 +169,33 @@ bool rv32_validator_t::commit() {
         hit_watch = true;
       }
     }
-    ireg_tags[pending_RD] = new_tag;
+    // printf("Update reg: %d\n", pending_RD);
+    //fflush(stdout);
+
+    // dont update metadata on regZero
+    if(pending_RD)
+        ireg_tags[pending_RD] = new_tag;
   }
+  
   if (has_pending_mem && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
     if (!tag_bus.load_tag(mem_addr, old_tag)) {
-      printf("failed to load MR tag\n");
+        printf("failed to load MR tag @ 0x%x\n", mem_addr);
       fflush(stdout);
       // might as well halt
       hit_watch = true;
     }
 //    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
-      if(pending_RD == *it && old_tag != new_tag){
+      if(mem_addr == *it && old_tag != new_tag){
         printf("Watch tag mem");
         fflush(stdout);
         hit_watch = true;
       }
     }
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
-      printf("failed to store MR tag\n");
+        printf("failed to store MR tag @ 0x%x\n", mem_addr);
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -219,7 +227,16 @@ void rv32_validator_t::set_csr_watch(address_t addr){
 void rv32_validator_t::set_mem_watch(address_t addr){
   watch_addrs.push_back(addr);
 }
-  
+
+const char* rv32_validator_t::get_first_rule_descr(){
+    logIdx = 0;
+    return nextLogRule(&logIdx);
+}
+
+const char* rv32_validator_t::get_next_rule_descr(){
+    return nextLogRule(&logIdx);
+}
+
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
@@ -273,7 +290,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
     if (!tag_bus.load_tag(mem_addr, mtag)) {
-      printf("failed to load MR tag\n");
+        printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);
     } else {
       ops->mem = t_to_m(mtag);
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));
@@ -295,6 +312,9 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
 
+  // prepare the eval logging structure
+  logRuleInit();
+  
 }
 
 void rv32_validator_t::complete_eval() {

@@ -25,6 +25,9 @@ install: all
 	install -p build/md_asm_ann $(ISP_PREFIX)/bin/
 	install -p build/standalone $(ISP_PREFIX)/bin/
 	install -p tagging_tools/gen_tag_info $(ISP_PREFIX)/bin/
+	install -p tagging_tools/TaggingUtils.py $(ISP_PREFIX)/bin/
+	install -p tagging_tools/OpCodeTagger.py $(ISP_PREFIX)/bin/
+	install -p tagging_tools/RWXTagger.py $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv_gdb $(ISP_PREFIX)/bin/
 	install -p build/librv32-renode-validator.so $(ISP_PREFIX)/lib/

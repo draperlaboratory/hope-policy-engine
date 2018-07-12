@@ -5,10 +5,10 @@ SOC:
     end:   0x80800000,
     heterogeneous: true
     }
-  UART0: {
+  UART1: {
     name: SOC.IO.UART_0,
-    start: 0x70001000,
-    end:   0x70002000,
+    start: 0x40001000,
+    end:   0x40002000,
     heterogeneous: false
     }
   MTIME: {

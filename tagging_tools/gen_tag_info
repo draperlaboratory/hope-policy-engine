@@ -1,124 +1,28 @@
 #!/usr/bin/env python3
 
 import os
-import tempfile
 import sys
 import subprocess
-import struct
 import argparse
-import random
 import logging
+import TaggingUtils
+import RWXTagger
+import OpCodeTagger
+import yaml
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.sections import SymbolTableSection
-from collections import defaultdict
 
 md_range = 'md_range'
 md_code = 'md_code'
+md_asm_ann = 'md_asm_ann'
+md_entity = 'md_entity'
 
 PTR_SIZE = 4
 
-
-class RangeFile:
-    def __init__(self):
-        self.file = tempfile.NamedTemporaryFile(mode='a', delete = False, prefix='ranges_');
-
-    def write_range(self, start, end, tag):
-        self.file.write('0x%x 0x%x %s\n' % (start, end, tag))
-
-    def finish(self):
-        self.file.close();
-
-    def name(self):
-        if self.file is None:
-             raise Exception('file does not exist')
-        return self.file.name
-
-    def done(self):
-        if self.file is not None:
-             try:
-                  os.remove(self.file.name)
-                  self.file = None
-             except:
-                  pass
-
-    def print(self):
-        logging.debug(self.file.name)
-        with open(self.file.name, 'r') as f:
-            for l in f.readlines():
-                logging.debug(l)
-
-    def print_file(self, file_name):
-        with open(file_name, 'w') as perm_file:
-            with open(self.file.name, 'r') as f:
-                for l in f.readlines():
-                    perm_file.write(l)
-
-    def __del__(self):
-        self.done()
-
-class RangeMap:
-    def __init__(self):
-        self.range_map = []
-
-    def __contains__(self, key):
-        start, end, tags = key
-        return any(start >= s and end <= e for s, e, t in self.range_map)
-
-    def __getitem__(self, index):
-        return self.range_map[index]
-
-    def sort(self):
-        self.range_map = sorted(self.range_map)
-
-    def add_range(self, start, end, tag=None):
-        for curr_start, curr_end, tags in self.range_map:
-            if curr_start == start and curr_end == end:
-                tags.append(tag)
-                return
-
-        self.range_map.append((start, end, [tag]))
-
-    def merge_ranges(self):
-        rangemap = sorted(self.range_map)
-        curr_s, curr_e, curr_tags = rangemap[0]
-        for i, (s, e, tags) in enumerate(rangemap[1:], start=1):
-            if s > curr_s:
-                if e > curr_e:
-                    rangemap[i-1] = (curr_s, s - 1, curr_tags)
-                    rangemap[i] = (s, curr_e, curr_tags + tags)
-                    rangemap.insert(i+1, (curr_e + 1, e, tags))
-                else:
-                    rangemap[i-i] = (curr_s, e, curr_tags + tags)
-                    rangemap[i] = (e + 1, curr_e, curr_tags)
-            elif s == curr_s:
-                if e == curr_e:
-                    rangemap[i-1] = (s, e, curr_tags + tags)
-                    del rangemap[i]
-                else:
-                    rangemap[i-1] = (curr_s, curr_e, curr_tags + tags)
-                    rangemap[i] = (curr_e + 1, e, tags)
-            curr_s, curr_e, curr_tags = rangemap[i]
-
-    def get_tags(self, addr):
-        for curr_range, tags in self.range_map.items():
-            (curr_start, curr_end) = curr_range
-            if (addr >= curr_start and addr < curr_end):
-                return tags
-        return []
-
-    def get_ranges(self, tag):
-        return [curr_range for curr_range, tags in self.range_map.items()
-                if tag in tags or (not tag and len(tags) == 0)]
-
-
-RWX_X = 'Require.Tools.Elf.Section.SHF_EXECINSTR'
-RWX_R = 'Require.Tools.Elf.Section.SHF_ALLOC'
-RWX_W = 'Require.Tools.Elf.Section.SHF_WRITE'
-
-CFI = 'Require.dover.Tools.GCC.CFI_Target'
-NoCFI = 'Require.dover.Tools.GCC.NoCFI'
+CFI = 'dover.Tools.GCC.CFI_Target'
+NoCFI = 'dover.Tools.GCC.NoCFI'
 
 metadata_ops = {
     "DMD_SET_BASE_ADDRESS_OP": 0x01,
@@ -142,39 +46,28 @@ policy_map = {
     "cfi": {
         "target": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "Require.dover.Tools.GCC.CFI_Target"
+            "policy_name": "dover.Tools.GCC.CFI_Target"
         }
     },
     "stack": {
         "prologue": {
             "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
-            "policy_name": "Require.dover.Tools.GCC.Prologue"
+            "policy_name": "dover.Tools.GCC.Prologue"
         },
         "epilogue": {
             "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
-            "policy_name": "Require.dover.Tools.GCC.Epilogue"
+            "policy_name": "dover.Tools.GCC.Epilogue"
         }
     }
 }
 
 
-def generate_rwx_ranges(ef, range_file):
-    for s in ef.iter_sections():
-        flags = s['sh_flags']
-        start = s['sh_addr']
-        end = start + s['sh_size']
-        if start == end:
-            end += 4
-        if flags & SH_FLAGS.SHF_EXECINSTR:
-            range_file.write_range(start, end, RWX_X)
-            range_file.write_range(start, end, RWX_R)
-            logging.info('X {0}: 0x{1:X}'.format(s.name, start))
-        elif flags & SH_FLAGS.SHF_WRITE:
-            range_file.write_range(start, end, RWX_W)
-            logging.info('W {0}: 0x{1:X}'.format(s.name, start))
-        elif flags & SH_FLAGS.SHF_ALLOC:
-            range_file.write_range(start, end, RWX_R)
-            logging.info('R {0}: 0x{1:X}'.format(s.name, start))
+def policy_has_module(yf, name):
+    modules = yf["Modules"]
+    for m in modules:
+        if m["name"] == name:
+            return True
+    return False
 
 
 def bytes_to_uint(it, size):
@@ -234,7 +127,7 @@ def generate_policy_ranges(ef, range_file, policy):
     it = iter(metadata)
 
     if policy == "cfi":
-        range_map = RangeMap()
+        range_map = TaggingUtils.RangeMap()
     else:
         range_map = None
 
@@ -284,8 +177,7 @@ def generate_policy_ranges(ef, range_file, policy):
             logging.critical("saw end weak decl tag!\n")
             sys.exit(-1)
         elif (byte == metadata_ops['DMD_END_BLOCK']):
-            #need extra word here to tag last instruction since end_address is the address of last instruction
-            end_address = bytes_to_uint(it, PTR_SIZE) + PTR_SIZE
+            end_address = bytes_to_uint(it, PTR_SIZE)
             logging.debug("saw end block tag range = " + hex(base_address) +
                           ":" + hex(base_address + end_address))
             if range_map:
@@ -298,7 +190,7 @@ def generate_policy_ranges(ef, range_file, policy):
 
 
 def generate_cfi_ranges(ef, range_file):
-    code_range_map = RangeMap()
+    code_range_map = TaggingUtils.RangeMap()
     add_code_section_ranges(ef, code_range_map)
     range_map = generate_policy_ranges(ef, range_file, "cfi")
 
@@ -322,6 +214,10 @@ def generate_stack_ranges(ef, range_file):
     generate_policy_ranges(ef, range_file, "stack")
 
 
+def generate_rwx_ranges(ef, range_file):
+    RWXTagger.generate_rwx_ranges(ef, range_file)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -335,8 +231,14 @@ def main():
                         help="Policy string to generate tags for (e.g. osv.frtos.main.cfi-rwx))")
     parser.add_argument("--log", action="store", default='WARNING',
                         help="Logging level (DEBUG, WARNING, INFO)")
+    parser.add_argument("-e", "--entities", nargs='+', default=[],
+                        required=False,
+                        help="Entities file for policy")
 
     args = parser.parse_args()
+
+    asm_file_name = args.bin + ".text"
+    policy_modules = {}
 
     numeric_level = getattr(logging, args.log.upper(), None)
     if not isinstance(numeric_level, int):
@@ -344,45 +246,64 @@ def main():
     logging.basicConfig(level=numeric_level, stream=sys.stderr)
 
     try:
-        os.remove(args.tag_file)
+        if (os.path.isfile(args.tag_file)):
+            os.remove(args.tag_file)
     except OSError as err:
         print('could not remove ' + args.tag_file)
+        sys.exit(-1)
+
+    with open(args.policy_dir + "/policy_modules.yml", "r") as pmf:
+        policy_modules = yaml.load(pmf.read())
 
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
 
-        range_file = RangeFile()
+        range_file = TaggingUtils.RangeFile()
 
+        module_policies = [module['name'].split('.')[-1] for module in policy_modules['Modules']]
         policies = args.policies.split('.')[-1].split('-')
 
         for policy in policies:
+            if policy not in module_policies:
+                logging.fatal("Tried to generate tag info for invalid policy")
+                sys.exit(-1)
             generate_ranges_func = 'generate_' + policy + '_ranges'
             logging.info("Generating tags for policy {}".format(policy))
             if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
                 globals()[generate_ranges_func](ef, range_file)
             else:
-                raise KeyError('No such policy generation function: ' + generate_ranges_func)
+                print('No such policy generation function: ' + generate_ranges_func + '\n')
 
         range_file.finish();
-        # range_file.print()
-        #     proc = subprocess.Popen([md_range, policy_dir, base_address_string, range_file.name(), taginfo_file_name])
-        proc = subprocess.Popen([md_range, args.policy_dir, range_file.name(), args.tag_file])
-        proc.wait()
+
+        presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
+                                   args.tag_file])
+        if presult != 0:
+            sys.exit(presult)
+
         range_file.done()
 
-        # tag the code for group tags
-        for s in ef.iter_sections():
-            if s['sh_flags'] & SH_FLAGS.SHF_EXECINSTR:
-                section_addr_string = '0x{:08x}'.format(s['sh_addr'])
-                proc = subprocess.Popen([md_code,
-                                         args.policy_dir,
-                                         #base_address_string,
-                                         section_addr_string,
-                                         args.tag_file],
-                                        stdin=subprocess.PIPE,
-                )
-                proc.communicate(s.data())
-                proc.wait()
+        # Apply opcode tags
+        OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
+
+        # Apply entities
+        presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
+                                 args.entities)
+        if presult != 0:
+            sys.exit(presult)
+
+        # generate the asm file
+        with open(asm_file_name, "w") as asm_file:
+            presult = subprocess.call(["riscv32-unknown-elf-objdump", "-dS", args.bin],
+                                     stdout=asm_file)
+            if presult != 0:
+                sys.exit(presult)
+
+        # annotate the asm file
+        presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file,
+                                  asm_file_name])
+        if presult != 0:
+            sys.exit(presult)
 
 if (__name__ == "__main__"):
     main()
