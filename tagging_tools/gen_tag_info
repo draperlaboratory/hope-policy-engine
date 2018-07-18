@@ -43,36 +43,37 @@ tag_specifiers = {
     "DMT_STACK_EPILOGUE_AUTHORITY": 0x03,
     "DMT_FPTR_STORE_AUTHORITY": 0x04,
     "DMT_BRANCH_VALID_TGT": 0x05,
-    "DMT_RET_VALID_TGT": 0x06
+    "DMT_RET_VALID_TGT": 0x06,
+    "DMT_RETURN_INSTR": 0x07,
+    "DMT_CALL_INSTR": 0x08,
+    "DMT_BRANCH_INSTR": 0x09
 }
 
 policy_map = {
     "threeClass": {
-        "call": {
+        "call-tgt": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "llvm.CFI_Call"
+            "policy_name": "llvm.CFI_Call-Tgt"
         },
-        "branch": {
+        "branch-tgt": {
             "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
-            "policy_name": "llvm.CFI_Branch"
+            "policy_name": "llvm.CFI_Branch-Tgt"
         },
-        "return": {
+        "return-tgt": {
             "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
-            "policy_name": "llvm.CFI_Return"
-        }
-    },
-    "twoClass": {
-        "call": {
-            "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "llvm.CFI_Call"
+            "policy_name": "llvm.CFI_Return-Tgt"
         },
-        "branch": {
-            "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
-            "policy_name": "llvm.CFI_Branch"
+        "call-instr": {
+            "tag_specifier": tag_specifiers["DMT_CALL_INSTR"],
+            "policy_name": "llvm.CFI_Call-Instr"
         },
-        "return": {
-            "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
-            "policy_name": "llvm.CFI_Return"
+        "branch-instr": {
+            "tag_specifier": tag_specifiers["DMT_BRANCH_INSTR"],
+            "policy_name": "llvm.CFI_Branch-Instr"
+        },
+        "return-instr": {
+            "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
+            "policy_name": "llvm.CFI_Return-Instr"
         }
     },
     "cpi": {
@@ -164,7 +165,7 @@ def generate_policy_ranges(ef, range_file, policy):
 
     it = iter(metadata)
 
-    if policy == "cfi" or policy == "threeClass" or policy == "twoClass":
+    if policy == "cfi" or policy == "threeClass":
         range_map = TaggingUtils.RangeMap()
     else:
         range_map = None
@@ -272,18 +273,6 @@ def generate_threeClass_ranges(ef, range_file):
     code_range_map = TaggingUtils.RangeMap()
     add_code_section_ranges(ef, code_range_map)
     range_map = generate_policy_ranges(ef, range_file, "threeClass")
-
-    for (start, end, tags) in code_range_map:
-        for s in range(start, end, PTR_SIZE):
-            e = s + PTR_SIZE
-            if (s, e, tags) not in range_map:
-                range_file.write_range(s, e, NoCFI)
-
-
-def generate_twoClass_ranges(ef, range_file):
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = generate_policy_ranges(ef, range_file, "twoClass")
 
     for (start, end, tags) in code_range_map:
         for s in range(start, end, PTR_SIZE):
