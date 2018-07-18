@@ -30,8 +30,16 @@
 
 #include "policy_utils.h"
 #include "policy_eval.h"
+//addition
+#ifdef ENABLE_IDEAL_PIPE
+#include "ideal_pipe.h"
+#endif
 
 using namespace policy_engine;
+//addition
+#ifdef ENABLE_IDEAL_PIPE
+ideal_pipe_t *pipe_t = new ideal_pipe_t();
+#endif
 
 static const char *tag_name(meta_set_t const *tag) {
   static char tag_name[1024];
@@ -133,16 +141,24 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   setup_validation();
   
   prepare_eval(pc, insn);
-  
+  //addition  
+  #ifdef ENABLE_IDEAL_PIPE
+  if (pipe_t->allow(ops, res)) {
+    return true;
+  }
+  #endif
+
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
-
   if (policy_result == POLICY_SUCCESS) {
+    #ifdef ENABLE_IDEAL_PIPE
+    pipe_t->install_rule(ops, res);
+    printf("entered");
+    #endif
     complete_eval();
   } else {
     printf("violation address: 0x%x\n",pc);
     handle_violation(ctx, ops);
-    
   }
   return policy_result == POLICY_SUCCESS;
 }

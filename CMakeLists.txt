@@ -31,7 +31,8 @@ add_library(rv32_validator
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
   validator/riscv/fake_riscv.cc
-  
+  #addition
+  validator/pipe/ideal_pipe.cc
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
@@ -41,6 +42,8 @@ target_include_directories(rv32_validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  #addition
+  ./validator/pipe
   )
 
 add_library(tagging_tools
@@ -110,3 +113,9 @@ target_include_directories(rv32-renode-validator PRIVATE
   ./validator/riscv
   ./validator/include/policy-glue
   )
+
+#addition
+option(ENABLE_IDEAL_PIPE "Enable PIPE" ON)
+IF (ENABLE_IDEAL_PIPE)
+	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_PIPE=1)
+ENDIF (ENABLE_IDEAL_PIPE)
