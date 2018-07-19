@@ -30,16 +30,8 @@
 
 #include "policy_utils.h"
 #include "policy_eval.h"
-//addition
-#ifdef ENABLE_IDEAL_PIPE
-#include "ideal_pipe.h"
-#endif
 
 using namespace policy_engine;
-//addition
-#ifdef ENABLE_IDEAL_PIPE
-ideal_pipe_t *pipe_t = new ideal_pipe_t();
-#endif
 
 static const char *tag_name(meta_set_t const *tag) {
   static char tag_name[1024];
@@ -66,6 +58,9 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->pcResult = true;
   res->rdResult = true;
   res->csrResult = true;
+#ifdef ENABLE_IDEAL_PIPE
+  pipe = new ideal_pipe_t();
+#endif
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
@@ -135,6 +130,16 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   failed = false;
 }
 
+bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
+                                address_t memory_addr, bool *hit) {
+  has_insn_mem_addr = true;
+  mem_addr = memory_addr;
+
+  bool result = validate(pc, insn);
+  *hit = pipe_hit;
+  return result;
+}
+
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
 
@@ -143,17 +148,18 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   prepare_eval(pc, insn);
   //addition  
   #ifdef ENABLE_IDEAL_PIPE
-  if (pipe_t->allow(ops, res)) {
+  if (pipe->allow(ops, res)) {
+    pipe_hit = true;
     return true;
   }
+  else pipe_hit = false;
   #endif
 
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
   if (policy_result == POLICY_SUCCESS) {
     #ifdef ENABLE_IDEAL_PIPE
-    pipe_t->install_rule(ops, res);
-    printf("entered");
+    pipe->install_rule(ops, res);
     #endif
     complete_eval();
   } else {
@@ -299,9 +305,15 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   // Handle memory address calculation
   if (flags & (HAS_LOAD | HAS_STORE)) {
 //    address_t maddr = reg_reader(rs1);
-    mem_addr = reg_reader(rs1);
-    if (flags & HAS_IMM)
-      mem_addr += imm;
+    if (has_insn_mem_addr) {
+      //mem_addr has already been set
+      has_insn_mem_addr = false;
+    }
+    else {
+      mem_addr = reg_reader(rs1);
+      if (flags & HAS_IMM)
+        mem_addr += imm;
+    }
     ctx->bad_addr = mem_addr;
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;

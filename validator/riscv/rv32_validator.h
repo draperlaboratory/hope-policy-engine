@@ -36,6 +36,9 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
+#ifdef ENABLE_IDEAL_PIPE
+#include "ideal_pipe.h"
+#endif
 
 namespace policy_engine {
 
@@ -47,6 +50,9 @@ public:
   context_t *ctx;
   operands_t *ops;
   results_t *res;
+#ifdef ENABLE_IDEAL_PIPE
+  ideal_pipe_t *pipe;
+#endif
 
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
@@ -72,6 +78,11 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_mem;
   bool has_pending_CSR;
   int logIdx;
+  bool has_insn_mem_addr;
+#ifdef ENABLE_IDEAL_PIPE
+  bool pipe_hit;
+#endif
+
 //  meta_set_t temp_ci_tag;
 
  public:
@@ -98,6 +109,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   }
 
   bool validate(address_t pc, insn_bits_t insn);
+  bool validate(address_t pc, insn_bits_t insn, address_t mem_addr, bool *hit);
   bool commit();
 
   // Provides the tag for a given address.  Used for debugging.

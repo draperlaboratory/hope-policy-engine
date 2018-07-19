@@ -106,6 +106,19 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
   return 0;
 }
 
+extern "C" uint32_t e_v_validate_cached(uint32_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
+  //  printf("validating 0x%x: 0x%x\n", pc, instr);
+  if (!DOA) {
+    try {
+      return rv_validator->validate(pc, instr, mem_addr, hit);
+    } catch (...) {
+      printf("c++ exception while validating - policy code DOA\n");
+      DOA = true;
+    }
+  }
+  return 0;
+}
+
 extern "C" uint32_t e_v_commit() {
 //  printf("committing\n");
   bool hit_watch = false;
