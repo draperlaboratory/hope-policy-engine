@@ -50,9 +50,9 @@ public:
   context_t *ctx;
   operands_t *ops;
   results_t *res;
-#ifdef ENABLE_IDEAL_PIPE
+  #ifdef ENABLE_IDEAL_PIPE
   ideal_pipe_t *pipe;
-#endif
+  #endif
 
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
