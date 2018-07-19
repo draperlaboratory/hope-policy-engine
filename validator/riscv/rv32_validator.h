@@ -36,6 +36,9 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
+#ifdef ENABLE_PIPE
+#include "base_pipe.h"
+#endif
 #ifdef ENABLE_IDEAL_PIPE
 #include "ideal_pipe.h"
 #endif
@@ -50,8 +53,8 @@ public:
   context_t *ctx;
   operands_t *ops;
   results_t *res;
-  #ifdef ENABLE_IDEAL_PIPE
-  ideal_pipe_t *pipe;
+  #ifdef ENABLE_PIPE
+  pipe_t *pipe;
   #endif
 
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
@@ -79,7 +82,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_CSR;
   int logIdx;
   bool has_insn_mem_addr;
-#ifdef ENABLE_IDEAL_PIPE
+#ifdef ENABLE_PIPE
   bool pipe_hit;
 #endif
 
