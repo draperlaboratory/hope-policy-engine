@@ -115,7 +115,12 @@ target_include_directories(rv32-renode-validator PRIVATE
   )
 
 #addition
-option(ENABLE_IDEAL_PIPE "Enable PIPE" ON)
+option(ENABLE_PIPE "Enable PIPE" ON)
+IF (ENABLE_PIPE)
+	target_compile_definitions(rv32_validator PRIVATE ENABLE_PIPE=1)
+ENDIF (ENABLE_PIPE)
+
+option(ENABLE_IDEAL_PIPE "Enable ideal PIPE" ON)
 IF (ENABLE_IDEAL_PIPE)
 	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_PIPE=1)
 ENDIF (ENABLE_IDEAL_PIPE)
