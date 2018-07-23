@@ -13,5 +13,5 @@ public:
   bool allow(operands_t *ops, results_t *res);
 
 private:
-  std::map<operands_t, results_t, compare_ops> pump_table;
+  std::map<operands_t, results_t, compare_ops> pipe_table;
 };

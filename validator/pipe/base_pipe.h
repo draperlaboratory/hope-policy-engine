@@ -10,6 +10,8 @@ struct compare_ops {
     if (b.op1 && !a.op1) return false;
     if (a.op2 && !b.op2) return false;
     if (b.op2 && !a.op2) return false;
+    if (a.op3 && !b.op3) return false;
+    if (b.op3 && !a.op3) return false;
     if (a.mem && !b.mem) return false;
     if (b.mem && !a.mem) return false;
 
@@ -39,10 +41,8 @@ struct compare_ops {
 
 class pipe_t {
 public:
-
   virtual void install_rule(operands_t *ops, results_t *res) = 0;
   virtual bool allow(operands_t *ops, results_t *res) = 0;
-
 };
 
 #endif// __BASE_PIPE_H__

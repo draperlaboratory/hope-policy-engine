@@ -1,7 +1,7 @@
 #include "ideal_pipe.h"
 
 ideal_pipe_t::ideal_pipe_t() {
-  pump_table.clear();
+  pipe_table.clear();
 }
 
 ideal_pipe_t::~ideal_pipe_t() {
@@ -22,14 +22,14 @@ void ideal_pipe_t::install_rule(operands_t *ops, results_t *res) {
   results_t *res_copy = new results_t{new meta_set_t{*res->pc}, 
   new meta_set_t{*res->rd}, new meta_set_t{*res->csr}, res->pcResult, 
   res->rdResult, res->csrResult};
-  pump_table.insert(std::make_pair(*ops_copy, *res_copy));
+  pipe_table.insert(std::make_pair(*ops_copy, *res_copy));
   delete ops_copy;
   delete res_copy;
 }
 
 bool ideal_pipe_t::allow(operands_t *ops, results_t *res) {
-  auto entries = pump_table.find(*ops);
-  if (!(entries == pump_table.end())) {
+  auto entries = pipe_table.find(*ops);
+  if (!(entries == pipe_table.end())) {
     res->pc = entries->second.pc;
     res->rd = entries->second.rd;
     res->csr = entries->second.csr;
@@ -37,5 +37,5 @@ bool ideal_pipe_t::allow(operands_t *ops, results_t *res) {
     res->rdResult = entries->second.rdResult;
     res->csrResult = entries->second.csrResult;
   }
-  return !(entries == pump_table.end());
+  return !(entries == pipe_table.end());
 }

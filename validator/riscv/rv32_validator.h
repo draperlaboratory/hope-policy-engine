@@ -42,6 +42,9 @@
 #ifdef ENABLE_IDEAL_PIPE
 #include "ideal_pipe.h"
 #endif
+#ifdef ENABLE_FINITE_PIPE
+#include "finite_pipe.h"
+#endif
 
 namespace policy_engine {
 

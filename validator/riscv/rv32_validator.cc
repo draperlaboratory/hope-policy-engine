@@ -59,7 +59,12 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->rdResult = true;
   res->csrResult = true;
 #ifdef ENABLE_IDEAL_PIPE
+  printf("Ideal PIPE\n");
   pipe = new ideal_pipe_t();
+#endif
+#ifdef ENABLE_FINITE_PIPE
+  printf("Finite PIPE\n");
+  pipe = new finite_pipe_t(CAPACITY);
 #endif
 }
 
@@ -136,7 +141,9 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
   mem_addr = memory_addr;
 
   bool result = validate(pc, insn);
+  #ifdef ENABLE_PIPE
   *hit = pipe_hit;
+  #endif
   return result;
 }
 
@@ -147,7 +154,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   
   prepare_eval(pc, insn);
   //addition  
-  #ifdef ENABLE_IDEAL_PIPE
+  #ifdef ENABLE_PIPE
   if (pipe->allow(ops, res)) {
     pipe_hit = true;
     return true;
@@ -158,7 +165,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
   if (policy_result == POLICY_SUCCESS) {
-    #ifdef ENABLE_IDEAL_PIPE
+    #ifdef ENABLE_PIPE
     pipe->install_rule(ops, res);
     #endif
     complete_eval();

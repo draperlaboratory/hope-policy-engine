@@ -33,6 +33,7 @@ add_library(rv32_validator
   validator/riscv/fake_riscv.cc
   #addition
   validator/pipe/ideal_pipe.cc
+  validator/pipe/finite_pipe.cc
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
@@ -124,3 +125,8 @@ option(ENABLE_IDEAL_PIPE "Enable ideal PIPE" ON)
 IF (ENABLE_IDEAL_PIPE)
 	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_PIPE=1)
 ENDIF (ENABLE_IDEAL_PIPE)
+
+#option(ENABLE_FINITE_PIPE "Enable Finite PIPE" ON)
+#IF (ENABLE_FINITE_PIPE)
+#	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_PIPE=1 CAPACITY=1024)
+#ENDIF (ENABLE_FINITE_PIPE)
