@@ -153,13 +153,15 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   setup_validation();
   
   prepare_eval(pc, insn);
-  //addition  
+    
   #ifdef ENABLE_PIPE
+  //printf("Before allow\n");
   if (pipe->allow(ops, res)) {
     pipe_hit = true;
     return true;
   }
   else pipe_hit = false;
+  //printf("After allow\n");
   #endif
 
   policy_result = eval_policy(ctx, ops, res);
