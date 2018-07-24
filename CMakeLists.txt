@@ -33,7 +33,7 @@ add_library(rv32_validator
   validator/riscv/fake_riscv.cc
   #addition
   validator/pipe/ideal_pipe.cc
-  #validator/pipe/finite_pipe.cc
+  validator/pipe/finite_pipe.cc
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
