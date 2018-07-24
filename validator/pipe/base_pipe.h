@@ -45,4 +45,37 @@ public:
   virtual bool allow(operands_t *ops, results_t *res) = 0;
 };
 
+namespace std
+{
+  inline void hash_combine(std::size_t& seed) { }
+
+  template <typename T, typename... Rest>
+      inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    hash_combine(seed, rest...);
+  }
+
+  template <>
+      struct hash<operands_t>
+  {
+    size_t operator()(const operands_t& ops) const
+    {
+      size_t res = 0;
+      hash_combine(res, *ops.pc->tags, *ops.ci->tags);
+      if (ops.op1)
+        hash_combine(res, *ops.op1->tags);
+      if (ops.op2)
+        hash_combine(res, *ops.op2->tags);
+      if (ops.op3)
+        hash_combine(res, *ops.op3->tags);
+      if (ops.mem)
+        hash_combine(res, *ops.mem->tags);
+
+      return res;
+    }
+  };
+
+}
+
 #endif// __BASE_PIPE_H__

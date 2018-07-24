@@ -30,9 +30,9 @@ void ideal_pipe_t::install_rule(operands_t *ops, results_t *res) {
 bool ideal_pipe_t::allow(operands_t *ops, results_t *res) {
   auto entries = pipe_table.find(*ops);
   if (!(entries == pipe_table.end())) {
-    res->pc = entries->second.pc;
-    res->rd = entries->second.rd;
-    res->csr = entries->second.csr;
+    *res->pc = *entries->second.pc;
+    *res->rd = *entries->second.rd;
+    *res->csr = *entries->second.csr;
     res->pcResult = entries->second.pcResult;
     res->rdResult = entries->second.rdResult;
     res->csrResult = entries->second.csrResult;
