@@ -128,5 +128,5 @@ ENDIF (ENABLE_IDEAL_PIPE)
 
 #option(ENABLE_FINITE_PIPE "Enable Finite PIPE" ON)
 #IF (ENABLE_FINITE_PIPE)
-#	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_PIPE=1 CAPACITY=1024)
+#	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_PIPE=1 CAPACITY=4)
 #ENDIF (ENABLE_FINITE_PIPE)

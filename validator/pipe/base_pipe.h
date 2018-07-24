@@ -2,6 +2,7 @@
 #define __BASE_PIPE_H__
 
 #include "riscv_isa.h"
+//#include <inttypes.h>
 
 struct compare_ops {
   bool operator()(const operands_t &a, const operands_t &b) const {
