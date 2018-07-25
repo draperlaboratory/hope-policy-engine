@@ -133,6 +133,7 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 
   config->apply(&tag_bus, this);
   failed = false;
+  has_insn_mem_addr = false;
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
