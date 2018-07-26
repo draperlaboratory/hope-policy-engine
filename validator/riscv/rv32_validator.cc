@@ -58,14 +58,6 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->pcResult = true;
   res->rdResult = true;
   res->csrResult = true;
-#ifdef ENABLE_IDEAL_PIPE
-  printf("Ideal PIPE\n");
-  pipe = new ideal_pipe_t();
-#endif
-#ifdef ENABLE_FINITE_PIPE
-  printf("Finite PIPE\n");
-  pipe = new finite_pipe_t(CAPACITY);
-#endif
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
@@ -134,6 +126,14 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   config->apply(&tag_bus, this);
   failed = false;
   has_insn_mem_addr = false;
+#ifdef ENABLE_IDEAL_PIPE
+  printf("Ideal PIPE\n");
+  pipe = new ideal_pipe_t();
+#endif
+#ifdef ENABLE_FINITE_PIPE
+  printf("Finite PIPE\n");
+  pipe = new finite_pipe_t(CAPACITY);
+#endif
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,

@@ -56,9 +56,6 @@ public:
   context_t *ctx;
   operands_t *ops;
   results_t *res;
-  #ifdef ENABLE_PIPE
-  pipe_t *pipe;
-  #endif
 
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
@@ -137,6 +134,9 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
+  #ifdef ENABLE_PIPE
+  pipe_t *pipe;
+  #endif
 };
 
 } // namespace policy_engine
