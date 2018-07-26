@@ -46,7 +46,8 @@ tag_specifiers = {
     "DMT_RET_VALID_TGT": 0x06,
     "DMT_RETURN_INSTR": 0x07,
     "DMT_CALL_INSTR": 0x08,
-    "DMT_BRANCH_INSTR": 0x09
+    "DMT_BRANCH_INSTR": 0x09,
+    "DMT_FPTR_CREATE_AUTHORITY": 0x0a
 }
 
 policy_map = {
@@ -77,9 +78,17 @@ policy_map = {
         }
     },
     "cpi": {
-        "fptr": {
+        "fptrcreate": {
+            "tag_specifier": tag_specifiers["DMT_FPTR_CREATE_AUTHORITY"],
+            "policy_name": "llvm.CPI.FPtrCreate"
+        },
+        "fptrstore": {
             "tag_specifier": tag_specifiers["DMT_FPTR_STORE_AUTHORITY"],
-            "policy_name": "llvm.CPI"
+            "policy_name": "llvm.CPI.FPtrStore"
+        },
+        "return-instr": {
+            "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
+            "policy_name": "llvm.CFI_Return-Instr"
         }
     },
     "cfi": {
@@ -266,7 +275,7 @@ def generate_rwx_ranges(ef, range_file):
 
 def generate_cpi_ranges(ef, range_file):
     generate_policy_ranges(ef, range_file, "cpi")
-    parse_asm_symbols(ef, range_file)
+    #parse_asm_symbols(ef, range_file)
 
 
 def generate_threeClass_ranges(ef, range_file):
