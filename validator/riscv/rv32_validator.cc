@@ -299,7 +299,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   }
 
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
-//  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
+  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
   if ((flags & HAS_CSR_LOAD) || (flags & HAS_CSR_STORE)) ops->op2 = t_to_m(csr_tags[imm]);
