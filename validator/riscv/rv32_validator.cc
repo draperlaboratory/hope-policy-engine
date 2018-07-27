@@ -134,6 +134,10 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   printf("Finite PIPE\n");
   pipe = new finite_pipe_t(CAPACITY);
 #endif
+#ifdef ENABLE_DMHC_PIPE
+  printf("Dmhc PIPE\n");
+  pipe = new dmhc_pipe_t(CAPACITY, IWIDTH, OWIDTH, K_DMHC, NO_EVICT);
+#endif
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
