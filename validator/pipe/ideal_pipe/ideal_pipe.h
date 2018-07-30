@@ -12,7 +12,8 @@ public:
 
   void install_rule(operands_t *ops, results_t *res);
   bool allow(operands_t *ops, results_t *res);
+  void flush();
 
-private:
+protected:
   std::unordered_map<operands_t, results_t, std::hash<operands_t>, compare_ops> pipe_table;
 };

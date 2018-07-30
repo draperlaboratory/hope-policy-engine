@@ -109,6 +109,9 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ctx);
     free(ops);
     free(res);
+   #ifdef ENABLE_PIPE
+    delete pipe;
+   #endif
   }
 
   bool validate(address_t pc, insn_bits_t insn);
@@ -129,6 +132,8 @@ class rv32_validator_t : public rv32_validator_base_t {
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
+
+  void flush_pipe();
 
   // fields used by main.cc
   bool failed;

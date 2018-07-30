@@ -42,6 +42,7 @@ struct compare_ops {
 
 class pipe_t {
 public:
+  virtual void flush() = 0;
   virtual void install_rule(operands_t *ops, results_t *res) = 0;
   virtual bool allow(operands_t *ops, results_t *res) = 0;
 };

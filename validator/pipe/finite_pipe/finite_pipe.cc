@@ -1,7 +1,6 @@
 #include "finite_pipe.h"
 
-finite_pipe_t::finite_pipe_t(int capacity) {
-  pipe_table.clear();
+finite_pipe_t::finite_pipe_t(int capacity) : ideal_pipe_t() {
   this->capacity = capacity;
   entries = (operands_t**) malloc(sizeof(operands_t*) *capacity);
   next_entry = 0;
@@ -31,10 +30,12 @@ void finite_pipe_t::install_rule(operands_t *ops, results_t *res) {
     ops_copy->op3 = new meta_set_t{*ops->op3};
   if (ops->mem)
     ops_copy->mem = new meta_set_t{*ops->mem};
-  results_t *res_copy = new results_t{new meta_set_t{*res->pc}, 
-  new meta_set_t{*res->rd}, new meta_set_t{*res->csr}, res->pcResult, 
-  res->rdResult, res->csrResult};
-  
+  results_t *res_copy = new results_t{new meta_set_t{*res->pc},
+                                      new meta_set_t{*res->rd},
+                                      new meta_set_t{*res->csr},
+                                      res->pcResult,
+                                      res->rdResult, res->csrResult};
+
   if (entry_used[next_entry]==true) {
     auto existing_entry = pipe_table.find(*entries[next_entry]);
     if ((existing_entry==pipe_table.end())) {

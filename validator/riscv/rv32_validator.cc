@@ -148,6 +148,12 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
   return result;
 }
 
+void rv32_validator_t::flush_pipe() {
+  #ifdef ENABLE_PIPE
+  pipe->flush();
+  #endif
+}
+
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
 

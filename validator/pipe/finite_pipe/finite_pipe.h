@@ -1,8 +1,8 @@
 #include <unordered_map>
 #include <functional>
-#include "base_pipe.h"
+#include "ideal_pipe.h"
 
-class finite_pipe_t : public pipe_t
+class finite_pipe_t : public ideal_pipe_t
 {
 
 public:
@@ -18,5 +18,4 @@ private:
   operands_t **entries;
   bool *entry_used;
   int next_entry;
-  std::unordered_map<operands_t, results_t, std::hash<operands_t>, compare_ops> pipe_table;
 };

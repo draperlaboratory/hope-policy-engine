@@ -4,7 +4,26 @@ ideal_pipe_t::ideal_pipe_t() {
   pipe_table.clear();
 }
 
+void ideal_pipe_t::flush() {
+  for (auto entry : pipe_table) {
+    delete entry.first.pc;
+    delete entry.first.ci;
+    if (entry.first.op1)
+      delete entry.first.op1;
+    if (entry.first.op2)
+      delete entry.first.op2;
+    if (entry.first.op3)
+      delete entry.first.op3;
+    if (entry.first.mem)
+      delete entry.first.mem;
+    delete entry.second.rd;
+    delete entry.second.csr;
+  }
+  pipe_table.clear();
+}
+
 ideal_pipe_t::~ideal_pipe_t() {
+  flush();
 }
 
 void ideal_pipe_t::install_rule(operands_t *ops, results_t *res) {
@@ -19,9 +38,10 @@ void ideal_pipe_t::install_rule(operands_t *ops, results_t *res) {
     ops_copy->op3 = new meta_set_t{*ops->op3};
   if (ops->mem)
     ops_copy->mem = new meta_set_t{*ops->mem};
-  results_t *res_copy = new results_t{new meta_set_t{*res->pc}, 
-  new meta_set_t{*res->rd}, new meta_set_t{*res->csr}, res->pcResult, 
-  res->rdResult, res->csrResult};
+  results_t *res_copy = new results_t{new meta_set_t{*res->pc},
+                                      new meta_set_t{*res->rd},
+                                      new meta_set_t{*res->csr}, res->pcResult,
+                                      res->rdResult, res->csrResult};
   pipe_table.insert(std::make_pair(*ops_copy, *res_copy));
   delete ops_copy;
   delete res_copy;

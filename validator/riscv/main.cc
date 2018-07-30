@@ -133,6 +133,10 @@ extern "C" uint32_t e_v_commit() {
   return hit_watch;
 }
 
+extern "C" void e_v_flush_pipe() {
+  rv_validator->flush_pipe();
+}
+
 extern "C" void e_v_pc_tag(char* dest, int n) {
   const meta_set_t *ms = (const meta_set_t*) rv_validator->pc_tag;
   meta_set_to_string(ms, dest, n);
