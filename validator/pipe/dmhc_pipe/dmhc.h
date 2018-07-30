@@ -10,14 +10,12 @@
 #define DMHC_DIRECT_K_HASH_CONFLICTS 1
 // this one is much cheaper...but there are rare cases where it may miss a conflict that the above will catch
 #define DMHC_DIRECT_K_HASH_CONFLICTS_FROM_REINSERT 1 
-
 // 2/25/16 -- BSV DMHC didn't originally do this, but revised it to do so.
 #define MISS_ON_ZERO_GTABLE_COUNT 1
 
 class dmhc_t {
 public:
-  dmhc_t(int cap, int newk, int newc, int infields, int outfields, meta_set_t *infield_widths, 
-                 meta_set_t *outfield_widths, bool new_no_evict);
+  dmhc_t(int cap, int newk, int newc, int infields, int outfields, bool new_no_evict);
   ~dmhc_t();
   void reset();
   void insert(meta_set_t *ops, meta_set_t *res);

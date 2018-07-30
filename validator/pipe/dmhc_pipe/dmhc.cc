@@ -2,7 +2,6 @@
 #include "dmhc.h"
 
 dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, 
-  meta_set_t *infield_widths, meta_set_t *outfield_widths, 
   bool new_no_evict) {
   
   k=newk;
@@ -18,17 +17,41 @@ dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields,
   victim_hashes=(int *)malloc(sizeof(int)*k);
   do_not_victimize_hashes=(int *)malloc(sizeof(int)*k);
   victim_ops=(meta_set_t *)malloc(sizeof(meta_set_t)*input_fields);
+  for (int i=0;i<input_fields;i++) {
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0] = 0;
+    victim_ops[i] = *meta_set;
+    delete meta_set;
+  }
   victim_res=(meta_set_t *)malloc(sizeof(meta_set_t)*output_fields);
+  for (int i=0;i<output_fields;i++) {
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0] = 0;
+    victim_res[i] = *meta_set;
+    delete meta_set;
+  }
   reinsert_ops=(meta_set_t *)malloc(sizeof(meta_set_t)*input_fields);
+  for (int i=0;i<input_fields;i++) {
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0] = 0;
+    reinsert_ops[i] = *meta_set;
+    delete meta_set;
+  }
   reinsert_res=(meta_set_t *)malloc(sizeof(meta_set_t)*output_fields);
+  for (int i=0;i<output_fields;i++) {
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0] = 0;
+    reinsert_res[i] = *meta_set;
+    delete meta_set;
+  }
 
   // store fields
   input_field_widths=(int *)malloc(sizeof(int)*input_fields);
   output_field_widths=(int *)malloc(sizeof(int)*output_fields);
   for (int i=0;i<input_fields;i++)
-    input_field_widths[i]=infield_widths[i].tags[0];
+    input_field_widths[i]=infields;
   for (int i=0;i<output_fields;i++)
-    output_field_widths[i]=outfield_widths[i].tags[0];
+    output_field_widths[i]=outfields;
 
   // initialize tables
   gtable=(int **)malloc(sizeof(int *)*k);
@@ -42,12 +65,25 @@ dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields,
     
   mtable_use=(bool *)malloc(sizeof(bool)*capacity);
   mtable_inputs=(meta_set_t **)malloc(sizeof(meta_set_t *)*input_fields);
-  for (int i=0;i<input_fields;i++)
+  for (int i=0;i<input_fields;i++) {
     mtable_inputs[i]=(meta_set_t *)malloc(sizeof(meta_set_t)*capacity);
+    for (int j=0;j<capacity;j++) {
+      meta_set_t *meta_set = new meta_set_t();
+      meta_set->tags[0]=0;
+      mtable_inputs[i][j]=*meta_set;
+      delete meta_set;
+    }
+  }
   mtable_outputs=(meta_set_t **)malloc(sizeof(meta_set_t *)*output_fields);
-  for (int i=0;i<output_fields;i++)
+  for (int i=0;i<output_fields;i++) {
     mtable_outputs[i]=(meta_set_t *)malloc(sizeof(meta_set_t)*capacity);
-
+    for (int j=0;j<capacity;j++) {
+      meta_set_t *meta_set = new meta_set_t();
+      meta_set->tags[0]=0;
+      mtable_outputs[i][j]=*meta_set;
+      delete meta_set;
+    }
+  }
 #ifdef DMHC_DIRECT_K_HASH_CONFLICTS 
   mtable_hashes=(int **)malloc(sizeof(int *)*k);
   for (int i=0;i<k;i++)
@@ -55,13 +91,15 @@ dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields,
 #else
   mtable_hashes=(int **)NULL;
 #endif
-
+  
   init_hashes();
 
+  //printf("Before hasher\n");
   // need to call even if INIT_HASH_POSITIONS is false
   hasher= new compute_hash_t(input_fields,input_field_widths, k, 
     c*capacity // total capacity (so apply c)
     );
+  //printf("After hasher\n");
 
     reset(); // to initialize all the fields
 }
@@ -88,8 +126,16 @@ dmhc_t::~dmhc_t() {
   free(input_field_widths);
   free(output_field_widths);
   free(mtable_hashes);
+  free(mtable_use);
+  free(reinsert_res);
+  free(reinsert_ops);
+  free(victim_res);
+  free(victim_ops);
+  free(do_not_victimize_hashes);
+  free(victim_hashes);
   free(hashes);
-  }
+}
+
 void dmhc_t::reset() {
   next_entry=1;  // skip 0 = INVALID_LAST_USER
   for (int i=0;i<k;i++) {
@@ -107,7 +153,7 @@ void dmhc_t::reset() {
         meta_set_t *new_input = new meta_set_t();
 	new_input->tags[0]=0;
         mtable_inputs[i][j]=*new_input;
-        free(new_input);
+        delete new_input;
       }
   }
   for (int i=0;i<output_fields;i++) {
@@ -116,7 +162,7 @@ void dmhc_t::reset() {
 	meta_set_t *new_output = new meta_set_t();
 	new_output->tags[0]=0;
         mtable_outputs[i][j]=*new_output;
-        free(new_output);
+        delete new_output;
       }
   }
 

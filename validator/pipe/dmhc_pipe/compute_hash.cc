@@ -19,19 +19,10 @@ void init_hashes() {
   #include "perm7.c"
 }
 
-compute_hash_t::compute_hash_t() {
-  total_ops_bits=0;
-  k_hash_position=0;
-  ops_index=(int *)NULL;
-  bit_index=(int *)NULL;
-  hash_input_position=(int ***)NULL;
-  sized_perm=(int **)NULL;
-}
-
 compute_hash_t::compute_hash_t(int nfields, int *field_widths, 
                                int k, int capacity) {
+  printf("Beginning compute_hash_t\n");
   int i,h,m,b;
-
 #ifdef INIT_HASH_POSITIONS
   hash_positions_initialized=false;
 
@@ -67,14 +58,21 @@ compute_hash_t::compute_hash_t(int nfields, int *field_widths,
   // make calls to perform initialization
   // (a) setup arguments/inputs need to make call
   meta_set_t *dummy_ops=(meta_set_t *)malloc(sizeof(meta_set_t)*num_fields);
+  for (int i=0;i<num_fields;i++){
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0]=0;
+    dummy_ops[i]=*meta_set;
+    delete meta_set;
+  }
   int *dummy_hashes=(int *)malloc(sizeof(int)*k);
 
   // (b) call compute_hash for each of the hashes to setup sized_perm and hash_input_position
   // need to call this to get ops_index, bits_index set up
+  //printf("Before compute_hash_set\n");
   compute_hash_set(k, dummy_ops, dummy_hashes, 
                    num_fields, field_widths,
                    capacity);
-
+  //printf("After compute_hash_set\n");
 //#ifdef WRITE_VERILOG_HASH
  // verilog_hash(capacity,field_widths);
 //#endif
@@ -258,6 +256,7 @@ void compute_hash_t::convert_to_bit_fields(int orig_num_fields, int *orig_field_
 
 void compute_hash_t::compute_hash_set(int k, meta_set_t *ops, int *hashes, int num_fields, 
                                       int *field_widths, int capacity) {
+  ("Beginning compute_hash_set\n");
   int ones=0;
   int bits=0;
   for (int i=0;i<num_fields;i++)
@@ -266,9 +265,21 @@ void compute_hash_t::compute_hash_set(int k, meta_set_t *ops, int *hashes, int n
   // convert to long bit vector
   int *bit_field_widths=(int *)malloc(sizeof(int)*(bits));
   meta_set_t *bit_fields=(meta_set_t *)malloc(sizeof(meta_set_t)*(bits));
+  for (int i=0;i<bits;i++) {
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0]=0;
+    bit_fields[i]=*meta_set;
+    delete meta_set;
+  }
   int bit_num_fields=bits;
   convert_to_bit_fields(num_fields,field_widths,ops,bit_field_widths,bit_fields);
   meta_set_t *permute_bit_fields=(meta_set_t *)malloc(sizeof(meta_set_t)*(bits));
+  for (int i=0;i<bits;i++) {
+    meta_set_t *meta_set = new meta_set_t();
+    meta_set->tags[0]=0;
+    permute_bit_fields[i]=*meta_set;
+    delete meta_set;
+  }
 
   for (int i=0;i<k;i++) {
       //int tmp=compute_hash(i,bit_num_fields,bit_field_widths,bit_fields,capacity);
@@ -281,6 +292,7 @@ void compute_hash_t::compute_hash_set(int k, meta_set_t *ops, int *hashes, int n
   free(bit_field_widths);
   free(bit_fields);
   free(permute_bit_fields);
+  ("End compute_hash_set\n");
 }
 
 int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, meta_set_t *fields,

@@ -48,7 +48,6 @@ struct compare_op {
 class compute_hash_t {
 
  public:
-  compute_hash_t();
   compute_hash_t(int num_fields, int *field_widths, 
 	         int k, int capacity);
   ~compute_hash_t();
@@ -64,7 +63,6 @@ class compute_hash_t {
   void convert_to_bit_fields(int orig_num_fields, int *orig_field_widths, 
 			     meta_set_t *orig_fields,int *field_widths, 
 			     meta_set_t *fields);
-  //void verilog_hash(int capacity, int *field_widths);
 
   int num_fields;
   int * ops_index;
