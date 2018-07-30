@@ -45,6 +45,9 @@
 #ifdef ENABLE_FINITE_PIPE
 #include "finite_pipe.h"
 #endif
+#ifdef ENABLE_DMHC_PIPE
+#include "dmhc_pipe.h"
+#endif
 
 namespace policy_engine {
 

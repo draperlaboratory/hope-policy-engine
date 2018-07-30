@@ -31,9 +31,13 @@ add_library(rv32_validator
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
   validator/riscv/fake_riscv.cc
-  #addition
+  #pipes
   validator/pipe/ideal_pipe/ideal_pipe.cc
   validator/pipe/finite_pipe/finite_pipe.cc
+  validator/pipe/dmhc_pipe/compute_hash.cc
+  validator/pipe/dmhc_pipe/dmhc.cc
+  validator/pipe/dmhc_pipe/dmhc_pipe.cc
+  
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
@@ -43,10 +47,11 @@ target_include_directories(rv32_validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
-  #addition
+  #pipe headers
   ./validator/pipe
   ./validator/pipe/ideal_pipe
   ./validator/pipe/finite_pipe
+  ./validator/pipe/dmhc_pipe
   )
 
 add_library(tagging_tools
@@ -123,12 +128,17 @@ IF (ENABLE_PIPE)
 	target_compile_definitions(rv32_validator PRIVATE ENABLE_PIPE=1)
 ENDIF (ENABLE_PIPE)
 
-option(ENABLE_IDEAL_PIPE "Enable ideal PIPE" ON)
-IF (ENABLE_IDEAL_PIPE)
-	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_PIPE=1)
-ENDIF (ENABLE_IDEAL_PIPE)
+#option(ENABLE_IDEAL_PIPE "Enable ideal PIPE" ON)
+#IF (ENABLE_IDEAL_PIPE)
+#	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_PIPE=1)
+#ENDIF (ENABLE_IDEAL_PIPE)
 
-#option(ENABLE_FINITE_PIPE "Enable Finite PIPE" ON)
-#IF (ENABLE_FINITE_PIPE)
-#	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_PIPE=1 CAPACITY=4)
-#ENDIF (ENABLE_FINITE_PIPE)
+option(ENABLE_FINITE_PIPE "Enable finite PIPE" ON)
+IF (ENABLE_FINITE_PIPE)
+	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_PIPE=1 CAPACITY=4)
+ENDIF (ENABLE_FINITE_PIPE)
+
+#option(ENABLE_DMHC_PIPE "Enable dmhc PIPE" ON)
+#IF (ENABLE_DMHC_PIPE)
+#	target_compile_definitions(rv32_validator PRIVATE ENABLE_DMHC_PIPE=1 CAPACITY=1024 IWIDTH=32 OWIDTH=32 K_DMHC=4 NO_EVICT=0)
+#ENDIF (ENABLE_DMHC_PIPE)
