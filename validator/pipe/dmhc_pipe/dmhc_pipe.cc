@@ -21,3 +21,7 @@ void dmhc_pipe_t::install_rule(operands_t *ops, results_t *res) {
 bool dmhc_pipe_t::allow(operands_t *ops, results_t *res) {
   return false;
 }
+
+void dmhc_pipe_t::flush() {
+  the_pipe->reset();
+}

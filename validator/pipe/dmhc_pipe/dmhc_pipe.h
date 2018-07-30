@@ -13,6 +13,7 @@ public:
 
   void install_rule(operands_t *ops, results_t *res);
   bool allow(operands_t *ops, results_t *res);
+  void flush();
 
 private:
   meta_set_t ops[OPS_LEN];
