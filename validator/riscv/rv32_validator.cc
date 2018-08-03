@@ -64,7 +64,7 @@ extern std::string render_metadata(metadata_t const *metadata);
 
 void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
   for (auto &e: *md_map) {
-    for (address_t start = e.first.start; start < e.first.end; start += 4) {
+    for (address_t start = e.first.start; start < e.first.end; start += 2) {
 //      std::string s = render_metadata(e.second);
 //      printf("0x%08x: %s\n", start, s.c_str());
       if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
@@ -140,9 +140,8 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   } else {
-    printf("violation address: 0x%x\n",pc);
+    //printf("violation address: 0x%x\n",pc);
     handle_violation(ctx, ops);
-    
   }
   return policy_result == POLICY_SUCCESS;
 }
@@ -269,7 +268,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   }
 
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
-//  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
+  //printf("0x%x: 0x%08x   %s\n", pc, insn, name);
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
   if ((flags & HAS_CSR_LOAD) || (flags & HAS_CSR_STORE)) ops->op2 = t_to_m(csr_tags[imm]);
@@ -287,7 +286,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     if (flags & HAS_IMM)
       mem_addr += imm;
     ctx->bad_addr = mem_addr;
-//    printf("  mem_addr = 0x%08x\n", mem_addr);
+//  printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
     if (!tag_bus.load_tag(mem_addr, mtag)) {
         printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);

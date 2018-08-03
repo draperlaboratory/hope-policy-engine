@@ -27,6 +27,90 @@
 #ifndef INSTRUCTION_DECODER
 #define INSTRUCTION_DECODER
 
+/* compressed instruction formats */
+typedef union {
+  uint16_t bits;
+  struct {
+    uint16_t op:2;
+    uint16_t rs2:5;
+    uint16_t rds1:5;
+    uint16_t funct4:4;
+  } CR __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t imml:5;
+    uint16_t rds1:5;
+    uint16_t immh:1;
+    uint16_t funct3:3;
+  } CI __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t rs2:5;
+    uint16_t imm:6;
+    uint16_t funct3:3;
+  } CSS __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t rdc:3;
+    uint16_t imm:8;
+    uint16_t funct3:3;
+  } CIW __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t rdc:3;
+    uint16_t imml:2;
+    uint16_t rs1c:3;
+    uint16_t immh:3;
+    uint16_t funct3:3;
+  } CL __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t rs2c:3;
+    uint16_t imml:2;
+    uint16_t rs1c:3;
+    uint16_t immh:3;
+    uint16_t funct3:3;
+  } CS __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t offl:5;
+    uint16_t rs1c:3;
+    uint16_t offh:3;
+    uint16_t funct3:3;
+  } CB __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t rs2c:3;
+    uint16_t op2:2;
+    uint16_t rs1c:3;
+    uint16_t op3:3;
+    uint16_t funct3:3;
+  } CBP __attribute__((packed)); // alternate CBP format for 0b100xx..xx01 instructions
+  struct {
+    uint16_t op:2;
+    uint16_t target:11;
+    uint16_t funct3:3;
+  } CJ __attribute__((packed));
+  struct {
+    uint16_t op:2;
+    uint16_t padding:11;
+    uint16_t func:3;
+  } __attribute__((packed));
+} cinsn;
+
+// compressed inctruction quadrants
+#define RVC_Q0 (0x0)
+#define RVC_Q1 (0x1)
+#define RVC_Q2 (0x2)
+
+// Register encodings
+#define REG_X0 (0)
+#define REG_X1 (1)
+#define REG_X2 (2)
+
+/* compressed instructions use 3 bits to map to reg x8-x15 */
+#define EXPAND_CREG(x) ((x)+8) 
+
 #define RISCV_BEQ 1
 #define RISCV_BNE 2
 #define RISCV_BLT 3

@@ -70,11 +70,36 @@ class rv32_insn_stream_t : public abstract_instruction_stream_t {
   rv32_insn_stream_t(FILE *fp) : fp(fp) { }
   virtual ~rv32_insn_stream_t() { }
   virtual bool read_instruction(insn_bits_t &insn) {
-    if (fread(&insn, sizeof(insn_bits_t), 1, fp) != 1) {
+
+    uint8_t lsB = 0x0;
+    int insn_size;
+
+    insn = 0x0;
+    
+    /* read first byte to get instr size */
+    if ( fread(&lsB, sizeof(lsB), 1, fp) != 1 ) {
       if (!feof(fp))
 	read_error();
       return false;
     }
+
+    /* lower bits != 0b11 -> compressed insn */
+    if ( (lsB & 0x3) != 0x3 )
+      insn_size = 2;
+    else
+      insn_size = 4;      
+
+    /* read the rest of the instruction */
+    if (fread(&insn, insn_size - 1, 1, fp) != 1) {
+      if (!feof(fp))
+	read_error();
+      return false;
+    }
+
+    /* add first byte of instr back in */
+    insn <<= 8;
+    insn |= lsB;
+    
     return true;
   }
   virtual void read_error() { throw read_error_t(); }
@@ -114,17 +139,19 @@ try {
       uint32_t rs1, rs2, rs3, rd;
       int32_t imm;
       const char *name;
-	  uint32_t opdef;
+      uint32_t opdef;
+
+
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
       metadata_t const *metadata = md_factory->lookup_group_metadata(name);
       if (!metadata) {
 	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
       } else {
 //	std::string s = md_factory->render(metadata);
-//	printf("0x%08x: %s\n", code_address, s.c_str());
-	map.add_range(code_address, code_address + 4, metadata);
+//	printf("  0x%08x: %s\n", code_address, s.c_str());
+	map.add_range(code_address, code_address + (flags & RVC ? 2 : 4), metadata);
       }
-      code_address += 4;
+      code_address += (flags & RVC ? 2 : 4);
     }
   } catch (read_error_t &e) {
     fprintf(stderr, "read error on stdin\n");

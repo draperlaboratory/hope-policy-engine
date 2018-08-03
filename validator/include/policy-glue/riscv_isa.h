@@ -45,7 +45,8 @@ extern "C" {
 #define HAS_STORE 64
 #define HAS_CSR_LOAD    128
 #define HAS_CSR_STORE   256
-
+#define RVC 512
+  
   /**
    * Decode funtion takes instruction bits and returns flags for which fields
    * in the results are valid.

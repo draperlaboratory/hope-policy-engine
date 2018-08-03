@@ -98,7 +98,7 @@ void soc_tag_configuration_t::apply(tag_bus_t *tag_bus, tag_converter_t *convert
   for (auto &e: elements) {
     if (e.heterogeneous) {
       tag_bus->add_provider(e.start, e.end,
-			    new platform_ram_tag_provider_t(e.end - e.start, 4,
+			    new platform_ram_tag_provider_t(e.end - e.start, 2,
 							    converter->m_to_t(e.meta_set)));
     } else {
       tag_bus->add_provider(e.start, e.end,

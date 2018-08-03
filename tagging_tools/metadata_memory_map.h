@@ -41,7 +41,7 @@ class metadata_memory_map_t {
   address_t end_address;
   metadata_cache_t *md_cache;
   
-  static const int stride = sizeof(uint32_t); // platform word size
+  static const int stride = sizeof(uint16_t); // 16 bits to accomodate compressed insns
   std::vector<metadata_t const *> map;
 
   protected:
