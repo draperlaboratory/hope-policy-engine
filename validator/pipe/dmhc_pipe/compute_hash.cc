@@ -21,11 +21,11 @@ void init_hashes() {
 
 compute_hash_t::compute_hash_t(int nfields, int *field_widths, 
                                int k, int capacity) {
-  printf("Beginning compute_hash_t\n");
+  //printf("Beginning compute_hash_t\n");
   int i,h,m,b;
+
 #ifdef INIT_HASH_POSITIONS
   hash_positions_initialized=false;
-
   num_fields=nfields;
   total_ops_bits=0;
   for (i=0;i<num_fields;i++)
@@ -64,19 +64,22 @@ compute_hash_t::compute_hash_t(int nfields, int *field_widths,
     dummy_ops[i]=*meta_set;
     delete meta_set;
   }
+
   int *dummy_hashes=(int *)malloc(sizeof(int)*k);
+
+  bool *dummy_consider=(bool *)malloc(sizeof(bool)*num_fields);
 
   // (b) call compute_hash for each of the hashes to setup sized_perm and hash_input_position
   // need to call this to get ops_index, bits_index set up
   //printf("Before compute_hash_set\n");
   compute_hash_set(k, dummy_ops, dummy_hashes, 
                    num_fields, field_widths,
-                   capacity);
+                   capacity, dummy_consider);
   //printf("After compute_hash_set\n");
 //#ifdef WRITE_VERILOG_HASH
  // verilog_hash(capacity,field_widths);
 //#endif
-
+  free(dummy_consider);
   free(dummy_ops);
   free(dummy_hashes);
   hash_positions_initialized=true;
@@ -90,7 +93,9 @@ compute_hash_t::compute_hash_t(int nfields, int *field_widths,
 #endif
 
   hash_table.clear();
-  static_ops=(operands_t *)malloc(sizeof(operands_t));
+  //static_ops=(operands_t *)malloc(sizeof(operands_t));
+
+  //printf("Hasher initialized\n");
 }
 
 compute_hash_t::~compute_hash_t() {
@@ -107,6 +112,32 @@ compute_hash_t::~compute_hash_t() {
     free(hash_input_position[h]);
   }
   free(hash_input_position);
+  for (auto entry : hash_table) {
+    delete entry.first.pc;
+    delete entry.first.ci;
+    if (entry.first.op1)
+      delete entry.first.op1;
+    if (entry.first.op2)
+      delete entry.first.op2;
+    if (entry.first.op3)
+      delete entry.first.op3;
+    if (entry.first.mem)
+      delete entry.first.mem;
+  }
+  hash_table.clear();
+  /**if (static_ops->pc)
+    delete static_ops->pc;
+  if (static_ops->ci)
+    delete static_ops->pc;
+  if (static_ops->op1)
+    delete static_ops->op1;
+  if (static_ops->op2)
+    delete static_ops->op2;
+  if (static_ops->op3)
+    delete static_ops->op3;
+  if (static_ops->mem)
+    delete static_ops->mem;
+  free(static_ops);*/
 }
 
 int min(int a, int b) {
@@ -124,44 +155,46 @@ int count_ones(int num_fields, int *field_widths, meta_set_t *fields) {
   for (int i=0;i<num_fields;i++)
     for (int j=0;j<field_widths[i];j++)
       if (((fields->tags[i]>>j) & 0x01)==1)
-	cnt++;
+    cnt++;
   return(cnt);
 }
-
-int compute_hash_t::compute_hash_from_precomputed_positions(int which, meta_set_t *ops) {
+// Potentially use consider to change result
+int compute_hash_t::compute_hash_from_precomputed_positions(int which, meta_set_t *ops, bool *consider) {
   int result=0;
   int i;
+  int val;
   for (i=0;i<total_ops_bits;i++) {
-    int val=((ops[ops_index[i]].tags[0])>>bit_index[i]) & 0x01;
+    val=((ops[ops_index[i]].tags[0])>>bit_index[i]) & 0x01;
     int pos=hash_input_position[which][ops_index[i]][bit_index[i]];
     result=result^(val<<pos);
   }
   return(result);
 }
 
-void compute_hash_t::compute_hash_set_from_precomputed_positions(int k, meta_set_t *ops, int *hashes) {
+void compute_hash_t::compute_hash_set_from_precomputed_positions(int k, meta_set_t *ops, int *hashes, bool *consider) {
   int h;
 
 #ifdef HASH_HASH
-  static_ops->pc=new meta_set_t{ops[0]};
-  static_ops->ci=new meta_set_t{ops[1]};
-  if (&ops[2]) 
-    static_ops->op1=new meta_set_t{ops[2]};
-  if (&ops[3])
-    static_ops->op2=new meta_set_t{ops[3]};
-  if (&ops[4]) 
-    static_ops->op3=new meta_set_t{ops[4]};
-  if (&ops[5])
-    static_ops->mem=new meta_set_t{ops[5]};
+  operands_t *static_ops=new operands_t();
+  static_ops->pc=new meta_set_t{OP_PC};
+  static_ops->ci=new meta_set_t{OP_CI};
+  if (consider[OP_OP1]) 
+    static_ops->op1=new meta_set_t{ops[OP_OP1]};
+  if (consider[OP_OP2])
+    static_ops->op2=new meta_set_t{ops[OP_OP2]};
+  if (consider[OP_OP3])
+    static_ops->op3=new meta_set_t{ops[OP_OP3]};
+  if (consider[OP_MEM])
+    static_ops->mem=new meta_set_t{ops[OP_MEM]};
 
   auto entries = hash_table.find(*static_ops);
   if (entries==hash_table.end()) {
     std::vector<int> new_h(k_hash_position);
     for (h=0;h<k_hash_position;h++) {
-      hashes[h]=compute_hash_from_precomputed_positions(h,ops);
+      hashes[h]=compute_hash_from_precomputed_positions(h,ops,consider);
       new_h[h]=hashes[h];
     }
-    operands_t *new_ops=(operands_t *)malloc(sizeof(operands_t));
+    operands_t *new_ops=new operands_t();
     new_ops->pc=static_ops->pc;
     new_ops->ci=static_ops->ci;
     if (static_ops->op1)
@@ -173,15 +206,16 @@ void compute_hash_t::compute_hash_set_from_precomputed_positions(int k, meta_set
     if (static_ops->mem)
       new_ops->mem=static_ops->mem;
     hash_table.insert({*new_ops,new_h});
-    //free(new_ops);
+    delete new_ops;
   } else {
     std::vector<int> result=entries->second;
     for (h=0;h<k_hash_position;h++)
       hashes[h]=result.at(h);
   }
+  delete static_ops;
 #else
   for (h=0;h<k_hash_position;h++)
-    hashes[h]=compute_hash_from_precomputed_positions(h,ops);
+    hashes[h]=compute_hash_from_precomputed_positions(h,ops,consider);
 #endif
 }
 
@@ -195,8 +229,7 @@ int compute_hash_t::fold(int num_fields, int *field_widths, meta_set_t *fields, 
   for (field=0;field<num_fields;field++) {
     int field_pos=0;
     while (field_pos<field_widths[field]) {
-      int bits=min((field_widths[field]-field_pos),
-		   (width-final_pos));
+      int bits=min((field_widths[field]-field_pos), (width-final_pos));
       int tmp=(((fields[field].tags[0])>>field_pos) & ((1<<bits) -1))<<final_pos;
       chunk^=tmp;
 
@@ -204,18 +237,18 @@ int compute_hash_t::fold(int num_fields, int *field_widths, meta_set_t *fields, 
       int h;
       if (hash_positions_initialized==false) {
         for (h=0;h<k_hash_position;h++) {
-	  int p=sized_perm[h][field]; 
-	  if (p>=0) // gets called for some h's before sized_perm defined
-	    hash_input_position[h][ops_index[p]][bit_index[p]]=final_pos;
-	}
+          int p=sized_perm[h][field]; 
+          if (p>=0) // gets called for some h's before sized_perm defined
+            hash_input_position[h][ops_index[p]][bit_index[p]]=final_pos;
+        }
       }
-#endif	  
+#endif      
       field_pos+=bits;
       final_pos+=bits;
       if (final_pos>=width) {
-	result^=chunk;
-	final_pos=0;
-	chunk=0;
+        result^=chunk;
+        final_pos=0;
+        chunk=0;
       }
     }
       // field++ occurs here when field_pos gets to field_widths[field]
@@ -223,7 +256,6 @@ int compute_hash_t::fold(int num_fields, int *field_widths, meta_set_t *fields, 
   if (final_pos>0) {
     result^=chunk; // final chunk
   }
-
   return result; 
 }
 
@@ -239,7 +271,7 @@ meta_set_t bitrev(int len, meta_set_t a) {
 }
 
 void compute_hash_t::convert_to_bit_fields(int orig_num_fields, int *orig_field_widths, meta_set_t *orig_fields,
-			                   int *field_widths, meta_set_t *fields) {
+                                           int *field_widths, meta_set_t *fields, bool *consider) {
   int current=0;
   for (int i=0;i<orig_num_fields;i++) {
     for (int j=0;j<orig_field_widths[i];j++) {
@@ -255,8 +287,7 @@ void compute_hash_t::convert_to_bit_fields(int orig_num_fields, int *orig_field_
 }
 
 void compute_hash_t::compute_hash_set(int k, meta_set_t *ops, int *hashes, int num_fields, 
-                                      int *field_widths, int capacity) {
-  ("Beginning compute_hash_set\n");
+                                      int *field_widths, int capacity, bool *consider) {
   int ones=0;
   int bits=0;
   for (int i=0;i<num_fields;i++)
@@ -272,7 +303,7 @@ void compute_hash_t::compute_hash_set(int k, meta_set_t *ops, int *hashes, int n
     delete meta_set;
   }
   int bit_num_fields=bits;
-  convert_to_bit_fields(num_fields,field_widths,ops,bit_field_widths,bit_fields);
+  convert_to_bit_fields(num_fields,field_widths,ops,bit_field_widths,bit_fields,consider);
   meta_set_t *permute_bit_fields=(meta_set_t *)malloc(sizeof(meta_set_t)*(bits));
   for (int i=0;i<bits;i++) {
     meta_set_t *meta_set = new meta_set_t();
@@ -288,15 +319,14 @@ void compute_hash_t::compute_hash_set(int k, meta_set_t *ops, int *hashes, int n
       hashes[i]=compute_hash((i+HASH_BASE),bit_num_fields,bit_field_widths,bit_fields,permute_bit_fields,capacity,ones);
       //fprintf(stderr,"hash[%d]=%x\n",i,hashes[i]); fflush(stderr); // serious debug
   }
-
+  
   free(bit_field_widths);
   free(bit_fields);
   free(permute_bit_fields);
-  ("End compute_hash_set\n");
 }
 
 int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, meta_set_t *fields,
-		 meta_set_t *permute_fields, int hash_table_size, int ones_cnt) {
+         meta_set_t *permute_fields, int hash_table_size, int ones_cnt) {
   if (which==0) {// bit reverse entire thing
     // reverse fields
     for (int i=0;i<(num_fields/2);i++) {
@@ -319,17 +349,17 @@ int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, m
     int split=num_fields/2;
     if (num_fields%2==0) {
       for (int i=0;i<split;i++) {
-	int lo=fields[i].tags[0];
-	int hi=fields[i+split].tags[0];
-	permute_fields[i].tags[0]=hi;
-	permute_fields[i+split].tags[0]=lo;
+        int lo=fields[i].tags[0];
+        int hi=fields[i+split].tags[0];
+        permute_fields[i].tags[0]=hi;
+        permute_fields[i+split].tags[0]=lo;
       }
       permute_fields[split].tags[0]=permute_fields[split<<1].tags[0];
     } else { // odd case (very odd)
       int top=fields[split].tags[0];
       for(int i=0;i<split;i++) {
-	permute_fields[i+split].tags[0]=fields[i].tags[0];
-	permute_fields[i].tags[0]=fields[i+split+1].tags[0];
+        permute_fields[i+split].tags[0]=fields[i].tags[0];
+        permute_fields[i].tags[0]=fields[i+split+1].tags[0];
       }
       permute_fields[split<<1].tags[0]=fields[split].tags[0];
       permute_fields[num_fields-1].tags[0]=top;
@@ -339,25 +369,25 @@ int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, m
     if ((num_fields%2)==1) {
       reverse_index=num_fields-2;
       for (int i=0;i<reverse_index/2;i+=2) {
-	int vi=fields[i].tags[0];
-	int vip=fields[i+1].tags[0];
-	int vri=fields[reverse_index-i].tags[0];
-	int vrip=fields[reverse_index-(i+1)].tags[0];
+        int vi=fields[i].tags[0];
+        int vip=fields[i+1].tags[0];
+        int vri=fields[reverse_index-i].tags[0];
+        int vrip=fields[reverse_index-(i+1)].tags[0];
 
-	// 0 and 1 differ only in assignments we make here
-	permute_fields[i].tags[0]=vri;
-	permute_fields[i+1].tags[0]=vi;
-	permute_fields[reverse_index-i].tags[0]=vrip;
-	permute_fields[reverse_index-(i+1)].tags[0]=vip;
+        // 0 and 1 differ only in assignments we make here
+        permute_fields[i].tags[0]=vri;
+        permute_fields[i+1].tags[0]=vi;
+        permute_fields[reverse_index-i].tags[0]=vrip;
+        permute_fields[reverse_index-(i+1)].tags[0]=vip;
       }
       if ((reverse_index/4)%2==1) { // blah, hate to special case, but appears to be missed by above
-	int vi=fields[reverse_index/2].tags[0];
-	int vip=fields[reverse_index/2+1].tags[0];
-	permute_fields[reverse_index/2].tags[0]=vip;
-	permute_fields[reverse_index/2+1].tags[0]=vi;
+        int vi=fields[reverse_index/2].tags[0];
+        int vip=fields[reverse_index/2+1].tags[0];
+        permute_fields[reverse_index/2].tags[0]=vip;
+        permute_fields[reverse_index/2+1].tags[0]=vi;
       }
       if (num_fields%2==1) 
-	permute_fields[num_fields-1].tags[0]=fields[num_fields-1].tags[0];
+        permute_fields[num_fields-1].tags[0]=fields[num_fields-1].tags[0];
     }
   }
   //  else if (which==4) // noop
@@ -365,7 +395,7 @@ int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, m
   //      // not sure why one of the main hash functions (hash 0) isn't the one that leaves the bits in place?
   //      // --> do nothing and the fold occurs on the original set of bits
   //      for (int i=0;i<num_fields;i++)
-  //	permute_fields[i]=fields[i];
+  //    permute_fields[i]=fields[i];
   //}
   else if (which<8) {
     int *perm;
@@ -384,7 +414,7 @@ int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, m
       permute_fields[i].tags[0]=fields[tmp].tags[0];
 #ifdef INIT_HASH_POSITIONS
       if (!hash_positions_initialized) {
-	sized_perm[which-HASH_BASE][i]=tmp; // original
+        sized_perm[which-HASH_BASE][i]=tmp; // original
       }
 #endif
     }
