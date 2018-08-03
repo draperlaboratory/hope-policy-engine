@@ -42,7 +42,7 @@ using namespace policy_engine;
 
 DEFINE_bool(update, true, "update existing tag info file");
 
-static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::string name, bool needs_size) {
+static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::string name, bool needs_size, bool optional) {
   symbol_t *sym = symtab->find_symbol(name);
   if (sym) {
     if (needs_size && sym->get_size() == 0) {
@@ -50,7 +50,8 @@ static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::
       sym = nullptr;
     }
   } else {
-    err->error("symbol %s not found\n", name.c_str());
+    if (!optional)
+      err->error("symbol %s not found\n", name.c_str());
   }
   return sym;
 }
@@ -142,7 +143,7 @@ int main(int argc, char **argv) {
     for (auto &e: bindings) {
       entity_symbol_binding_t *sb = dynamic_cast<entity_symbol_binding_t *>(e.get());
       if (sb != nullptr) {
-	symbol_t *sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity);
+        symbol_t *sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
 	if (sym) {
 	  // go ahead and mark it
 	  address_t end_addr;
@@ -157,8 +158,8 @@ int main(int argc, char **argv) {
       } else {
 	entity_range_binding_t *rb = dynamic_cast<entity_range_binding_t *>(e.get());
 	if (rb != nullptr) {
-	  symbol_t *sym = get_symbol(&symtab, &err, rb->elf_start_name, false);
-	  symbol_t *end = get_symbol(&symtab, &err, rb->elf_end_name, false);
+	  symbol_t *sym = get_symbol(&symtab, &err, rb->elf_start_name, false, false);
+	  symbol_t *end = get_symbol(&symtab, &err, rb->elf_end_name, false, false);
 	  if (sym && end) {
 	    if (!md_tool.apply_tag(sym->get_address(), end->get_address(), rb->entity_name.c_str())) {
 	      err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());

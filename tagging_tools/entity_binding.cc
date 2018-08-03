@@ -54,6 +54,8 @@ static void process_element(const YAML::Node &n,
     binding->elf_name = n["elf_name"].as<std::string>();
     if (n["tag_all"])
       binding->is_singularity = !n["tag_all"].as<bool>();
+    if (n["optional"])
+      binding->optional = n["optional"].as<bool>();
     bindings.push_back(std::move(u));
   } else if (element_name == "range") {
     entity_range_binding_t *binding = new entity_range_binding_t;
@@ -63,21 +65,29 @@ static void process_element(const YAML::Node &n,
     expect_field(&n, "elf_end", entity_name);
     binding->elf_start_name = n["elf_start"].as<std::string>();
     binding->elf_end_name = n["elf_end"].as<std::string>();
+    if (n["optional"])
+      binding->optional = n["optional"].as<bool>();
     bindings.push_back(std::move(u));
   } else if (element_name == "soc") {
     entity_soc_binding_t *binding = new entity_soc_binding_t;
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     binding->entity_name = entity_name;
+    if (n["optional"])
+      binding->optional = n["optional"].as<bool>();
     bindings.push_back(std::move(u));
   } else if (element_name == "isa") {
     entity_isa_binding_t *binding = new entity_isa_binding_t;
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     binding->entity_name = entity_name;
+    if (n["optional"])
+      binding->optional = n["optional"].as<bool>();
     bindings.push_back(std::move(u));
   } else if (element_name == "image") {
     entity_image_binding_t *binding = new entity_image_binding_t;
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     binding->entity_name = entity_name;
+    if (n["optional"])
+      binding->optional = n["optional"].as<bool>();
     bindings.push_back(std::move(u));
   } else {
     throw configuration_exception_t("unexpected kind " + element_name);
