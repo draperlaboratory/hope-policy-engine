@@ -33,16 +33,64 @@ metadata_ops = {
     "DMD_TAG_POLICY_SYMBOL_RANKED": 0x06,
     "DMD_TAG_POLICY_RANGE_RANKED": 0x07,
     "DMD_END_BLOCK": 0x08,
-    "DMD_END_BLOCK_WEAK_DECL_HACK": 0x09
+    "DMD_END_BLOCK_WEAK_DECL_HACK": 0x09,
+    "DMD_FUNCTION_RANGE": 0xa
 }
 
 tag_specifiers = {
     "DMT_CFI3L_VALID_TGT": 0x01,
     "DMT_STACK_PROLOGUE_AUTHORITY": 0x02,
-    "DMT_STACK_EPILOGUE_AUTHORITY": 0x03
+    "DMT_STACK_EPILOGUE_AUTHORITY": 0x03,
+    "DMT_FPTR_STORE_AUTHORITY": 0x04,
+    "DMT_BRANCH_VALID_TGT": 0x05,
+    "DMT_RET_VALID_TGT": 0x06,
+    "DMT_RETURN_INSTR": 0x07,
+    "DMT_CALL_INSTR": 0x08,
+    "DMT_BRANCH_INSTR": 0x09,
+    "DMT_FPTR_CREATE_AUTHORITY": 0x0a
 }
 
 policy_map = {
+    "threeClass": {
+        "call-tgt": {
+            "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
+            "policy_name": "llvm.CFI_Call-Tgt"
+        },
+        "branch-tgt": {
+            "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
+            "policy_name": "llvm.CFI_Branch-Tgt"
+        },
+        "return-tgt": {
+            "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
+            "policy_name": "llvm.CFI_Return-Tgt"
+        },
+        "call-instr": {
+            "tag_specifier": tag_specifiers["DMT_CALL_INSTR"],
+            "policy_name": "llvm.CFI_Call-Instr"
+        },
+        "branch-instr": {
+            "tag_specifier": tag_specifiers["DMT_BRANCH_INSTR"],
+            "policy_name": "llvm.CFI_Branch-Instr"
+        },
+        "return-instr": {
+            "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
+            "policy_name": "llvm.CFI_Return-Instr"
+        }
+    },
+    "cpi": {
+        "fptrcreate": {
+            "tag_specifier": tag_specifiers["DMT_FPTR_CREATE_AUTHORITY"],
+            "policy_name": "llvm.CPI.FPtrCreate"
+        },
+        "fptrstore": {
+            "tag_specifier": tag_specifiers["DMT_FPTR_STORE_AUTHORITY"],
+            "policy_name": "llvm.CPI.FPtrStore"
+        },
+        "return-instr": {
+            "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
+            "policy_name": "llvm.CFI_Return-Instr"
+        }
+    },
     "cfi": {
         "target": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
@@ -126,7 +174,7 @@ def generate_policy_ranges(ef, range_file, policy):
 
     it = iter(metadata)
 
-    if policy == "cfi":
+    if policy == "cfi" or policy == "threeClass":
         range_map = TaggingUtils.RangeMap()
     else:
         range_map = None
@@ -182,6 +230,13 @@ def generate_policy_ranges(ef, range_file, policy):
                           ":" + hex(base_address + end_address))
             if range_map:
                 range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
+        elif (byte == metadata_ops['DMD_FUNCTION_RANGE']):
+            start_address = bytes_to_uint(it, PTR_SIZE) + base_address
+            end_address = bytes_to_uint(it, PTR_SIZE) + base_address + PTR_SIZE
+            logging.debug("saw function range = " + hex(start_address) +
+                          ":" + hex(end_address))
+            if range_map:
+                range_map.add_range(start_address, end_address, "COMPILER_GENERATED")
         else:
             logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
             sys.exit(-1)
@@ -216,6 +271,23 @@ def generate_stack_ranges(ef, range_file):
 
 def generate_rwx_ranges(ef, range_file):
     RWXTagger.generate_rwx_ranges(ef, range_file)
+
+
+def generate_cpi_ranges(ef, range_file):
+    generate_policy_ranges(ef, range_file, "cpi")
+    #parse_asm_symbols(ef, range_file)
+
+
+def generate_threeClass_ranges(ef, range_file):
+    code_range_map = TaggingUtils.RangeMap()
+    add_code_section_ranges(ef, code_range_map)
+    range_map = generate_policy_ranges(ef, range_file, "threeClass")
+
+    for (start, end, tags) in code_range_map:
+        for s in range(start, end, PTR_SIZE):
+            e = s + PTR_SIZE
+            if (s, e, tags) not in range_map:
+                range_file.write_range(s, e, NoCFI)
 
 
 def main():

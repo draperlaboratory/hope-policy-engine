@@ -41,6 +41,10 @@ struct entity_binding_t {
      Name of the policy entity.
    */
   std::string entity_name;
+
+  bool optional;
+
+  entity_binding_t() : optional(false) {}
 };
 
 struct entity_symbol_binding_t : entity_binding_t {
