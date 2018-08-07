@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import pdb
 import os
 import sys
 import subprocess
@@ -169,7 +170,7 @@ def check_and_write_range(range_file, start, end, tag_specifier,
 
 
 def generate_policy_ranges(ef, range_file, policy):
-    metadata = ef.get_section_by_name(".dover_metadata").data()
+    metadata = ef.get_section_by_name(b".dover_metadata").data()
     assert metadata[0] == metadata_ops['DMD_SET_BASE_ADDRESS_OP'], "Invalid metadata found in ELF file!"
 
     it = iter(metadata)
