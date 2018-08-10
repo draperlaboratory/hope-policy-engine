@@ -35,7 +35,7 @@
 
 using namespace policy_engine;
 
-metadata_cache_t md_cache;
+//metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
@@ -82,8 +82,10 @@ class rv32_insn_stream_t : public abstract_instruction_stream_t {
 
 int main(int argc, char **argv) {
 try {
+  int first = 1;
   const char *policy_dir;
-  address_t code_address;
+  address_t code_address, fa;
+  metadata_t lmd;
   const char *file_name;
 
   if (argc != 4) {
@@ -96,7 +98,7 @@ try {
   file_name = argv[3];
 
   init(policy_dir);
-  metadata_memory_map_t map(&md_cache);
+  metadata_memory_map_t map;
   if (!load_tags(&map, file_name)) {
     printf("failed read\n");
     fprintf(stderr, "failed to read tags from %s\n", file_name);
@@ -116,21 +118,34 @@ try {
       const char *name;
 	  uint32_t opdef;
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
-      metadata_t const *metadata = md_factory->lookup_group_metadata(name);
+      metadata_t *metadata = md_factory->lookup_group_metadata(name);
       if (!metadata) {
 	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
       } else {
 //	std::string s = md_factory->render(metadata);
 //	printf("0x%08x: %s\n", code_address, s.c_str());
-	map.add_range(code_address, code_address + 4, metadata);
+
+//	map.add_range(code_address, code_address + 4, metadata);
+	
+	if ( first ) {
+	  fa = code_address;
+	  lmd = *metadata;
+	}
+	
+	if ( metadata != &lmd ) {
+	  map.add_range(fa, code_address, &lmd);
+	  fa = code_address;
+	  lmd = *metadata;
+	}
       }
       code_address += 4;
+      first = 0;
     }
   } catch (read_error_t &e) {
     fprintf(stderr, "read error on stdin\n");
     return 1;
   }
-
+  
 //  printf("writing tags to %s\n", file_name);
   if (!save_tags(&map, file_name)) {
     printf("failed write of tag file\n");

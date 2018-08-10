@@ -67,7 +67,7 @@ class annotater_t : public asm_annotater_t {
 };
 
 std::string annotater_t::filter(address_t addr, std::string line) {
-  metadata_t const *metadata = md_map.get_metadata(addr);
+  metadata_t *metadata = md_map.get_metadata(addr);
   if (!metadata)
     return line;
   
@@ -103,8 +103,8 @@ int main(int argc, char **argv) {
     FLAGS_output = std::string(asm_file) + ".tagged";
   }
   
-  metadata_cache_t md_cache;
-  metadata_memory_map_t md_map(&md_cache);
+  //  metadata_cache_t md_cache;
+  metadata_memory_map_t md_map;
 
   std::unique_ptr<std::ifstream> asm_in;
   std::unique_ptr<std::ofstream> asm_out;

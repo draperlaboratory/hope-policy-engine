@@ -10,7 +10,7 @@ void fake_riscv_t::apply_group_tags(metadata_factory_t *md_factory, metadata_mem
     const char *name;
 	uint32_t opdef;
     int32_t flags = decode(op.insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
-    metadata_t const *metadata = md_factory->lookup_group_metadata(name);
+    metadata_t *metadata = md_factory->lookup_group_metadata(name);
     if (!metadata) {
       printf("0x%08x: 0x%08x  %s - no group found for instruction\n", op.pc, op.insn, name);
     } else {
@@ -22,7 +22,7 @@ void fake_riscv_t::apply_group_tags(metadata_factory_t *md_factory, metadata_mem
 void fake_riscv_t::apply_tag(metadata_factory_t *md_factory,
 			     metadata_memory_map_t *md_map,
 			     const char *tag_name) {
-  metadata_t const *metadata = md_factory->lookup_metadata(tag_name);
+  metadata_t  *metadata = md_factory->lookup_metadata(tag_name);
   if (!metadata) {
     printf("tag name %s not found\n", tag_name);
     return;
