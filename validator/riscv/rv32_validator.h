@@ -36,9 +36,6 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
-#ifdef ENABLE_RULE_CACHE
-#include "base_rule_cache.h"
-#endif
 #ifdef ENABLE_IDEAL_RULE_CACHE
 #include "ideal_rule_cache.h"
 #endif
