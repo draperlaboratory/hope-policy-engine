@@ -31,12 +31,11 @@ add_library(rv32_validator
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
   validator/riscv/fake_riscv.cc
-  #pipes
-  validator/pipe/ideal_pipe/ideal_pipe.cc
-  validator/pipe/finite_pipe/finite_pipe.cc
-  validator/pipe/dmhc_pipe/compute_hash.cc
-  validator/pipe/dmhc_pipe/dmhc.cc
-  validator/pipe/dmhc_pipe/dmhc_pipe.cc
+  validator/rule_cache/ideal_rule_cache/ideal_rule_cache.cc
+  validator/rule_cache/finite_rule_cache/finite_rule_cache.cc
+  validator/rule_cache/dmhc_rule_cache/compute_hash.cc
+  validator/rule_cache/dmhc_rule_cache/dmhc.cc
+  validator/rule_cache/dmhc_rule_cache/dmhc_rule_cache.cc
   
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
@@ -47,11 +46,10 @@ target_include_directories(rv32_validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
-  #pipe headers
-  ./validator/pipe
-  ./validator/pipe/ideal_pipe
-  ./validator/pipe/finite_pipe
-  ./validator/pipe/dmhc_pipe
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
 
 add_library(tagging_tools
@@ -122,23 +120,17 @@ target_include_directories(rv32-renode-validator PRIVATE
   ./validator/include/policy-glue
   )
 
-#addition
-option(ENABLE_PIPE "Enable PIPE" ON)
-IF (ENABLE_PIPE)
-	target_compile_definitions(rv32_validator PRIVATE ENABLE_PIPE=1)
-ENDIF (ENABLE_PIPE)
+option(ENABLE_IDEAL_RULE_CACHE "Enable ideal RULE_CACHE" OFF)
+IF (ENABLE_IDEAL_RULE_CACHE)
+	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_RULE_CACHE=1 ENABLE_RULE_CACHE=1)
+ENDIF (ENABLE_IDEAL_RULE_CACHE)
 
-#option(ENABLE_IDEAL_PIPE "Enable ideal PIPE" ON)
-#IF (ENABLE_IDEAL_PIPE)
-#	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_PIPE=1)
-#ENDIF (ENABLE_IDEAL_PIPE)
+option(ENABLE_FINITE_RULE_CACHE "Enable finite RULE_CACHE" OFF)
+IF (ENABLE_FINITE_RULE_CACHE)
+	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_RULE_CACHE=1 CAPACITY=4 ENABLE_RULE_CACHE=1)
+ENDIF (ENABLE_FINITE_RULE_CACHE)
 
-#option(ENABLE_FINITE_PIPE "Enable finite PIPE" ON)
-#IF (ENABLE_FINITE_PIPE)
-#	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_PIPE=1 CAPACITY=4)
-#ENDIF (ENABLE_FINITE_PIPE)
-
-option(ENABLE_DMHC_PIPE "Enable dmhc PIPE" ON)
-IF (ENABLE_DMHC_PIPE)
-	target_compile_definitions(rv32_validator PRIVATE ENABLE_DMHC_PIPE=1 CAPACITY=1024 IWIDTH=32 OWIDTH=32 K_DMHC=4 NO_EVICT=0)
-ENDIF (ENABLE_DMHC_PIPE)
+option(ENABLE_DMHC_RULE_CACHE "Enable dmhc RULE_CACHE" OFF)
+IF (ENABLE_DMHC_RULE_CACHE)
+	target_compile_definitions(rv32_validator PRIVATE ENABLE_DMHC_RULE_CACHE=1 CAPACITY=1024 IWIDTH=32 OWIDTH=32 K_DMHC=4 NO_EVICT=0 ENABLE_RULE_CACHE=1)
+ENDIF (ENABLE_DMHC_RULE_CACHE)
