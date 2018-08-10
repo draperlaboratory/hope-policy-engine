@@ -36,17 +36,17 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
-#ifdef ENABLE_PIPE
-#include "base_pipe.h"
+#ifdef ENABLE_RULE_CACHE
+#include "base_rule_cache.h"
 #endif
-#ifdef ENABLE_IDEAL_PIPE
-#include "ideal_pipe.h"
+#ifdef ENABLE_IDEAL_RULE_CACHE
+#include "ideal_rule_cache.h"
 #endif
-#ifdef ENABLE_FINITE_PIPE
-#include "finite_pipe.h"
+#ifdef ENABLE_FINITE_RULE_CACHE
+#include "finite_rule_cache.h"
 #endif
-#ifdef ENABLE_DMHC_PIPE
-#include "dmhc_pipe.h"
+#ifdef ENABLE_DMHC_RULE_CACHE
+#include "dmhc_rule_cache.h"
 #endif
 
 namespace policy_engine {
@@ -85,8 +85,8 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_CSR;
   int logIdx;
   bool has_insn_mem_addr;
-#ifdef ENABLE_PIPE
-  bool pipe_hit;
+#ifdef ENABLE_RULE_CACHE
+  bool rule_cache_hit;
 #endif
 
 //  meta_set_t temp_ci_tag;
@@ -112,8 +112,8 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ctx);
     free(ops);
     free(res);
-   #ifdef ENABLE_PIPE
-    delete pipe;
+   #ifdef ENABLE_RULE_CACHE
+    delete rule_cache;
    #endif
   }
 
@@ -136,14 +136,14 @@ class rv32_validator_t : public rv32_validator_base_t {
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
 
-  void flush_pipe();
+  void flush_rule_cache();
 
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
-  #ifdef ENABLE_PIPE
-  pipe_t *pipe;
+  #ifdef ENABLE_RULE_CACHE
+  rule_cache_t *rule_cache;
   #endif
 };
 

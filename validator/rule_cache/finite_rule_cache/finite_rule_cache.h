@@ -1,14 +1,14 @@
 #include <unordered_map>
 #include <functional>
-#include "ideal_pipe.h"
+#include "ideal_rule_cache.h"
 
-class finite_pipe_t : public ideal_pipe_t
+class finite_rule_cache_t : public ideal_rule_cache_t
 {
 
 public:
 
-  finite_pipe_t(int capacity);
-  ~finite_pipe_t();
+  finite_rule_cache_t(int capacity);
+  ~finite_rule_cache_t();
 
   void install_rule(operands_t *ops, results_t *res);
   bool allow(operands_t *ops, results_t *res);

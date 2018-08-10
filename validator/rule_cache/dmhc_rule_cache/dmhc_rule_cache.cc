@@ -1,6 +1,6 @@
-#include "dmhc_pipe.h"
+#include "dmhc_rule_cache.h"
 
-dmhc_pipe_t::dmhc_pipe_t(int capacity, int iwidth, int owidth, int k, bool no_evict) {
+dmhc_rule_cache_t::dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k, bool no_evict) {
   int ops_size[OPS_LEN];
   ops_size[OP_PC]=iwidth;
   ops_size[OP_CI]=iwidth;
@@ -15,7 +15,7 @@ dmhc_pipe_t::dmhc_pipe_t(int capacity, int iwidth, int owidth, int k, bool no_ev
   res_size[PC_RES]=owidth;
   res_size[RD_RES]=owidth;
   res_size[CSR_RES]=owidth;
-  the_pipe = new dmhc_t(capacity, k, 2, OPS_LEN, RES_LEN, ops_size, res_size, no_evict);
+  the_rule_cache = new dmhc_t(capacity, k, 2, OPS_LEN, RES_LEN, ops_size, res_size, no_evict);
   consider[OP_PC]=true;
   consider[OP_CI]=true;
   consider[OP_OP1]=false;
@@ -24,10 +24,10 @@ dmhc_pipe_t::dmhc_pipe_t(int capacity, int iwidth, int owidth, int k, bool no_ev
   consider[OP_MEM]=false;
 }
 
-dmhc_pipe_t::~dmhc_pipe_t() {
+dmhc_rule_cache_t::~dmhc_rule_cache_t() {
 }
 
-void dmhc_pipe_t::install_rule(operands_t *ops, results_t *res) {
+void dmhc_rule_cache_t::install_rule(operands_t *ops, results_t *res) {
 #ifdef DMHC_DEBUG
   printf("Install\n");
   printf("ops - pc: %" PRIu32 ", ci: %" PRIu32, ops_copy[OP_PC].tags[0], ops_copy[OP_CI].tags[0]);
@@ -41,10 +41,10 @@ void dmhc_pipe_t::install_rule(operands_t *ops, results_t *res) {
          res_copy[RES_CSR].tags[0], res_copy[PC_RES].tags[0], res_copy[RD_RES].tags[0], 
          res_copy[CSR_RES].tags[0]);
 #endif
-  the_pipe->insert(ops_copy, res_copy, consider);
+  the_rule_cache->insert(ops_copy, res_copy, consider);
 }
 
-bool dmhc_pipe_t::allow(operands_t *ops, results_t *res) {
+bool dmhc_rule_cache_t::allow(operands_t *ops, results_t *res) {
   ops_copy[OP_PC]=*ops->pc;
   ops_copy[OP_CI]=*ops->ci;
   if (ops->op1) {
@@ -103,7 +103,7 @@ bool dmhc_pipe_t::allow(operands_t *ops, results_t *res) {
 
   delete pc_res, rd_res, csr_res;
 
-  bool found=the_pipe->lookup(ops_copy, res_copy, consider);
+  bool found=the_rule_cache->lookup(ops_copy, res_copy, consider);
   if (found == false) {
 #ifdef DMHC_DEBUG
     printf("Not found\n");
@@ -123,6 +123,6 @@ bool dmhc_pipe_t::allow(operands_t *ops, results_t *res) {
   }
 }
 
-void dmhc_pipe_t::flush() {
-  the_pipe->reset();
+void dmhc_rule_cache_t::flush() {
+  the_rule_cache->reset();
 }

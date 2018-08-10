@@ -133,8 +133,8 @@ extern "C" uint32_t e_v_commit() {
   return hit_watch;
 }
 
-extern "C" void e_v_flush_pipe() {
-  rv_validator->flush_pipe();
+extern "C" void e_v_flush_rule_cache() {
+  rv_validator->flush_rule_cache();
 }
 
 extern "C" void e_v_pc_tag(char* dest, int n) {

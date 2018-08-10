@@ -1,5 +1,5 @@
-#ifndef __BASE_PIPE_H__
-#define __BASE_PIPE_H__
+#ifndef __BASE_RULE_CACHE_H__
+#define __BASE_RULE_CACHE_H__
 
 #include "riscv_isa.h"
 //#include <inttypes.h>
@@ -40,7 +40,7 @@ struct compare_ops {
   }
 };
 
-class pipe_t {
+class rule_cache_t {
 public:
   virtual void flush() = 0;
   virtual void install_rule(operands_t *ops, results_t *res) = 0;
@@ -80,4 +80,4 @@ namespace std
 
 }
 
-#endif// __BASE_PIPE_H__
+#endif// __BASE_RULE_CACHE_H__
