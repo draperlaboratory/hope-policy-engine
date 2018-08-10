@@ -164,7 +164,6 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   setup_validation();
   
   prepare_eval(pc, insn);
-  //addition  
   #ifdef ENABLE_RULE_CACHE
   if (rule_cache->allow(ops, res)) {
     rule_cache_hit = true;
