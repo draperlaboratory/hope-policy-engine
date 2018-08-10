@@ -26,7 +26,7 @@ SOC:
   RAM: {
     name: SOC.Memory.Ram_0,
     start: 0x80000000,
-    end:   0xffffffff,
+    end:   0x80003fff,
     heterogeneous: true
     }
   AON: {

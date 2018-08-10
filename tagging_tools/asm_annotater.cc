@@ -38,7 +38,7 @@ void asm_annotater_t::execute() {
       if (!isspace(line[i])) {
 	if (!isxdigit(line[i])) {
 	  stop = true;
-	  if (i > 0 && line[i] == ':') {
+         if (i > 0 && line[i] == ':' && !isspace(line[i-1])) {
 	    address_t addr;
 	    addr = std::stoul(line, nullptr, 16);
 	    output << filter(addr, line) << std::endl;
