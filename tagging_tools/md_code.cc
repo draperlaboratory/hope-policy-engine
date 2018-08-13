@@ -93,6 +93,8 @@ try {
     return 0;
   }
 
+  printf("md_code running now\n");
+  
   policy_dir = argv[1];
   code_address = strtol(argv[2], 0, 16);
   file_name = argv[3];
@@ -104,7 +106,7 @@ try {
     fprintf(stderr, "failed to read tags from %s\n", file_name);
     return 1;
   }
-  printf("code addr = 0x%08x\n", code_address);
+  printf("MD_CODE: code addr = 0x%08x\n", code_address);
 // use this for debugging with gdb
 //  FILE *foo = fopen("/tmp/bits.bin", "rb");
 //  rv32_insn_stream_t s(foo);
@@ -151,6 +153,7 @@ try {
     printf("failed write of tag file\n");
     return 1;
   }
+  
   return 0;
 } catch (...) {
   printf("something awful happened\n");

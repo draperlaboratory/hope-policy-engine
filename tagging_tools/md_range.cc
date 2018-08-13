@@ -109,6 +109,8 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  printf("md_range running now\n");
+  
   policy_dir = argv[1];
   range_file_name = argv[2];
   file_name = argv[3];

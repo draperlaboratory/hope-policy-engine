@@ -102,6 +102,8 @@ int main(int argc, char **argv) {
   if (FLAGS_output.size() == 0) {
     FLAGS_output = std::string(asm_file) + ".tagged";
   }
+
+  printf("md_asm_ann running now\n");
   
   //  metadata_cache_t md_cache;
   metadata_memory_map_t md_map;

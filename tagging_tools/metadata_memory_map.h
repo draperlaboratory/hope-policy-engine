@@ -131,6 +131,17 @@ class metadata_memory_map_t {
     return nullptr;
   }
 
+  ~metadata_memory_map_t() {
+    int len = mrs.size();
+    for ( int i = 0; i < len; i++ ) {
+      int mrlen = mrs[i].mem.size();
+      for ( int j = 0; j < mrlen; j++ ) {
+	delete mrs[i].mem[j];
+      }
+      //      delete mrs[i];
+    }
+  }
+  
 //  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
 //  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(-1), md_cache(mc) { }
  metadata_memory_map_t() : base(-1){ }
@@ -159,43 +170,39 @@ class metadata_memory_map_t {
       /* only advance if not at end */
       if (!is_end()) {
 
-	/* if we're @ the end, note it */
+	/* move on to next region if necessary */
 	if ( cur_index == end_index) {
-	  if (cur_m_idx == end_m_idx) 
-	    make_end();
-	  else {
-	    cur_m_idx++;
-	    cur_index = 0;
+	  cur_m_idx++;
+	  cur_index = 0;
+	  if ( cur_m_idx != end_m_idx ) 
 	    end_index = mrs[cur_m_idx].mem.size();
-	  }
 	}
-	else {
-
-	  /* skip over null entries */
-	  while ((cur_index < end_index) &&
-		 (mrs[cur_m_idx].mem[cur_index] == nullptr) ) {
-	    cur_index++;
-	  }
-
-	  /* if we're not at the end of the map */
-	  if ( cur_m_idx < end_m_idx ) {
-
-	    current.first.start = mrs[cur_m_idx].index_to_addr(cur_index);
-	    current.second = mrs[cur_m_idx].mem[cur_index];
-
-	    /* find all similar entries within this contiguous range */
-	    while ( (cur_index < end_index) &&
-		   (mrs[cur_m_idx].mem[cur_index] != nullptr)         &&
-		   (*current.second == *mrs[cur_m_idx].mem[cur_index]) ) {
-	      
-	      cur_index++;
-	    }
-
-	    current.first.end = mrs[cur_m_idx].index_to_addr(cur_index);
-	  } else {
-	    make_end();
-	  }
+	
+	/* if we're @ the end, note it */
+	if (cur_m_idx == end_m_idx) {
+	  make_end();
+	  return;
 	}
+
+	/* skip over null entries */
+	while ((cur_index < end_index) &&
+	       (mrs[cur_m_idx].mem[cur_index] == nullptr) ) {
+	  cur_index++;
+	}
+	
+	current.first.start = mrs[cur_m_idx].index_to_addr(cur_index);
+	current.second = mrs[cur_m_idx].mem[cur_index];
+	
+	/* find all similar entries within this contiguous range */
+	while ( (cur_index < end_index) &&
+		(mrs[cur_m_idx].mem[cur_index] != nullptr)         &&
+		(*current.second == *mrs[cur_m_idx].mem[cur_index]) ) {
+	    
+	  cur_index++;
+	}
+	
+	current.first.end = mrs[cur_m_idx].index_to_addr(cur_index);
+      
       }
     }
     
@@ -204,10 +211,10 @@ class metadata_memory_map_t {
       make_end();
     }
 
-    bool is_end() { return ((cur_m_idx == end_m_idx + 1) && (cur_index == mrs[end_m_idx].mem.size() + 1)); }
+    bool is_end() { return ((cur_m_idx == end_m_idx + 1) && (cur_index == mrs[end_m_idx - 1].mem.size() + 1)); }
     void make_end() {
       cur_m_idx = end_m_idx + 1;
-      cur_index = mrs[end_m_idx].mem.size() + 1;
+      cur_index = mrs[end_m_idx - 1].mem.size() + 1;
     }
 
     explicit ForwardIterator(metadata_memory_map_t *map) : mrs(map->mrs) {

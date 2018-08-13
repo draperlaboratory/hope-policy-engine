@@ -104,6 +104,8 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  printf("md_entity running now\n");
+  
   const char *policy_dir = argv[1];
   const char *elf_file_name = argv[2];
   const char *tag_file_name = argv[3];
