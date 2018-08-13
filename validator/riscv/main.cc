@@ -332,3 +332,20 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
 }
+
+extern "C" void e_v_config_rule_cache(char* rule_cache_name){
+  if (!DOA) {
+    try {
+      rv_validator->config_rule_cache(rule_cache_name);
+    } catch (exception_t &e) {
+      printf("validator exception %s while setting rule cache name\n", e.what());
+      DOA = true;
+    } catch (std::exception &e) {
+      printf("c++ exception %s while setting rule cache name \n", e.what());
+      DOA = true;
+    } catch (...) {
+      printf("c++ exception while setting rule cache name DOA\n");
+      DOA = true;
+    }
+  }
+}

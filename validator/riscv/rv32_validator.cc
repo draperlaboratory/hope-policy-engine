@@ -126,18 +126,6 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   config->apply(&tag_bus, this);
   failed = false;
   has_insn_mem_addr = false;
-#ifdef ENABLE_IDEAL_RULE_CACHE
-  printf("Ideal RULE_CACHE\n");
-  rule_cache = new ideal_rule_cache_t();
-#endif
-#ifdef ENABLE_FINITE_RULE_CACHE
-  printf("Finite RULE_CACHE\n");
-  rule_cache = new finite_rule_cache_t(CAPACITY);
-#endif
-#ifdef ENABLE_DMHC_RULE_CACHE
-  printf("Dmhc RULE_CACHE\n");
-  rule_cache = new dmhc_rule_cache_t(CAPACITY, IWIDTH, OWIDTH, K_DMHC, NO_EVICT);
-#endif
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
@@ -146,16 +134,14 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
   mem_addr = memory_addr;
 
   bool result = validate(pc, insn);
-  #ifdef ENABLE_RULE_CACHE
-  *hit = rule_cache_hit;
-  #endif
+  if (rule_cache)
+    *hit = rule_cache_hit;
   return result;
 }
 
 void rv32_validator_t::flush_rule_cache() {
-  #ifdef ENABLE_RULE_CACHE
-  rule_cache->flush();
-  #endif
+  if (rule_cache)
+    rule_cache->flush();
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
@@ -164,20 +150,19 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   setup_validation();
   
   prepare_eval(pc, insn);
-  #ifdef ENABLE_RULE_CACHE
-  if (rule_cache->allow(ops, res)) {
-    rule_cache_hit = true;
-    return true;
+  if (rule_cache) {
+    if (rule_cache->allow(ops, res)) {
+      rule_cache_hit = true;
+      return true;
+    }
+    else rule_cache_hit = false;
   }
-  else rule_cache_hit = false;
-  #endif
 
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
   if (policy_result == POLICY_SUCCESS) {
-    #ifdef ENABLE_RULE_CACHE
-    rule_cache->install_rule(ops, res);
-    #endif
+    if (rule_cache)
+      rule_cache->install_rule(ops, res);
     complete_eval();
   } else {
     printf("violation address: 0x%x\n",pc);
@@ -364,4 +349,22 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
 void rv32_validator_t::complete_eval() {
 //  printf("complete eval\n");
+}
+
+void rv32_validator_t::config_rule_cache(std::string rule_cache_name) {
+  printf("%s rule cache!\n", rule_cache_name.c_str());
+  for (auto s : rule_cache_name)
+    s = tolower(s);
+  if (rule_cache_name == "ideal") {
+    rule_cache = new ideal_rule_cache_t();
+  }
+  else if (rule_cache_name == "finite") {
+    rule_cache = new finite_rule_cache_t(FINITE_RULE_CACHE_CAPACITY);
+  }
+  else if (rule_cache_name == "dmhc") {
+    rule_cache = new dmhc_rule_cache_t(DMHC_RULE_CACHE_CAPACITY, DMHC_RULE_CACHE_IWIDTH, DMHC_RULE_CACHE_OWIDTH, DMHC_RULE_CACHE_K, DMHC_RULE_CACHE_NO_EVICT);
+  }
+  else {
+    throw configuration_exception_t("Invalid rule cache name");
+  }
 }

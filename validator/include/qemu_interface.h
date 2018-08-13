@@ -49,6 +49,7 @@ void e_v_set_pc_watch(bool watching);
 void e_v_set_reg_watch(uint64_t addr);
 void e_v_set_csr_watch(uint64_t addr);
 void e_v_set_mem_watch(uint64_t addr);
+void e_v_config_rule_cache(char *rule_cache_name);
 
 
 #ifdef __cplusplus

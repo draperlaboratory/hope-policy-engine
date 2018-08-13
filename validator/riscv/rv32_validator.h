@@ -36,15 +36,9 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
-#ifdef ENABLE_IDEAL_RULE_CACHE
 #include "ideal_rule_cache.h"
-#endif
-#ifdef ENABLE_FINITE_RULE_CACHE
 #include "finite_rule_cache.h"
-#endif
-#ifdef ENABLE_DMHC_RULE_CACHE
 #include "dmhc_rule_cache.h"
-#endif
 
 namespace policy_engine {
 
@@ -82,9 +76,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_CSR;
   int logIdx;
   bool has_insn_mem_addr;
-#ifdef ENABLE_RULE_CACHE
   bool rule_cache_hit;
-#endif
 
 //  meta_set_t temp_ci_tag;
 
@@ -109,9 +101,8 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ctx);
     free(ops);
     free(res);
-   #ifdef ENABLE_RULE_CACHE
-    delete rule_cache;
-   #endif
+    if (rule_cache)
+      delete rule_cache;
   }
 
   bool validate(address_t pc, insn_bits_t insn);
@@ -134,14 +125,13 @@ class rv32_validator_t : public rv32_validator_base_t {
   void complete_eval();
 
   void flush_rule_cache();
+  void config_rule_cache(std::string cache_name);
 
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
-  #ifdef ENABLE_RULE_CACHE
-  rule_cache_t *rule_cache;
-  #endif
+  rule_cache_t *rule_cache = nullptr;
 };
 
 } // namespace policy_engine

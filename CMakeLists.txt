@@ -108,6 +108,10 @@ target_include_directories(standalone PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
 
 add_library(rv32-renode-validator SHARED
@@ -118,19 +122,8 @@ target_include_directories(rv32-renode-validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
-
-option(ENABLE_IDEAL_RULE_CACHE "Enable ideal RULE_CACHE" OFF)
-IF (ENABLE_IDEAL_RULE_CACHE)
-	target_compile_definitions(rv32_validator PRIVATE ENABLE_IDEAL_RULE_CACHE=1 ENABLE_RULE_CACHE=1)
-ENDIF (ENABLE_IDEAL_RULE_CACHE)
-
-option(ENABLE_FINITE_RULE_CACHE "Enable finite RULE_CACHE" OFF)
-IF (ENABLE_FINITE_RULE_CACHE)
-	target_compile_definitions(rv32_validator PRIVATE ENABLE_FINITE_RULE_CACHE=1 CAPACITY=4 ENABLE_RULE_CACHE=1)
-ENDIF (ENABLE_FINITE_RULE_CACHE)
-
-option(ENABLE_DMHC_RULE_CACHE "Enable dmhc RULE_CACHE" OFF)
-IF (ENABLE_DMHC_RULE_CACHE)
-	target_compile_definitions(rv32_validator PRIVATE ENABLE_DMHC_RULE_CACHE=1 CAPACITY=1024 IWIDTH=32 OWIDTH=32 K_DMHC=4 NO_EVICT=0 ENABLE_RULE_CACHE=1)
-ENDIF (ENABLE_DMHC_RULE_CACHE)

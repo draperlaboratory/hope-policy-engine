@@ -1,6 +1,13 @@
+#ifndef __FINITE_RULE_CACHE_H__
+#define __FINITE_RULE_CACHE_H__
+
 #include <unordered_map>
 #include <functional>
 #include "ideal_rule_cache.h"
+
+#ifndef FINITE_RULE_CACHE_CAPACITY
+#define FINITE_RULE_CACHE_CAPACITY 16
+#endif
 
 class finite_rule_cache_t : public ideal_rule_cache_t
 {
@@ -19,3 +26,5 @@ private:
   bool *entry_used;
   int next_entry;
 };
+
+#endif// __FINITE_RULE_CACHE_H__

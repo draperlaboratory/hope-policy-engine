@@ -1,3 +1,6 @@
+#ifndef __IDEAL_RULE_CACHE_H__
+#define __IDEAL_RULE_CACHE_H__
+
 #include <unordered_map>
 #include <functional>
 #include "base_rule_cache.h"
@@ -17,3 +20,5 @@ public:
 protected:
   std::unordered_map<operands_t, results_t, std::hash<operands_t>, compare_ops> rule_cache_table;
 };
+
+#endif// __IDEAL_RULE_CACHE_H__
