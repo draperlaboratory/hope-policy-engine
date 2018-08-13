@@ -351,7 +351,7 @@ void rv32_validator_t::complete_eval() {
 //  printf("complete eval\n");
 }
 
-void rv32_validator_t::config_rule_cache(std::string rule_cache_name) {
+void rv32_validator_t::config_rule_cache(const std::string rule_cache_name) {
   printf("%s rule cache!\n", rule_cache_name.c_str());
   for (auto s : rule_cache_name)
     s = tolower(s);

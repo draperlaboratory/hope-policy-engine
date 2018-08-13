@@ -333,7 +333,7 @@ extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
 }
 
-extern "C" void e_v_config_rule_cache(char* rule_cache_name){
+extern "C" void e_v_config_rule_cache(const char* rule_cache_name){
   if (!DOA) {
     try {
       rv_validator->config_rule_cache(rule_cache_name);
