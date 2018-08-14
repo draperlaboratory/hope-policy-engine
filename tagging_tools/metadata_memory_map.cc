@@ -69,15 +69,21 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
   /* put it in the vector at the right location */
   int i;
   for ( i = 0; i < len; i++ ) {
-    if ( end < mrs[i].base )
+    if ( end < mrs[i].base ) {
+
+      /* insert in the correct place */
       mrs.insert(mrs.begin()+i, mr);
+
+      /* now add the metadata range */
+      mrs[i].add_range(start, end, metadata);
+      return;
+    }
   }
-  if ( (i == len) ) // at the end
-    mrs.push_back(mr);
 
-  /* now add the metadata range */
-  mrs[len].add_range(start, end, metadata);
-
+  /* nothing found, put it at the end. */
+  mrs.push_back(mr);
+  mrs[i].add_range(start, end, metadata);
+   
   return;
 }
 
