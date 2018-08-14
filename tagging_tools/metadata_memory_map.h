@@ -108,17 +108,7 @@ class metadata_memory_map_t {
   std::vector<mem_region_t> mrs;
   
   public:
-#if 0
-  size_t capacity() { return map.capacity(); }
-  size_t size() { return map.size(); }
-  size_t zero() { return sizeof(map[0]); }
-  void print() {
-    printf("map data: \n");
-    printf("  base = 0x%x\n", base);
-    printf("  end  = 0x%x\n", end_address);
-    printf("  vector elements = 0x%x\n", map.size());
-  }
-#endif
+
   struct range_t { address_t start, end; };
 
   void add_range(address_t start, address_t end, metadata_t *metadata);
@@ -131,6 +121,7 @@ class metadata_memory_map_t {
     return nullptr;
   }
 
+#if 0
   ~metadata_memory_map_t() {
     int len = mrs.size();
     for ( int i = 0; i < len; i++ ) {
@@ -141,6 +132,7 @@ class metadata_memory_map_t {
       //      delete mrs[i];
     }
   }
+#endif
   
 //  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
 //  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(-1), md_cache(mc) { }

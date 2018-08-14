@@ -82,10 +82,8 @@ class rv32_insn_stream_t : public abstract_instruction_stream_t {
 
 int main(int argc, char **argv) {
 try {
-  int first = 1;
   const char *policy_dir;
   address_t code_address, fa;
-  metadata_t lmd;
   const char *file_name;
 
   if (argc != 4) {
@@ -127,21 +125,9 @@ try {
 //	std::string s = md_factory->render(metadata);
 //	printf("0x%08x: %s\n", code_address, s.c_str());
 
-//	map.add_range(code_address, code_address + 4, metadata);
-	
-	if ( first ) {
-	  fa = code_address;
-	  lmd = *metadata;
-	}
-	
-	if ( metadata != &lmd ) {
-	  map.add_range(fa, code_address, &lmd);
-	  fa = code_address;
-	  lmd = *metadata;
-	}
+	map.add_range(code_address, code_address + 4, metadata);
       }
       code_address += 4;
-      first = 0;
     }
   } catch (read_error_t &e) {
     fprintf(stderr, "read error on stdin\n");
