@@ -84,8 +84,9 @@ namespace policy_engine {
 
   std::vector<meta_t> pull_metadata() const {
     std::vector<meta_t> md;
-    for ( int i = ms_next_bit(&tags, MS_START); i != MS_END; i = ms_next_bit(&tags, i) ) {
-      md.push_back((meta_t)i);
+    for ( int t = 0; t <= MAX_TAG; t++ ) {
+      if ( ms_contains(&tags, t) )
+	md.push_back((meta_t)t);
     }
 
     return md;
