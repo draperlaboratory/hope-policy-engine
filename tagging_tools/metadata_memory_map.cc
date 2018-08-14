@@ -45,22 +45,20 @@ std::string render_metadata(metadata_t const *metadata) {
   
 void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t *metadata) {
 
+  /* this is a meaningless call */
+  if ( start >= end )
+    return;
+  
   /* find the right mr */
   for ( auto &mr : mrs ) {
 
     /* check whether the region is adjacent or contained within */
-    /* TODO: if the overhead of an entire other vector is large, we can 
-       add a "slop" figure here so that two ranges that are close to 
-       each other use the same vector even if not exactly adjacent */
     if ( ((start <= mr.end) && (start >= mr.base)) ||
 	 ((end >= mr.base)  && (end <= mr.end))    ) {
       mr.add_range(start, end, metadata);
       return;
     }
   }
-
-  if ( start == end )
-    return;
   
   /* an appropriate existing MR was not found - make a new one */
   mem_region_t mr = mem_region_t();

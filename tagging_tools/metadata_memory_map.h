@@ -64,8 +64,6 @@ class metadata_memory_map_t {
 
     void add_range(address_t start, address_t lend, metadata_t *metadata) {
 
-      printf("ADD: (0x%x, 0x%x): 0x%x\n", start, lend, metadata->tags);  
-
       if (base == -1) {
 	base = start;
 	assert(mem.size() == 0); // first range added
@@ -115,27 +113,12 @@ class metadata_memory_map_t {
   metadata_t *get_metadata(address_t addr) {
 
     for ( auto &mr : mrs ) {
-    if ((addr >= mr.base) && (addr < mr.end))
-      return mr.getaddr(addr);
+      if ((addr >= mr.base) && (addr < mr.end))
+	return mr.getaddr(addr);
     }
     return nullptr;
   }
-
-#if 0
-  ~metadata_memory_map_t() {
-    int len = mrs.size();
-    for ( int i = 0; i < len; i++ ) {
-      int mrlen = mrs[i].mem.size();
-      for ( int j = 0; j < mrlen; j++ ) {
-	delete mrs[i].mem[j];
-      }
-      //      delete mrs[i];
-    }
-  }
-#endif
   
-//  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
-//  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(-1), md_cache(mc) { }
  metadata_memory_map_t() : base(-1){ }
  metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
 
@@ -155,8 +138,7 @@ class metadata_memory_map_t {
     result_type_t current;
 
   public:
-    
-    
+      
     void advance() {
 
       /* only advance if not at end */

@@ -92,10 +92,6 @@ namespace policy_engine {
     return md;
   }
   
-  //  const_iterator begin() const { return tags.begin(); }
-  //  const_iterator end() const { return tags.end(); }
-  // md_iter begin() const { return md_iter(&tags, -1); }
-  // md_iter end() const { return md_iter(&tags, -2); }
 };
 
 } // namespace policy_engine

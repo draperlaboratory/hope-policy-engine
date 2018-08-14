@@ -34,7 +34,6 @@
 
 using namespace policy_engine;
 
-//metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
@@ -109,8 +108,6 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  printf("md_range running now\n");
-  
   policy_dir = argv[1];
   range_file_name = argv[2];
   file_name = argv[3];

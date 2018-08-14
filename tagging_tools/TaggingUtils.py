@@ -1,6 +1,5 @@
 import os
 import tempfile
-import shutil
 
 class RangeFile:
      def __init__(self):

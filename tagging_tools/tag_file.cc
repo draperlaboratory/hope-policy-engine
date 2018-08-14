@@ -50,8 +50,6 @@ struct file_writer_t {
 bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "rb");
 
-  int alloc_size = 0;
-  
   if (!fp)
     return false;
 
@@ -88,22 +86,15 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
       metadata->insert(meta);
     }
 
-    //    printf("LT: (0x%x, 0x%x): %d meta_t (size %d)\n", start, end, metadata_count, metadata->size());
-    alloc_size += metadata->size();
-    printf("  running alloc_size = %d\n", alloc_size);
     map->add_range(start, end, metadata);
-    printf("    alloc_size after add range = %d\n", alloc_size);
   }
 
-  printf("TOTAL SIZE OF ALLOCED METADATA = %d\n", alloc_size);
   fclose(fp);
   return true;
 }
 
 bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "wb");
-  
-  printf("saving tags to %s\n", file_name.c_str());
   
   if (!fp)
     return false;
@@ -122,11 +113,8 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
       return false;
     }
 
-printf("ST: (0x%x, 0x%x): %d tags\n", e.first.start, e.first.end, e.second->size());
     for (auto &m: e.second->pull_metadata()) {
 
-      printf("writing tag 0x%d\n", m);
-      
       if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
 	fclose(fp);
 	return false;
