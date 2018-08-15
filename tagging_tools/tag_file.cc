@@ -62,7 +62,7 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
     address_t start;
     address_t end;
     uint32_t metadata_count;
-
+    
     if (!read_uleb<file_reader_t, uint32_t>(&reader, start)) {
       fclose(fp);
       return false;
@@ -75,7 +75,6 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
       fclose(fp);
       return false;
     }
-//    printf("(0x%x, 0x%x): %d meta_t\n", start, end, metadata_count);
     metadata_t *metadata = new metadata_t();
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
@@ -86,15 +85,17 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
       }
       metadata->insert(meta);
     }
+
     map->add_range(start, end, metadata);
   }
+
   fclose(fp);
   return true;
 }
 
 bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "wb");
-
+  
   if (!fp)
     return false;
   file_writer_t writer(fp);
@@ -111,7 +112,9 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
       fclose(fp);
       return false;
     }
-    for (auto &m: *e.second) {
+
+    for (auto &m: e.second->pull_metadata()) {
+
       if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
 	fclose(fp);
 	return false;

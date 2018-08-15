@@ -13,6 +13,8 @@ include_directories( ${Boost_INCLUDE_DIRS} )
 
 include_directories("./validator/include")
 include_directories("./tagging_tools")
+include_directories("./policy/include")
+
 
 add_library(validator
   validator/src/metadata_factory.cc
@@ -59,8 +61,16 @@ add_library(tagging_tools
   tagging_tools/elf_loader.cc
   tagging_tools/elf_utils.cc
   tagging_tools/entity_binding.cc
+
+  # I would prefer to put these in a policy library build, but there are some
+  # circular dependency issues that are being a pain.
+  policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(tagging_tools PRIVATE
+  ./policy/include
+  ./validator/include/policy-glue
+  )
 
 add_executable(md_range
 	tagging_tools/md_range.cc

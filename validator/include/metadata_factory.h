@@ -64,8 +64,8 @@ class metadata_factory_t {
 
   public:
   metadata_factory_t(std::string policy_dir);
-  metadata_t const *lookup_metadata(std::string dotted_path);
-  metadata_t const*lookup_group_metadata(std::string const &opgroup) {
+  metadata_t  *lookup_metadata(std::string dotted_path);
+  metadata_t  *lookup_group_metadata(std::string const &opgroup) {
     auto const &it = group_map.find(opgroup);
     if (it == group_map.end()) {
       return nullptr;

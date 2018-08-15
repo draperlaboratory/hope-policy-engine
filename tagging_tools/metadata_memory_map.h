@@ -37,36 +37,90 @@
 namespace policy_engine {
 
 class metadata_memory_map_t {
+
+  class mem_region_t {
+    
+    friend class metadata_memory_map_t;
+    
+    address_t base;
+    address_t end;
+    std::vector<metadata_t *> mem;
+
+  mem_region_t() : base(-1){ }
+    
+    static const int stride = sizeof(uint32_t); // platform word size
+    
+    address_t index_to_addr(size_t idx) {
+      return base + (idx * stride);
+    }
+    
+    size_t addr_to_index(address_t addr) {
+      return (addr - base) / stride;
+    }
+
+    metadata_t *getaddr(address_t addr) {
+      return mem[addr_to_index(addr)];
+    }
+
+    void add_range(address_t start, address_t lend, metadata_t *metadata) {
+
+      if (base == -1) {
+	base = start;
+	assert(mem.size() == 0); // first range added
+      }
+      else if (start < base) {
+	
+	// inserting before the existing base - have to insert a bit
+	int n_insert = (base - start) / stride;
+	mem.insert(mem.begin(), n_insert, nullptr);
+	base = start;
+      }
+      
+      int s = (start - base) / stride;
+      int e = (lend - base) / stride;
+      
+      if (e > mem.size()) {
+	mem.resize(e, nullptr);
+	end = index_to_addr(e);
+      }
+      
+      while (s < e) {
+	
+	if (mem[s]) 
+	  mem[s]->insert(metadata);
+	else
+	  mem[s] = new metadata_t(*metadata);
+	
+	s++;
+      }
+      
+      return;
+    }
+
+  };
+  
   address_t base;
   address_t end_address;
   metadata_cache_t *md_cache;
+
+  std::vector<mem_region_t> mrs;
   
-  static const int stride = sizeof(uint32_t); // platform word size
-  std::vector<metadata_t const *> map;
-
-  protected:
-  address_t index_to_addr(size_t idx) {
-    return base + (idx * stride);
-  }
-
-  size_t addr_to_index(address_t addr) {
-    return (addr - base) / stride;
-  }
-
   public:
 
   struct range_t { address_t start, end; };
 
-  void add_range(address_t start, address_t end, metadata_t const *metadata);
-  metadata_t const *get_metadata(address_t addr) {
-    if ((addr >= base) && (addr < end_address))
-      return map[addr_to_index(addr)];
+  void add_range(address_t start, address_t end, metadata_t *metadata);
+  metadata_t *get_metadata(address_t addr) {
+
+    for ( auto &mr : mrs ) {
+      if ((addr >= mr.base) && (addr < mr.end))
+	return mr.getaddr(addr);
+    }
     return nullptr;
   }
-
-//  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(base), md_cache(mc) { }
-//  metadata_memory_map_t(address_t base, metadata_cache_t *mc) : base(-1), md_cache(mc) { }
-  metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
+  
+ metadata_memory_map_t() : base(-1){ }
+ metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
 
   template <class Type, class UnqualifiedType = std::remove_cv<Type> >
     class ForwardIterator 
@@ -75,55 +129,83 @@ class metadata_memory_map_t {
     std::ptrdiff_t,
     Type*,
     Type&> {
-    typedef std::pair<range_t, metadata_t const *> result_type_t;
+    typedef std::pair<range_t, metadata_t *> result_type_t;
     int cur_index;
     int end_index;
-    metadata_memory_map_t *map;
+    int cur_m_idx;
+    int end_m_idx;
+    std::vector<mem_region_t> &mrs;
     result_type_t current;
 
   public:
+      
     void advance() {
+
+      /* only advance if not at end */
       if (!is_end()) {
-	if (cur_index == end_index) {
-	  make_end();
-	} else {
-	  while (cur_index < end_index && map->map[cur_index] == nullptr) {
-	    cur_index++;
-	  }
-	  if (cur_index < end_index) {
-	    current.first.start = map->index_to_addr(cur_index);
-	    current.second = map->map[cur_index];
-	    while (cur_index < end_index && (map->map[cur_index] != nullptr) &&
-		   (map->map[cur_index] == current.second)) {
-	      cur_index++;
-	    }
-	    current.first.end = map->index_to_addr(cur_index);
-	  } else {
-	    make_end();
-	  }
+
+	/* move on to next region if necessary */
+	if ( cur_index == end_index) {
+	  cur_m_idx++;
+	  cur_index = 0;
+	  if ( cur_m_idx != end_m_idx ) 
+	    end_index = mrs[cur_m_idx].mem.size();
 	}
+	
+	/* if we're @ the end, note it */
+	if (cur_m_idx == end_m_idx) {
+	  make_end();
+	  return;
+	}
+
+	/* skip over null entries */
+	while ((cur_index < end_index) &&
+	       (mrs[cur_m_idx].mem[cur_index] == nullptr) ) {
+	  cur_index++;
+	}
+	
+	current.first.start = mrs[cur_m_idx].index_to_addr(cur_index);
+	current.second = mrs[cur_m_idx].mem[cur_index];
+	
+	/* find all similar entries within this contiguous range */
+	while ( (cur_index < end_index) &&
+		(mrs[cur_m_idx].mem[cur_index] != nullptr)         &&
+		(*current.second == *mrs[cur_m_idx].mem[cur_index]) ) {
+	    
+	  cur_index++;
+	}
+	
+	current.first.end = mrs[cur_m_idx].index_to_addr(cur_index);
+      
       }
     }
-
-    ForwardIterator(metadata_memory_map_t *map, bool end) : map(map) {
-      end_index = map->addr_to_index(map->end_address);
+    
+    ForwardIterator(metadata_memory_map_t *map, bool end) : mrs(map->mrs) {
+      end_m_idx = map->mrs.size();
       make_end();
     }
 
-    bool is_end() { return cur_index == end_index + 1; }
-    void make_end() { cur_index = end_index + 1; }
+    bool is_end() { return ((cur_m_idx == end_m_idx + 1) && (cur_index == mrs[end_m_idx - 1].mem.size() + 1)); }
+    void make_end() {
+      cur_m_idx = end_m_idx + 1;
+      cur_index = mrs[end_m_idx - 1].mem.size() + 1;
+    }
 
-    explicit ForwardIterator(metadata_memory_map_t *map) : map(map) {
+    explicit ForwardIterator(metadata_memory_map_t *map) : mrs(map->mrs) {
       cur_index = 0;
-      end_index = map->addr_to_index(map->end_address);
+      cur_m_idx = 0;
+      end_index = mrs[cur_m_idx].mem.size();
+      end_m_idx = mrs.size();
       advance();
     }
     
     void swap(ForwardIterator& other) noexcept {
       using std::swap;
-      swap(map, other.map);
+      swap(mrs, other.mrs);
       swap(cur_index, other.cur_index);
+      swap(cur_m_idx, other.cur_m_idx);
       swap(end_index, other.end_index);
+      swap(end_m_idx, other.end_m_idx);
     }
     
     // Pre-increment
@@ -142,19 +224,19 @@ class metadata_memory_map_t {
     // two-way comparison: v.begin() == v.cbegin() and vice versa
     template<class OtherType>
     bool operator == (const ForwardIterator<OtherType>& rhs) const {
-      return cur_index == rhs.cur_index;
+      return (cur_index == rhs.cur_index) && (cur_m_idx == rhs.cur_m_idx);
     }
     
     template<class OtherType>
     bool operator != (const ForwardIterator<OtherType>& rhs) const {
-        return cur_index != rhs.cur_index;
+      return (cur_index != rhs.cur_index) || (cur_m_idx != rhs.cur_m_idx);;
     }
     result_type_t &operator* () { return current; }
     result_type_t *operator-> () { return &current; }
     
     // One way conversion: iterator -> const_iterator
     operator ForwardIterator<const Type>() const {
-      return ForwardIterator<const Type>(map);
+      return ForwardIterator<const Type>(mrs);
     }
   };
   

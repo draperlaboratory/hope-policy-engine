@@ -32,17 +32,21 @@
 
 #include <cstdlib>
 #include <iterator>
-#include <unordered_set>
+#include <vector>
 
 #include "policy_types.h"
+#include "policy_meta_set.h"
 
 namespace policy_engine {
 
-class metadata_t {
+  class metadata_t {
+  
   std::size_t hash;
-  std::unordered_set<meta_t> tags;
-
+  
   public:
+
+  meta_set_t tags;
+
   struct hasher_t {
     std::size_t operator()(const metadata_t &k) const {
       return k.hash;
@@ -51,37 +55,43 @@ class metadata_t {
 
   struct equal_t {
     bool operator()(metadata_t const &l, metadata_t const &r) const {
-      return l.tags == r.tags;
+      return ms_eq(&l.tags, &r.tags);
     }
   };
 
-  metadata_t() { }
+  metadata_t() { ms_zero(&tags); }
+  
+  size_t size() const { return ms_count(&tags); }
 
-  size_t size() const { return tags.size(); }
-
+  metadata_t(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); }
+  metadata_t& operator=(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); }
+  
   bool operator ==(const metadata_t &rhs) const {
-    return tags == rhs.tags;
+    return ms_eq(&tags, &rhs.tags);
   }
 
-  bool operator !=(const metadata_t &rhs) const { return !(*this == rhs); }
+  bool operator !=(const metadata_t &rhs) const { return !ms_eq(&tags, &rhs.tags); }
 
   void insert(const meta_t &rhs) {
     hash += rhs;
-    tags.insert(rhs);
+    ms_bit_add(&tags, rhs);
   }
 
   void insert(const metadata_t *rhs) {
     hash += rhs->hash;
-    tags.insert(rhs->begin(), rhs->end());
+    ms_union(&tags, &rhs->tags);
   }
 
-  typedef std::unordered_set<meta_t>::iterator iterator;
-  typedef std::unordered_set<meta_t>::const_iterator const_iterator;
+  std::vector<meta_t> pull_metadata() const {
+    std::vector<meta_t> md;
+    for ( int t = 0; t <= MAX_TAG; t++ ) {
+      if ( ms_contains(&tags, t) )
+	md.push_back((meta_t)t);
+    }
 
-  const_iterator begin() const { return tags.begin(); }
-  const_iterator end() const { return tags.end(); }
-  iterator begin() { return tags.begin(); }
-  iterator end() { return tags.end(); }
+    return md;
+  }
+  
 };
 
 } // namespace policy_engine

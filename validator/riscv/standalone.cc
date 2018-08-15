@@ -79,7 +79,7 @@ static std::vector<fake_riscv_t::op_t> ops= {
 
 // utility function to apply a named tag to an address range
 static void apply_tag(address_t start, address_t end, const char *tag_name) {
-  metadata_t const *metadata = md_factory->lookup_metadata(tag_name);
+  metadata_t *metadata = md_factory->lookup_metadata(tag_name);
   if (!metadata) {
     printf("tag %s not found\n", tag_name);
   } else {
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
   }
 #if 0
     // for debugging things
-    metadata_t const *metadata = md_map->get_metadata(op.pc);
+    metadata_t *metadata = md_map->get_metadata(op.pc);
     if (!metadata) {
       printf("could not load metadata for PC 0x%08x\n", op.pc);
     } else {

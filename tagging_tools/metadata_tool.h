@@ -52,24 +52,24 @@ class metadata_tool_t {
     md_factory = new metadata_factory_t(policy_dir);
   }
   ~metadata_tool_t() { delete md_factory; }
-  metadata_t const *lookup_metadata(std::string const &dotted_path) {
+  metadata_t *lookup_metadata(std::string const &dotted_path) {
     return md_factory->lookup_metadata(dotted_path);
   }
   bool apply_group_tag(address_t start, address_t end, const char *group) {
-    metadata_t const *metadata = md_factory->lookup_group_metadata(group);
+    metadata_t *metadata = md_factory->lookup_group_metadata(group);
     if (!metadata)
       return false;
     md_map.add_range(start, end, metadata);
     return true;
   }
   bool apply_tag(address_t start, address_t end, const char *tag_name) {
-    metadata_t const *md = md_factory->lookup_metadata(tag_name);
+    metadata_t *md = md_factory->lookup_metadata(tag_name);
     if (!md)
       return false;
     md_map.add_range(start, end, md);
     return true;
   }
-  void apply_tag(address_t start, address_t end, metadata_t const *metadata) {
+  void apply_tag(address_t start, address_t end, metadata_t *metadata) {
     md_map.add_range(start, end, metadata);
   }
   bool load_tag_info(const char *tag_file_name) {
