@@ -61,7 +61,7 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
   }
   
   /* an appropriate existing MR was not found - make a new one */
-  mem_region_t mr = mem_region_t();
+  mem_region_t mr = mem_region_t(this);
   int len = mrs.size();
 
   /* put it in the vector at the right location */

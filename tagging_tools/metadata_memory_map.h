@@ -41,12 +41,14 @@ class metadata_memory_map_t {
   class mem_region_t {
     
     friend class metadata_memory_map_t;
+
+    metadata_cache_t *md_cache;
     
     address_t base;
     address_t end;
-    std::vector<metadata_t *> mem;
+    std::vector<metadata_t const *> mem;
 
-  mem_region_t() : base(-1){ }
+  mem_region_t(metadata_memory_map_t *map) : base(-1){ md_cache = map->md_cache;}
     
     static const int stride = sizeof(uint32_t); // platform word size
     
@@ -58,7 +60,7 @@ class metadata_memory_map_t {
       return (addr - base) / stride;
     }
 
-    metadata_t *getaddr(address_t addr) {
+    metadata_t const *getaddr(address_t addr) {
       return mem[addr_to_index(addr)];
     }
 
@@ -86,11 +88,24 @@ class metadata_memory_map_t {
       
       while (s < e) {
 	
+	    metadata_t const *md;
+	    if (mem[s]) {
+	      md = mem[s];
+	      metadata_t *new_md = new metadata_t(*md);
+	      new_md->insert(metadata);
+	        md = md_cache->canonize(new_md);
+	        if (md != new_md)
+	         delete new_md;
+	      } else {
+	        md = md_cache->canonize(metadata);
+	    }
+#if 0
 	if (mem[s]) 
 	  mem[s]->insert(metadata);
 	else
 	  mem[s] = new metadata_t(*metadata);
-	
+#endif
+	mem[s] = md;
 	s++;
       }
       
@@ -110,7 +125,7 @@ class metadata_memory_map_t {
   struct range_t { address_t start, end; };
 
   void add_range(address_t start, address_t end, metadata_t *metadata);
-  metadata_t *get_metadata(address_t addr) {
+  metadata_t const *get_metadata(address_t addr) {
 
     for ( auto &mr : mrs ) {
       if ((addr >= mr.base) && (addr < mr.end))
@@ -119,7 +134,7 @@ class metadata_memory_map_t {
     return nullptr;
   }
   
- metadata_memory_map_t() : base(-1){ }
+  metadata_memory_map_t() : base(-1){ md_cache = new metadata_cache_t(); }
  metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
 
   template <class Type, class UnqualifiedType = std::remove_cv<Type> >
@@ -129,7 +144,7 @@ class metadata_memory_map_t {
     std::ptrdiff_t,
     Type*,
     Type&> {
-    typedef std::pair<range_t, metadata_t *> result_type_t;
+    typedef std::pair<range_t, metadata_t const *> result_type_t;
     int cur_index;
     int end_index;
     int cur_m_idx;

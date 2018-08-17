@@ -67,7 +67,7 @@ class annotater_t : public asm_annotater_t {
 };
 
 std::string annotater_t::filter(address_t addr, std::string line) {
-  metadata_t *metadata = md_map.get_metadata(addr);
+  metadata_t const *metadata = md_map.get_metadata(addr);
   if (!metadata)
     return line;
   
