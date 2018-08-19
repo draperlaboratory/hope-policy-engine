@@ -37,19 +37,46 @@
 #include "policy_types.h"
 #include "policy_meta_set.h"
 
+/* 
+   if it is small enough, the bitfield for the tagset
+   can be used directly as a hash. If it is not, the 
+   hash will be compressed into the sum of the indices of 
+   the set bits in the bitfield.
+ */
+#if (SIZE_MAX == 0xFFFF)
+  #define SIZE_T_BYTES 2
+#elif (SIZE_MAX == 0xFFFFFFFF)
+  #define SIZE_T_BYTES 4
+#elif (SIZE_MAX == 0xFFFFFFFFFFFFFFFF)
+  #define SIZE_T_BYTES 8
+#endif
+
+/* meta_set_bitfields defined in policy-tool produced 
+   code to be th number of uint32_ts used for the 
+   bitfield */
+#if SIZE_T_BYTES < (META_SET_BITFIELDS*4) 
+#define COMPRESS_HASH
+#endif
+
 namespace policy_engine {
 
   class metadata_t {
-  
+
+#ifdef COMPRESS_HASH
   std::size_t hash;
-  
+#endif
+
   public:
 
   meta_set_t tags;
 
   struct hasher_t {
     std::size_t operator()(const metadata_t &k) const {
+#ifdef COMPRESS_HASH
       return k.hash;
+#else
+      return *(std::size_t*)&k.tags.tags;
+#endif   
     }
   };
 
@@ -63,8 +90,21 @@ namespace policy_engine {
   
   size_t size() const { return ms_count(&tags); }
 
-  metadata_t(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); hash = rhs.hash; }
-  metadata_t& operator=(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); hash = rhs.hash; }
+  metadata_t(const metadata_t& rhs) {
+    ms_zero(&tags);
+    ms_union(&tags, &rhs.tags);
+#ifdef COMPRESS_HASH
+    hash = rhs.hash;
+#endif
+  }
+  
+  metadata_t& operator=(const metadata_t& rhs) {
+    ms_zero(&tags);
+    ms_union(&tags, &rhs.tags);
+#ifdef COMPRESS_HASH
+    hash = rhs.hash;
+#endif
+  }
   
   bool operator ==(const metadata_t &rhs) const {
     return ms_eq(&tags, &rhs.tags);
@@ -73,15 +113,19 @@ namespace policy_engine {
   bool operator !=(const metadata_t &rhs) const { return !ms_eq(&tags, &rhs.tags); }
 
   void insert(const meta_t &rhs) {
-    hash += rhs;
     ms_bit_add(&tags, rhs);
+#ifdef COMPRESS_HASH
+    hash += rhs;
+#endif
   }
 
   void insert(const metadata_t *rhs) {
+#ifdef COMPRESS_HASH
     for ( int t = 0; t <= MAX_TAG; t++ ) {
       if ( ms_contains(&tags, t) )
 	hash += t;
     }
+#endif
     ms_union(&tags, &rhs->tags);
   }
 
