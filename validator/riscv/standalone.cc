@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
   }
 #if 0
     // for debugging things
-    metadata_t *metadata = md_map->get_metadata(op.pc);
+    metadata_t const *metadata = md_map->get_metadata(op.pc);
     if (!metadata) {
       printf("could not load metadata for PC 0x%08x\n", op.pc);
     } else {
