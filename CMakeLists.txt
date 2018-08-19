@@ -33,6 +33,11 @@ add_library(rv32_validator
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
   validator/riscv/fake_riscv.cc
+  validator/rule_cache/ideal_rule_cache/ideal_rule_cache.cc
+  validator/rule_cache/finite_rule_cache/finite_rule_cache.cc
+  validator/rule_cache/dmhc_rule_cache/compute_hash.cc
+  validator/rule_cache/dmhc_rule_cache/dmhc.cc
+  validator/rule_cache/dmhc_rule_cache/dmhc_rule_cache.cc
   
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
@@ -43,6 +48,10 @@ target_include_directories(rv32_validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
 
 add_library(tagging_tools
@@ -109,6 +118,10 @@ target_include_directories(standalone PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
 
 add_library(rv32-renode-validator SHARED
@@ -119,4 +132,8 @@ target_include_directories(rv32-renode-validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )

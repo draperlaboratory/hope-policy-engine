@@ -103,6 +103,19 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
   return 0;
 }
 
+extern "C" uint32_t e_v_validate_cached(uint32_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
+  //  printf("validating 0x%x: 0x%x\n", pc, instr);
+  if (!DOA) {
+    try {
+      return rv_validator->validate(pc, instr, mem_addr, hit);
+    } catch (...) {
+      printf("c++ exception while validating - policy code DOA\n");
+      DOA = true;
+    }
+  }
+  return 0;
+}
+
 extern "C" uint32_t e_v_commit() {
 //  printf("committing\n");
   bool hit_watch = false;
@@ -115,6 +128,10 @@ extern "C" uint32_t e_v_commit() {
     }
   }
   return hit_watch;
+}
+
+extern "C" void e_v_flush_rule_cache() {
+  rv_validator->flush_rule_cache();
 }
 
 extern "C" void e_v_pc_tag(char* dest, int n) {
@@ -311,4 +328,21 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 }
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
+}
+
+extern "C" void e_v_config_rule_cache(const char* rule_cache_name){
+  if (!DOA) {
+    try {
+      rv_validator->config_rule_cache(rule_cache_name);
+    } catch (exception_t &e) {
+      printf("validator exception %s while setting rule cache name\n", e.what());
+      DOA = true;
+    } catch (std::exception &e) {
+      printf("c++ exception %s while setting rule cache name \n", e.what());
+      DOA = true;
+    } catch (...) {
+      printf("c++ exception while setting rule cache name DOA\n");
+      DOA = true;
+    }
+  }
 }

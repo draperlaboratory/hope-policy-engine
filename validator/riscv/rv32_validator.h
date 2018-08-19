@@ -36,6 +36,9 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
+#include "ideal_rule_cache.h"
+#include "finite_rule_cache.h"
+#include "dmhc_rule_cache.h"
 
 namespace policy_engine {
 
@@ -72,6 +75,9 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_pending_mem;
   bool has_pending_CSR;
   int logIdx;
+  bool has_insn_mem_addr;
+  bool rule_cache_hit;
+
 //  meta_set_t temp_ci_tag;
 
  public:
@@ -95,9 +101,12 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ctx);
     free(ops);
     free(res);
+    if (rule_cache)
+      delete rule_cache;
   }
 
   bool validate(address_t pc, insn_bits_t insn);
+  bool validate(address_t pc, insn_bits_t insn, address_t mem_addr, bool *hit);
   bool commit();
 
   // Provides the tag for a given address.  Used for debugging.
@@ -115,10 +124,14 @@ class rv32_validator_t : public rv32_validator_base_t {
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
 
+  void flush_rule_cache();
+  void config_rule_cache(const std::string cache_name);
+
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
+  rule_cache_t *rule_cache = nullptr;
 };
 
 } // namespace policy_engine
