@@ -95,8 +95,8 @@ static void dump_node(YAML::Node node) {
   }
 }
 
-metadata_t  *metadata_factory_t::lookup_metadata(std::string dotted_path) {
-  metadata_t *metadata = nullptr;
+metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
+  metadata_t  *metadata = nullptr;
   auto const &path_map_iter = path_map.find(dotted_path);
   if (path_map_iter != path_map.end()) {
     return path_map_iter->second;

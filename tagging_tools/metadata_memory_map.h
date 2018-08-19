@@ -64,7 +64,7 @@ class metadata_memory_map_t {
       return mem[addr_to_index(addr)];
     }
 
-    void add_range(address_t start, address_t lend, metadata_t *metadata) {
+    void add_range(address_t start, address_t lend, metadata_t const *metadata) {
 
       if (base == -1) {
 	base = start;
@@ -111,7 +111,7 @@ class metadata_memory_map_t {
 
   struct range_t { address_t start, end; };
 
-  void add_range(address_t start, address_t end, metadata_t *metadata);
+  void add_range(address_t start, address_t end, metadata_t const *metadata);
   metadata_t const *get_metadata(address_t addr) {
 
     for ( auto &mr : mrs ) {

@@ -37,7 +37,7 @@ meta_set_factory_t::meta_set_factory_t(meta_set_cache_t *ms_cache, std::string p
 }
 
 meta_set_t const *meta_set_factory_t::get_meta_set(std::string dotted_path) {
-  metadata_t *metadata = lookup_metadata(dotted_path);
+  metadata_t const *metadata = lookup_metadata(dotted_path);
   if (metadata) 
     return ms_cache->canonize(metadata->tags);
   else 

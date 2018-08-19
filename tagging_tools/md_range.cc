@@ -48,7 +48,7 @@ void init(const char *policy_dir) {
 }
 
 bool apply_tag(metadata_memory_map_t *map, address_t start, address_t end, const char *tag_name) {
-  metadata_t *md = md_factory->lookup_metadata(tag_name);
+  metadata_t const *md = md_factory->lookup_metadata(tag_name);
   if (!md)
     return false;
   map->add_range(start, end, md);

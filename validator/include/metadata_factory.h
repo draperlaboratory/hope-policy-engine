@@ -46,8 +46,8 @@ class metadata_factory_t {
   std::unordered_map<meta_t, std::string> reverse_encoding_map; // for rendering
   std::unordered_map<meta_t, std::string> abbrev_reverse_encoding_map; // for rendering
   std::unordered_map<std::string, meta_t> encoding_map;
-  std::unordered_map<std::string, metadata_t*> path_map;
-  std::unordered_map<std::string, metadata_t *> group_map;
+  std::unordered_map<std::string, metadata_t const *> path_map;
+  std::unordered_map<std::string, metadata_t const *> group_map;
 
   std::map<std::string, entity_init_t> entity_initializers;
 
@@ -64,8 +64,8 @@ class metadata_factory_t {
 
   public:
   metadata_factory_t(std::string policy_dir);
-  metadata_t  *lookup_metadata(std::string dotted_path);
-  metadata_t  *lookup_group_metadata(std::string const &opgroup) {
+  metadata_t const *lookup_metadata(std::string dotted_path);
+  metadata_t const *lookup_group_metadata(std::string const &opgroup) {
     auto const &it = group_map.find(opgroup);
     if (it == group_map.end()) {
       return nullptr;
