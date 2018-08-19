@@ -63,8 +63,8 @@ namespace policy_engine {
   
   size_t size() const { return ms_count(&tags); }
 
-  metadata_t(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); }
-  metadata_t& operator=(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); }
+  metadata_t(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); hash = rhs.hash; }
+  metadata_t& operator=(const metadata_t& rhs) { ms_zero(&tags); ms_union(&tags, &rhs.tags); hash = rhs.hash; }
   
   bool operator ==(const metadata_t &rhs) const {
     return ms_eq(&tags, &rhs.tags);
@@ -78,7 +78,10 @@ namespace policy_engine {
   }
 
   void insert(const metadata_t *rhs) {
-    hash += rhs->hash;
+    for ( int t = 0; t <= MAX_TAG; t++ ) {
+      if ( ms_contains(&tags, t) )
+	hash += t;
+    }
     ms_union(&tags, &rhs->tags);
   }
 

@@ -85,28 +85,15 @@ class metadata_memory_map_t {
 	mem.resize(e, nullptr);
 	end = index_to_addr(e);
       }
-      
+
+      metadata_t md;
       while (s < e) {
-	
-	    metadata_t const *md;
-	    if (mem[s]) {
-	      md = mem[s];
-	      metadata_t *new_md = new metadata_t(*md);
-	      new_md->insert(metadata);
-	        md = md_cache->canonize(new_md);
-	        if (md != new_md)
-	         delete new_md;
-	      } else {
-	        md = md_cache->canonize(metadata);
-	    }
-#if 0
-	if (mem[s]) 
-	  mem[s]->insert(metadata);
-	else
-	  mem[s] = new metadata_t(*metadata);
-#endif
-	mem[s] = md;
-	s++;
+
+	md = *metadata;
+	if ( mem[s] )
+	  md.insert(mem[s]);
+
+	mem[s++] = md_cache->canonize(&md);
       }
       
       return;
