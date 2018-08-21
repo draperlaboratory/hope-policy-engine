@@ -39,7 +39,7 @@ typedef uint32_t (*MemoryReader_t)(uint32_t);
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
 uint32_t e_v_validate(uint32_t pc, uint32_t instr);
 uint32_t e_v_commit(void);
-void e_v_set_metadata(const char *policy_path, const char *tag_info_file);
+void e_v_set_metadata(const char *policy_path, const char *tag_info_file, const char *soc_cfg);
 void e_v_violation_msg(char *dest, int n);
 void e_v_pc_tag(char *dest, int n);
 void e_v_csr_tag(char *dest, int n, uint64_t addr);
