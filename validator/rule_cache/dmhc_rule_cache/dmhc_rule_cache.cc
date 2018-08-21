@@ -28,6 +28,12 @@ dmhc_rule_cache_t::~dmhc_rule_cache_t() {
 }
 
 void dmhc_rule_cache_t::install_rule(operands_t *ops, results_t *res) {
+  res_copy[RES_PC]=*res->pc;
+  res_copy[RES_RD]=*res->rd;
+  res_copy[RES_CSR]=*res->csr;
+  res_copy[PC_RES].tags[0] = res->pcResult;
+  res_copy[RD_RES].tags[0] = res->rdResult;
+  res_copy[CSR_RES].tags[0] = res->csrResult;
 #ifdef DMHC_DEBUG
   printf("Install\n");
   printf("ops - pc: %" PRIu32 ", ci: %" PRIu32, ops_copy[OP_PC].tags[0], ops_copy[OP_CI].tags[0]);
@@ -74,19 +80,6 @@ bool dmhc_rule_cache_t::allow(operands_t *ops, results_t *res) {
     consider[OP_MEM]=false;
   }
 
-  res_copy[RES_PC]=*res->pc;
-  res_copy[RES_RD]=*res->rd;
-  res_copy[RES_CSR]=*res->csr;
-  meta_set_t *pc_res=new meta_set_t();
-  pc_res->tags[0]=res->pcResult;
-  res_copy[PC_RES]=*pc_res;
-  meta_set_t *rd_res=new meta_set_t();
-  rd_res->tags[0]=res->rdResult;
-  res_copy[RD_RES]=*rd_res;
-  meta_set_t *csr_res=new meta_set_t();
-  csr_res->tags[0]=res->csrResult;
-  res_copy[CSR_RES]=*csr_res;
-
 #ifdef DMHC_DEBUG
   printf("Allow\nops - pc: %" PRIu32 ", ci: %" PRIu32, ops_copy[OP_PC].tags[0], ops_copy[OP_CI].tags[0]);
   if (ops->op1) printf(", op1: %" PRIu32, ops_copy[OP_OP1].tags[0]);
@@ -94,14 +87,7 @@ bool dmhc_rule_cache_t::allow(operands_t *ops, results_t *res) {
   if (ops->op3) printf(", op3: %" PRIu32, ops_copy[OP_OP3].tags[0]);
   if (ops->mem) printf(", mem: %" PRIu32, ops_copy[OP_MEM].tags[0]);
   printf("\n");
-
-  printf("res - pc: %" PRIu32 ", rd: %" PRIu32 ", csr: %" PRIu32 ", pcRes: %" PRIu32 ", rdRes: %"
-         PRIu32 ", csrRes: %" PRIu32 "\n", res_copy[RES_PC].tags[0], res_copy[RES_RD].tags[0], 
-         res_copy[RES_CSR].tags[0], res_copy[PC_RES].tags[0], res_copy[RD_RES].tags[0], 
-         res_copy[CSR_RES].tags[0]);
 #endif
-
-  delete pc_res, rd_res, csr_res;
 
   bool found=the_rule_cache->lookup(ops_copy, res_copy, consider);
   if (found == false) {
