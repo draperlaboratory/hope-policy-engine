@@ -104,6 +104,8 @@ namespace policy_engine {
 #ifdef COMPRESS_HASH
     hash = rhs.hash;
 #endif
+
+    return *this;
   }
   
   bool operator ==(const metadata_t &rhs) const {
