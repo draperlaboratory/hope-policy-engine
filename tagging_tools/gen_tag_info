@@ -137,7 +137,7 @@ def main():
         policies = args.policy_dir.split('.')[-1].split('-')
 
         for policy in policies:
-            if policy not in module_policies:
+            if (policy not in module_policies) and policy != "NOPOLICY":
                 logging.fatal("Tried to generate tag info for invalid policy")
                 sys.exit(-1)
             generate_ranges_func = 'generate_' + policy + '_ranges'
@@ -157,13 +157,15 @@ def main():
         range_file.done()
 
         # Apply opcode tags
-        OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
+        if policies != ["NOPOLICY"]:
+          OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
 
         # Apply entities
-        presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
-                                 args.entities)
-        if presult != 0:
-            sys.exit(presult)
+        if policies != ["NOPOLICY"]:
+          presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
+                                   args.entities)
+          if presult != 0:
+              sys.exit(presult)
 
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:
