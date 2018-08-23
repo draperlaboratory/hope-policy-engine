@@ -32,115 +32,56 @@
 
 #include <cstdlib>
 #include <iterator>
-#include <vector>
+#include <unordered_set>
 
 #include "policy_types.h"
-#include "policy_meta_set.h"
-
-/* 
-   if it is small enough, the bitfield for the tagset
-   can be used directly as a hash. If it is not, the 
-   hash will be compressed into the sum of the indices of 
-   the set bits in the bitfield.
- */
-#if (SIZE_MAX == 0xFFFF)
-  #define SIZE_T_BYTES 2
-#elif (SIZE_MAX == 0xFFFFFFFF)
-  #define SIZE_T_BYTES 4
-#elif (SIZE_MAX == 0xFFFFFFFFFFFFFFFF)
-  #define SIZE_T_BYTES 8
-#endif
-
-/* meta_set_bitfields defined in policy-tool produced 
-   code to be th number of uint32_ts used for the 
-   bitfield */
-#if SIZE_T_BYTES < (META_SET_BITFIELDS*4) 
-#define COMPRESS_HASH
-#endif
 
 namespace policy_engine {
 
-  class metadata_t {
-
-#ifdef COMPRESS_HASH
+class metadata_t {
   std::size_t hash;
-#endif
+  std::unordered_set<meta_t> tags;
 
   public:
-
-  meta_set_t tags;
-
   struct hasher_t {
     std::size_t operator()(const metadata_t &k) const {
-#ifdef COMPRESS_HASH
       return k.hash;
-#else
-      return *(std::size_t*)&k.tags.tags;
-#endif   
     }
   };
 
   struct equal_t {
     bool operator()(metadata_t const &l, metadata_t const &r) const {
-      return ms_eq(&l.tags, &r.tags);
+      return l.tags == r.tags;
     }
   };
 
-  metadata_t() { ms_zero(&tags); }
-  
-  size_t size() const { return ms_count(&tags); }
+  metadata_t() { }
 
-  metadata_t(const metadata_t& rhs) {
-    ms_zero(&tags);
-    ms_union(&tags, &rhs.tags);
-#ifdef COMPRESS_HASH
-    hash = rhs.hash;
-#endif
-  }
-  
-  metadata_t& operator=(const metadata_t& rhs) {
-    ms_zero(&tags);
-    ms_union(&tags, &rhs.tags);
-#ifdef COMPRESS_HASH
-    hash = rhs.hash;
-#endif
+  size_t size() const { return tags.size(); }
 
-    return *this;
-  }
-  
   bool operator ==(const metadata_t &rhs) const {
-    return ms_eq(&tags, &rhs.tags);
+    return tags == rhs.tags;
   }
 
-  bool operator !=(const metadata_t &rhs) const { return !ms_eq(&tags, &rhs.tags); }
+  bool operator !=(const metadata_t &rhs) const { return !(*this == rhs); }
 
   void insert(const meta_t &rhs) {
-    ms_bit_add(&tags, rhs);
-#ifdef COMPRESS_HASH
     hash += rhs;
-#endif
+    tags.insert(rhs);
   }
 
   void insert(const metadata_t *rhs) {
-#ifdef COMPRESS_HASH
-    for ( int t = 0; t <= MAX_TAG; t++ ) {
-      if ( ms_contains(&tags, t) )
-	hash += t;
-    }
-#endif
-    ms_union(&tags, &rhs->tags);
+    hash += rhs->hash;
+    tags.insert(rhs->begin(), rhs->end());
   }
 
-  std::vector<meta_t> pull_metadata() const {
-    std::vector<meta_t> md;
-    for ( int t = 0; t <= MAX_TAG; t++ ) {
-      if ( ms_contains(&tags, t) )
-	md.push_back((meta_t)t);
-    }
+  typedef std::unordered_set<meta_t>::iterator iterator;
+  typedef std::unordered_set<meta_t>::const_iterator const_iterator;
 
-    return md;
-  }
-  
+  const_iterator begin() const { return tags.begin(); }
+  const_iterator end() const { return tags.end(); }
+  iterator begin() { return tags.begin(); }
+  iterator end() { return tags.end(); }
 };
 
 } // namespace policy_engine

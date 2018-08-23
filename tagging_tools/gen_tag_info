@@ -16,6 +16,10 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.sections import SymbolTableSection
 
+md_range = 'md_range'
+md_code = 'md_code'
+md_asm_ann = 'md_asm_ann'
+md_entity = 'md_entity'
 
 NoCFI = 'dover.Tools.GCC.NoCFI'
 
@@ -105,11 +109,6 @@ def main():
                         help="Entities file for policy")
 
     args = parser.parse_args()
-
-    md_code = os.path.join(args.policy_dir, "md_code")
-    md_range = os.path.join(args.policy_dir, "md_range")
-    md_asm_ann = os.path.join(args.policy_dir, "md_asm_ann")
-    md_entity = os.path.join(args.policy_dir, "md_entity")
 
     asm_file_name = args.bin + ".text"
     policy_modules = {}

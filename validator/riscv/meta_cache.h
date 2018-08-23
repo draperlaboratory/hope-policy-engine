@@ -64,7 +64,11 @@ class meta_set_cache_t {
     return map[ts];
   }
   meta_set_t const *canonize(metadata_t const *metadata) {
-    return canonize(metadata->tags);
+    meta_set_t ms;
+    memset(&ms, 0, sizeof(ms));
+    for (auto e: *metadata)
+      ms_bit_add(&ms, e);
+    return canonize(ms);
   }
 };
 
