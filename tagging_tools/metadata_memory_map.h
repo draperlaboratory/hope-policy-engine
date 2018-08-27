@@ -53,50 +53,50 @@ namespace policy_engine {
       static const int stride = sizeof(uint32_t); // platform word size
     
       address_t index_to_addr(size_t idx) {
-	return base + (idx * stride);
+        return base + (idx * stride);
       }
     
       size_t addr_to_index(address_t addr) {
-	return (addr - base) / stride;
+        return (addr - base) / stride;
       }
 
       metadata_t const *getaddr(address_t addr) {
-	return mem[addr_to_index(addr)];
+        return mem[addr_to_index(addr)];
       }
 
       void add_range(address_t start, address_t lend, metadata_t const *metadata) {
 
-	if (base == -1) {
-	  base = start;
-	  assert(mem.size() == 0); // first range added
-	}
-	else if (start < base) {
-	
-	  // inserting before the existing base - have to insert a bit
-	  int n_insert = (base - start) / stride;
-	  mem.insert(mem.begin(), n_insert, nullptr);
-	  base = start;
-	}
+        if (base == -1) {
+          base = start;
+          assert(mem.size() == 0); // first range added
+        }
+        else if (start < base) {
+        
+          // inserting before the existing base - have to insert a bit
+          int n_insert = (base - start) / stride;
+          mem.insert(mem.begin(), n_insert, nullptr);
+          base = start;
+        }
       
-	int s = (start - base) / stride;
-	int e = (lend - base) / stride;
+        int s = (start - base) / stride;
+        int e = (lend - base) / stride;
       
-	if (e > mem.size()) {
-	  mem.resize(e, nullptr);
-	  end = index_to_addr(e);
-	}
+        if (e > mem.size()) {
+          mem.resize(e, nullptr);
+          end = index_to_addr(e);
+        }
 
-	metadata_t md;
-	while (s < e) {
+        metadata_t md;
+        while (s < e) {
 
-	  md = *metadata;
-	  if ( mem[s] )
-	    md.insert(mem[s]);
+          md = *metadata;
+          if ( mem[s] )
+            md.insert(mem[s]);
 
-	  mem[s++] = md_cache->canonize(&md);
-	}
+          mem[s++] = md_cache->canonize(&md);
+        }
       
-	return;
+        return;
       }
 
     };
@@ -115,8 +115,8 @@ namespace policy_engine {
     metadata_t const *get_metadata(address_t addr) {
 
       for ( auto &mr : mrs ) {
-	if ((addr >= mr.base) && (addr < mr.end))
-	  return mr.getaddr(addr);
+        if ((addr >= mr.base) && (addr < mr.end))
+          return mr.getaddr(addr);
       }
       return nullptr;
     }
@@ -143,102 +143,102 @@ namespace policy_engine {
       
       void advance() {
 
-	/* only advance if not at end */
-	if (!is_end()) {
+        /* only advance if not at end */
+        if (!is_end()) {
 
-	  /* move on to next region if necessary */
-	  if ( cur_index == end_index) {
-	    cur_m_idx++;
-	    cur_index = 0;
-	    if ( cur_m_idx != end_m_idx ) 
-	      end_index = mrs[cur_m_idx].mem.size();
-	  }
-	
-	  /* if we're @ the end, note it */
-	  if (cur_m_idx == end_m_idx) {
-	    make_end();
-	    return;
-	  }
+          /* move on to next region if necessary */
+          if ( cur_index == end_index) {
+            cur_m_idx++;
+            cur_index = 0;
+            if ( cur_m_idx != end_m_idx ) 
+              end_index = mrs[cur_m_idx].mem.size();
+          }
+        
+          /* if we're @ the end, note it */
+          if (cur_m_idx == end_m_idx) {
+            make_end();
+            return;
+          }
 
-	  /* skip over null entries */
-	  while ((cur_index < end_index) &&
-		 (mrs[cur_m_idx].mem[cur_index] == nullptr) ) {
-	    cur_index++;
-	  }
-	
-	  current.first.start = mrs[cur_m_idx].index_to_addr(cur_index);
-	  current.second = mrs[cur_m_idx].mem[cur_index];
-	
-	  /* find all similar entries within this contiguous range */
-	  while ( (cur_index < end_index) &&
-		  (mrs[cur_m_idx].mem[cur_index] != nullptr)         &&
-		  (*current.second == *mrs[cur_m_idx].mem[cur_index]) ) {
-	    
-	    cur_index++;
-	  }
-	
-	  current.first.end = mrs[cur_m_idx].index_to_addr(cur_index);
+          /* skip over null entries */
+          while ((cur_index < end_index) &&
+                 (mrs[cur_m_idx].mem[cur_index] == nullptr) ) {
+            cur_index++;
+          }
+        
+          current.first.start = mrs[cur_m_idx].index_to_addr(cur_index);
+          current.second = mrs[cur_m_idx].mem[cur_index];
+        
+          /* find all similar entries within this contiguous range */
+          while ( (cur_index < end_index) &&
+                  (mrs[cur_m_idx].mem[cur_index] != nullptr)         &&
+                  (*current.second == *mrs[cur_m_idx].mem[cur_index]) ) {
+            
+            cur_index++;
+          }
+        
+          current.first.end = mrs[cur_m_idx].index_to_addr(cur_index);
       
-	}
+        }
       }
     
     ForwardIterator(metadata_memory_map_t *map, bool end) : mrs(map->mrs) {
-	end_m_idx = map->mrs.size();
-	make_end();
+        end_m_idx = map->mrs.size();
+        make_end();
       }
 
       bool is_end() { return ((cur_m_idx == end_m_idx + 1) && (cur_index == mrs[end_m_idx - 1].mem.size() + 1)); }
       void make_end() {
-	cur_m_idx = end_m_idx + 1;
-	cur_index = mrs[end_m_idx - 1].mem.size() + 1;
+        cur_m_idx = end_m_idx + 1;
+        cur_index = mrs[end_m_idx - 1].mem.size() + 1;
       }
 
       explicit ForwardIterator(metadata_memory_map_t *map) : mrs(map->mrs) {
-	cur_index = 0;
-	cur_m_idx = 0;
-	end_index = mrs[cur_m_idx].mem.size();
-	end_m_idx = mrs.size();
-	advance();
+        cur_index = 0;
+        cur_m_idx = 0;
+        end_index = mrs[cur_m_idx].mem.size();
+        end_m_idx = mrs.size();
+        advance();
       }
     
       void swap(ForwardIterator& other) noexcept {
-	using std::swap;
-	swap(mrs, other.mrs);
-	swap(cur_index, other.cur_index);
-	swap(cur_m_idx, other.cur_m_idx);
-	swap(end_index, other.end_index);
-	swap(end_m_idx, other.end_m_idx);
+        using std::swap;
+        swap(mrs, other.mrs);
+        swap(cur_index, other.cur_index);
+        swap(cur_m_idx, other.cur_m_idx);
+        swap(end_index, other.end_index);
+        swap(end_m_idx, other.end_m_idx);
       }
     
       // Pre-increment
       ForwardIterator& operator++ () {
-	advance();
-	return *this;
+        advance();
+        return *this;
       }
     
       // Post-increment
       ForwardIterator operator++ (int) {
-	ForwardIterator tmp(*this);
-	advance();
-	return tmp; 
+        ForwardIterator tmp(*this);
+        advance();
+        return tmp; 
       }
     
       // two-way comparison: v.begin() == v.cbegin() and vice versa
       template<class OtherType>
       bool operator == (const ForwardIterator<OtherType>& rhs) const {
-	return (cur_index == rhs.cur_index) && (cur_m_idx == rhs.cur_m_idx);
+        return (cur_index == rhs.cur_index) && (cur_m_idx == rhs.cur_m_idx);
       }
     
       template<class OtherType>
       bool operator != (const ForwardIterator<OtherType>& rhs) const {
-	return (cur_index != rhs.cur_index) || (cur_m_idx != rhs.cur_m_idx);;
+        return (cur_index != rhs.cur_index) || (cur_m_idx != rhs.cur_m_idx);;
       }
       result_type_t &operator* () { return current; }
       result_type_t *operator-> () { return &current; }
     
       // One way conversion: iterator -> const_iterator
       operator ForwardIterator<const Type>() const {
-	return ForwardIterator<const Type>(mrs);
+        return ForwardIterator<const Type>(mrs);
       }
     };
   
