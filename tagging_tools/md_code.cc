@@ -35,7 +35,6 @@
 
 using namespace policy_engine;
 
-metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
@@ -121,13 +120,13 @@ try {
   file_name = argv[3];
 
   init(policy_dir);
-  metadata_memory_map_t map(&md_cache);
+  metadata_memory_map_t map;
   if (!load_tags(&map, file_name)) {
     printf("failed read\n");
     fprintf(stderr, "failed to read tags from %s\n", file_name);
     return 1;
   }
-  printf("code addr = 0x%08x\n", code_address);
+
 // use this for debugging with gdb
 //  FILE *foo = fopen("/tmp/bits.bin", "rb");
 //  rv32_insn_stream_t s(foo);
@@ -146,9 +145,9 @@ try {
       metadata_t const *metadata = md_factory->lookup_group_metadata(name);
       if (!metadata) {
 	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
-      } else {
-//	std::string s = md_factory->render(metadata);
-//	printf("  0x%08x: %s\n", code_address, s.c_str());
+      }
+      else {
+
 	map.add_range(code_address, code_address + (flags & RVC ? 2 : 4), metadata);
       }
       code_address += (flags & RVC ? 2 : 4);
@@ -157,12 +156,13 @@ try {
     fprintf(stderr, "read error on stdin\n");
     return 1;
   }
-
+  
 //  printf("writing tags to %s\n", file_name);
   if (!save_tags(&map, file_name)) {
     printf("failed write of tag file\n");
     return 1;
   }
+  
   return 0;
 } catch (...) {
   printf("something awful happened\n");

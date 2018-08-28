@@ -40,7 +40,6 @@
 
 using namespace policy_engine;
 
-static metadata_cache_t md_cache;
 static meta_set_cache_t ms_cache;
 static meta_set_factory_t *ms_factory;
 static metadata_factory_t *md_factory;
@@ -115,7 +114,7 @@ int main(int argc, char **argv) {
   init(policy_dir, soc_cfg);
 //  address_t base_address = 0x80000000; // FIXME - need to be able to query for this
 //  md_map = new metadata_memory_map_t(base_address, &md_cache);
-  md_map = new metadata_memory_map_t(&md_cache);
+  md_map = new metadata_memory_map_t();
 
   // set up the initial tag state
   tag_stuff();

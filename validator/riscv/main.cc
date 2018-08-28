@@ -43,6 +43,7 @@ meta_set_factory_t *ms_factory;
 rv32_validator_t *rv_validator;
 std::string policy_dir;
 std::string tags_file;
+std::string soc_cfg_path;
 
 static bool DOA = false;
 
@@ -52,13 +53,10 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       printf("setting callbacks\n");
       ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
       soc_tag_configuration_t *soc_config =
-        new soc_tag_configuration_t(ms_factory, policy_dir + "/soc_cfg/dover_cfg.yml");
+        new soc_tag_configuration_t(ms_factory, soc_cfg_path);
       rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
       
-//      address_t base_address = 0x80000000; // FIXME - need to be able to query for this
-      metadata_cache_t md_cache;
-//      metadata_memory_map_t map(base_address, &md_cache);
-      metadata_memory_map_t map(&md_cache);
+      metadata_memory_map_t map;
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
       if (!load_tags(&map, tags_file)) {
         printf("failed read\n");
@@ -78,12 +76,14 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
   }
 }
 
-extern "C" void e_v_set_metadata(const char *policy_path, const char *tag_info_file) {
+extern "C" void e_v_set_metadata(const char *policy_path, const char *tag_info_file, const char *soc_cfg) {
   try {
     policy_dir = std::string(policy_path);
     tags_file = std::string(tag_info_file);
+    soc_cfg_path = std::string(soc_cfg);
     printf("set policy dir: %s\n", policy_path);
     printf("set taginfo file: %s\n", tag_info_file);
+    printf("set soc cfg file: %s\n", soc_cfg);
   } catch (std::exception &e) {
       printf("c++ exception %s while setting metadata - policy code DOA\n", e.what());
       DOA = true;
@@ -106,6 +106,19 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
   return 0;
 }
 
+extern "C" uint32_t e_v_validate_cached(uint32_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
+  //  printf("validating 0x%x: 0x%x\n", pc, instr);
+  if (!DOA) {
+    try {
+      return rv_validator->validate(pc, instr, mem_addr, hit);
+    } catch (...) {
+      printf("c++ exception while validating - policy code DOA\n");
+      DOA = true;
+    }
+  }
+  return 0;
+}
+
 extern "C" uint32_t e_v_commit() {
 //  printf("committing\n");
   bool hit_watch = false;
@@ -118,6 +131,10 @@ extern "C" uint32_t e_v_commit() {
     }
   }
   return hit_watch;
+}
+
+extern "C" void e_v_flush_rule_cache() {
+  rv_validator->flush_rule_cache();
 }
 
 extern "C" void e_v_pc_tag(char* dest, int n) {
@@ -314,4 +331,21 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 }
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
+}
+
+extern "C" void e_v_config_rule_cache(const char* rule_cache_name){
+  if (!DOA) {
+    try {
+      rv_validator->config_rule_cache(rule_cache_name);
+    } catch (exception_t &e) {
+      printf("validator exception %s while setting rule cache name\n", e.what());
+      DOA = true;
+    } catch (std::exception &e) {
+      printf("c++ exception %s while setting rule cache name \n", e.what());
+      DOA = true;
+    } catch (...) {
+      printf("c++ exception while setting rule cache name DOA\n");
+      DOA = true;
+    }
+  }
 }

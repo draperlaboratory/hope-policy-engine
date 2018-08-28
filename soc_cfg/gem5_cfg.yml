@@ -1,0 +1,13 @@
+SOC:
+  RAM: {
+    name: SOC.Memory.Ram_0,
+    start: 0x00001000,
+    end:   0xffffffff,
+    heterogeneous: true
+    }
+  FLASH: {
+    name: SOC.Memory.Flash_0,
+    start: 0x00000000,
+    end:   0x00000fff,
+    heterogeneous: true
+    }

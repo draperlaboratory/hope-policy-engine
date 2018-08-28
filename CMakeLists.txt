@@ -13,6 +13,8 @@ include_directories( ${Boost_INCLUDE_DIRS} )
 
 include_directories("./validator/include")
 include_directories("./tagging_tools")
+include_directories("./policy/include")
+
 
 add_library(validator
   validator/src/metadata_factory.cc
@@ -31,6 +33,11 @@ add_library(rv32_validator
   validator/riscv/rv32_validator.cc
   validator/riscv/meta_set_factory.cc
   validator/riscv/fake_riscv.cc
+  validator/rule_cache/ideal_rule_cache/ideal_rule_cache.cc
+  validator/rule_cache/finite_rule_cache/finite_rule_cache.cc
+  validator/rule_cache/dmhc_rule_cache/compute_hash.cc
+  validator/rule_cache/dmhc_rule_cache/dmhc.cc
+  validator/rule_cache/dmhc_rule_cache/dmhc_rule_cache.cc
   
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
@@ -41,6 +48,10 @@ target_include_directories(rv32_validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
 
 add_library(tagging_tools
@@ -52,6 +63,9 @@ add_library(tagging_tools
   tagging_tools/entity_binding.cc
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(tagging_tools PRIVATE
+  ./validator/include/policy-glue
+  )
 
 add_executable(md_range
 	tagging_tools/md_range.cc
@@ -99,6 +113,10 @@ target_include_directories(standalone PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
 
 add_library(rv32-renode-validator SHARED
@@ -109,4 +127,8 @@ target_include_directories(rv32-renode-validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
+  ./validator/rule_cache
+  ./validator/rule_cache/ideal_rule_cache
+  ./validator/rule_cache/finite_rule_cache
+  ./validator/rule_cache/dmhc_rule_cache
   )
