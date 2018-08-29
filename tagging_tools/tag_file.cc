@@ -111,7 +111,9 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
       fclose(fp);
       return false;
     }
+    printf("(0x%x, 0x%x): %d tags\n", e.first.start, e.first.end, e.second->size());
     for (auto &m: *e.second) {
+      printf("  %d\n", m);
       if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
 	fclose(fp);
 	return false;

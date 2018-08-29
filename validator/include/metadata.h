@@ -55,6 +55,14 @@ class metadata_t {
     }
   };
 
+  std::string tagstring() const {
+    std::string str;
+    for ( auto m : tags ) {
+      str.append(std::to_string(m));
+      str.append(", ");
+    }
+  }
+  
   metadata_t() { }
 
   size_t size() const { return tags.size(); }
