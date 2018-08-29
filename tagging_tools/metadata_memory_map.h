@@ -51,6 +51,8 @@ namespace policy_engine {
 
     mem_region_t(metadata_memory_map_t *map) : range({0,0}){ md_cache = map->md_cache;}
 
+      static const int stride = sizeof(uint32_t); // platform word size
+
       /* expose iterator of inner vector */
       using iterator = std::vector<metadata_t const *>::iterator;
       using const_iterator = std::vector<metadata_t const *>::const_iterator;
@@ -68,8 +70,6 @@ namespace policy_engine {
 	return index_to_addr(itr - cbegin());
       }
 
-      static const int stride = sizeof(uint32_t); // platform word size
-    
       address_t index_to_addr(size_t idx) {
         return range.start + (idx * stride);
       }
@@ -135,14 +135,6 @@ namespace policy_engine {
   
   public:
 
-    void print() {
-      for ( auto mr : mrs ) {
-	printf("(0x%x, 0x%x\n", mr.range.start, mr.range.end);
-	for ( auto mdp : mr ) 
-	  printf("  0x%x: %d tags\n", mdp, mdp->size());
-      }
-    }
-    
     void add_range(address_t start, address_t end, metadata_t const *metadata);
     metadata_t const *get_metadata(address_t addr) {
 
@@ -165,9 +157,9 @@ namespace policy_engine {
       Type&> {
     private:
 
-    mem_region_t::iterator mr_it; // todo make const
+    mem_region_t::iterator mr_it;
     std::vector<mem_region_t> &mrs;
-    std::vector<mem_region_t>::iterator it; // todo make const
+    std::vector<mem_region_t>::iterator it;
     
     typedef std::pair<range_t, metadata_t const *> result_type_t;      
     result_type_t current;
@@ -180,12 +172,14 @@ namespace policy_engine {
 	  return;
 	}
 
-	/* move to next mr */
-	if ( ++mr_it == it->end() ) {
+	/* move to next mr if necessary */
+	if ( mr_it == it->end() ) {
 	  if ( ++it != mrs.end() ) 
 	    mr_it = it->begin();
-	  else /* if we hit end */
+	  else { /* if we hit end */
+	    mr_it = mem_region_t::iterator(nullptr);
 	    return;
+	  }
 	}
 	
 	/* record start */
@@ -193,23 +187,30 @@ namespace policy_engine {
 	current.second = *mr_it;
 
 	/* pass over all contiguous identical tags */
-	while ( (mr_it) != it->end() &&
-		(*mr_it == *(mr_it+1)) )
+	do {
 	  ++mr_it;
+	} while ( ((mr_it) != it->end()) &&
+		(*mr_it == *(mr_it - 1)) );
 
 	/* record end */
-	current.first.end = it->itr_to_addr(mr_it);
+	if ( mr_it == it->end() )
+	  current.first.end = it->range.end;
+	else
+	  current.first.end = it->itr_to_addr(mr_it);
+
+	return;
       }
     
     public:
 
+    /* constructor for iterator */
     ForwardIterator(metadata_memory_map_t *map, bool begin) : mrs(map->mrs) {
-	if ( begin ) {
+	if ( begin && (mrs.begin() != mrs.end()) ) {
 	  it = mrs.begin();
 	  mr_it = it->begin();
 	  advance(); // set current to the 0th val
 	}
-	else { // end
+	else { // bool implies end or the struct is empty
 	  it = mrs.end();
 	  mr_it = mem_region_t::iterator(nullptr);
 	}
@@ -238,12 +239,13 @@ namespace policy_engine {
       // two-way comparison: v.begin() == v.cbegin() and vice versa
       template<class OtherType>
       bool operator == (const ForwardIterator<OtherType>& rhs) const {
-        return (mr_it == rhs.mr_it) && (it == rhs.it);
+        return ((it == mrs.end()) && (rhs.it == rhs.mrs.end())) ||
+	(((mr_it - it->begin()) == (rhs.mr_it - rhs.it->begin())) && (it == rhs.it));
       }
     
       template<class OtherType>
       bool operator != (const ForwardIterator<OtherType>& rhs) const {
-        return (mr_it != rhs.mr_it) || (it != rhs.it);
+        return !this->operator==(rhs);
       }
       result_type_t &operator* () { return current; }
       result_type_t *operator-> () { return &current; }
