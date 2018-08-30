@@ -9,16 +9,14 @@ set (CMAKE_CXX_COMPILER g++)
 find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
-
+# debug flags
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
 
 #find_package(gflags, REQUIRED)
 
 include_directories("./validator/include")
 include_directories("./tagging_tools")
-include_directories("./policy/include")
-
 
 add_library(validator
   validator/src/metadata_factory.cc
@@ -67,9 +65,6 @@ add_library(tagging_tools
   tagging_tools/entity_binding.cc
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_include_directories(tagging_tools PRIVATE
-  ./validator/include/policy-glue
-  )
 
 add_executable(md_range
 	tagging_tools/md_range.cc

@@ -54,14 +54,6 @@ class metadata_t {
       return l.tags == r.tags;
     }
   };
-
-  std::string tagstring() const {
-    std::string str;
-    for ( auto m : tags ) {
-      str.append(std::to_string(m));
-      str.append(", ");
-    }
-  }
   
  metadata_t() : hash(0) { }
 
