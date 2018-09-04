@@ -54,8 +54,8 @@ class metadata_t {
       return l.tags == r.tags;
     }
   };
-
-  metadata_t() { }
+  
+ metadata_t() : hash(0) { }
 
   size_t size() const { return tags.size(); }
 
