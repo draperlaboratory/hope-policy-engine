@@ -35,6 +35,7 @@
 #include "validator_exception.h"
 #include "policy_utils.h"
 #include "platform_types.h"
+#include <yaml-cpp/yaml.h>
 
 using namespace policy_engine;
 
@@ -79,14 +80,33 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
   }
 }
 
-extern "C" void e_v_set_metadata(const char *policy_path, const char *tag_info_file, const char *soc_cfg) {
+extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
   try {
-    policy_dir = std::string(policy_path);
-    tags_file = std::string(tag_info_file);
-    soc_cfg_path = std::string(soc_cfg);
-    printf("set policy dir: %s\n", policy_path);
-    printf("set taginfo file: %s\n", tag_info_file);
-    printf("set soc cfg file: %s\n", soc_cfg);
+    YAML::Node cfg = YAML::LoadFile(validator_cfg_path);
+    if (!cfg) {
+      throw configuration_exception_t("Unable to load validator yaml configuration!");
+    }
+    if (cfg["policy_dir"]) {
+      policy_dir = cfg["policy_dir"].as<std::string>();
+    }
+    else {
+      throw configuration_exception_t("Must provide policy directory in validator yaml configuration");
+    }
+    if (cfg["tags_file"]) {
+      tags_file = cfg["tags_file"].as<std::string>();
+    }
+    else {
+      throw configuration_exception_t("Must provide taginfo file path in validator yaml configuration");
+    }
+    if (cfg["soc_cfg_path"]) {
+      soc_cfg_path = cfg["soc_cfg_path"].as<std::string>();
+    }
+    else {
+      throw configuration_exception_t("Must provide soc_cfg file path in validator yaml configuration");
+    }
+    printf("set policy dir: %s\n", policy_dir.c_str());
+    printf("set taginfo file: %s\n", tags_file.c_str());
+    printf("set soc cfg file: %s\n", soc_cfg_path.c_str());
   } catch (std::exception &e) {
       printf("c++ exception %s while setting metadata - policy code DOA\n", e.what());
       DOA = true;
