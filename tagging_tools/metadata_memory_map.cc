@@ -53,8 +53,7 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
   for ( auto &mr : mrs ) {
 
     /* check whether the region is adjacent or contained within */
-    if ( ((start <= mr.end) && (start >= mr.base)) ||
-	 ((end >= mr.base)  && (end <= mr.end))    ) {
+    if ( mr.contains(start) || mr.contains(end) ) {
       mr.add_range(start, end, metadata);
       return;
     }
@@ -67,7 +66,7 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
   /* put it in the vector at the right location */
   int i;
   for ( i = 0; i < len; i++ ) {
-    if ( end < mrs[i].base ) {
+    if ( end < mrs[i].range.start ) {
 
       /* insert in the correct place */
       mrs.insert(mrs.begin()+i, mr);

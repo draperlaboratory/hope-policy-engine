@@ -147,7 +147,7 @@ try {
 	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
       }
       else {
-
+	
 	map.add_range(code_address, code_address + (flags & RVC ? 2 : 4), metadata);
       }
       code_address += (flags & RVC ? 2 : 4);
