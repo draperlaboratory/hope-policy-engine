@@ -42,39 +42,47 @@ std::string render_metadata(metadata_t const *metadata) {
     return factory->render(metadata);
   return "<no renderer>";
 }
-
+  
 void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
-  if (base == -1) {
-    base = start;
-    assert(map.size() == 0); // first range added
-  } else if (start < base) {
-    // inserting before the existing base - have to insert a bit
-    int n_insert = (base - start) / stride;
-    map.insert(map.begin(), n_insert, nullptr);
-    base = start;
-  }
-  int s = (start - base) / stride;
-  int e = (end - base) / stride;
-  if (e > map.size()) {
-    map.resize(e, nullptr);
-    end_address = index_to_addr(e);
-  }
-  while (s < e) {
-//      printf("0x%x, 0x%x\n", s, e);
-    metadata_t const *md;
-    if (map[s]) {
-      md = map[s];
-      metadata_t *new_md = new metadata_t(*md);
-      new_md->insert(metadata);
-      md = md_cache->canonize(new_md);
-      if (md != new_md)
-	delete new_md;
-    } else {
-      md = md_cache->canonize(metadata);
+
+  //  printf("(0x%x, 0x%x): %s\n", start, end, metadata->tagstring().c_str());
+  
+  /* this is a meaningless call */
+  if ( start >= end )
+    return;
+  
+  /* find the right mr */
+  for ( auto &mr : mrs ) {
+
+    /* check whether the region is adjacent or contained within */
+    if ( mr.contains(start) || mr.contains(end) ) {
+      mr.add_range(start, end, metadata);
+      return;
     }
-//    std::string md_s = render_metadata(md);
-//    printf("0x%08x: %s\n", s, md_s.c_str());
-    map[s] = md;
-    s++;
   }
+  
+  /* an appropriate existing MR was not found - make a new one */
+  mem_region_t mr = mem_region_t(this);
+  int len = mrs.size();
+
+  /* put it in the vector at the right location */
+  int i;
+  for ( i = 0; i < len; i++ ) {
+    if ( end < mrs[i].range.start ) {
+
+      /* insert in the correct place */
+      mrs.insert(mrs.begin()+i, mr);
+
+      /* now add the metadata range */
+      mrs[i].add_range(start, end, metadata);
+      return;
+    }
+  }
+
+  /* nothing found, put it at the end. */
+  mrs.push_back(mr);
+  mrs[i].add_range(start, end, metadata);
+   
+  return;
 }
+

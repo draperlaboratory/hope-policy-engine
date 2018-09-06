@@ -34,7 +34,7 @@ namespace policy_engine {
 
 class metadata_cache_t {
   private:
-  std::unordered_map<metadata_t, metadata_t *, metadata_t::hasher_t, metadata_t::equal_t> map;
+  std::unordered_map<const metadata_t, metadata_t const *, metadata_t::hasher_t, metadata_t::equal_t> map;
   public:
   metadata_t const *canonize(metadata_t const *md) {
     if (map.find(*md) == map.end()) {
