@@ -44,43 +44,61 @@ std::string render_metadata(metadata_t const *metadata) {
 }
   
 void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
-
+  
   /* this is a meaningless call */
   if ( start >= end )
     return;
-  
-  /* find the right mr */
-  for ( auto &mr : mrs ) {
 
-    /* check whether the region is adjacent or contained within */
-    if ( mr.contains(start) || mr.contains(end) ) {
-      mr.add_range(start, end, metadata);
-      return;
-    }
+  /* initialize empty memory region list */
+  if ( mrs.size() == 0 ) {
+    mem_tag_boundary_t zero_mb;
+    zero_mb.start = 0;
+    zero_mb.metadata = NULL;
+    mrs.push_back(zero_mb);
   }
   
-  /* an appropriate existing MR was not found - make a new one */
-  mem_region_t mr = mem_region_t(this);
-  int len = mrs.size();
+  mem_tag_boundary_t new_mb;
+  new_mb.start = start;
+  new_mb.metadata = md_cache->canonize(metadata);
+  
+  mem_tag_boundary_t end_mb;
+  end_mb.start = end;
+  
+  iterator lmb, hmb, nmb;
+  
+  /* find next memory boundary after start of new region */
+  for ( hmb = mrs.begin(); hmb != mrs.end(); ++hmb ) {
+    if ( hmb.start >= start )
+      break;
+    lmb = hmb;
+  }
+    
+  /* add a new memory boundary for start of new region */
+  if ( hmb.start != start )
+    nmb = mrs.insert(hmb, new_mb);
+  else
+    nmb = hmb;
+  
+  /* inherit meteadata of left boundary */
+  nmb->add_md(lmb);
 
-  /* put it in the vector at the right location */
-  int i;
-  for ( i = 0; i < len; i++ ) {
-    if ( end < mrs[i].range.start ) {
+  /* until end */
+  for ( ; hmb != mrs.end(); ++hmb ) {
+    if ( hmb.start >= end )
+      break;
+    lmb = hmb;
 
-      /* insert in the correct place */
-      mrs.insert(mrs.begin()+i, mr);
-
-      /* now add the metadata range */
-      mrs[i].add_range(start, end, metadata);
-      return;
-    }
+    /* inherit new metadata */
+    hmb->add_md(nmb);
   }
 
-  /* nothing found, put it at the end. */
-  mrs.push_back(mr);
-  mrs[i].add_range(start, end, metadata);
-   
+  if ( (hmb == mrs.end()) || (hmb.start == end))
+    return;
+
+  /* add end boundary */
+  end_mb.metadata = lmb.metadata;
+  mrs.insert(hmb, end_mb);
+
   return;
 }
 

@@ -35,121 +35,58 @@
 #include "metadata_cache.h"
 
 namespace policy_engine {
-  
-  struct range_t { address_t start, end; };
-  
-  class metadata_memory_map_t {
 
-    class mem_region_t {
-    
-      friend class metadata_memory_map_t;
+  class mem_tag_boundary_t {
+    address_t start;            // boundary 
+    metadata_t const *metadata; // metadata to right of boundary
 
-      metadata_cache_t *md_cache;
-      range_t range;
-      std::vector<metadata_t const *> mem;
-
-    mem_region_t(metadata_memory_map_t *map) : range({0,0}){ md_cache = map->md_cache;}
-
-      static const int stride = sizeof(uint16_t); // platform word size
-
-      /* expose iterator of inner vector */
-      using iterator = std::vector<metadata_t const *>::iterator;
-      using const_iterator = std::vector<metadata_t const *>::const_iterator;
-      
-      iterator begin()        { return mem.begin(); }
-      iterator end()          { return mem.end(); }
-      const_iterator cbegin() { return mem.cbegin(); }
-      const_iterator cend()   { return mem.cend(); }
-
-      address_t itr_to_addr(iterator itr) {
-	return index_to_addr(itr - begin());
-      }
-      
-      address_t itr_to_addr(const_iterator itr) {
-	return index_to_addr(itr - cbegin());
-      }
-
-      address_t index_to_addr(size_t idx) {
-        return range.start + (idx * stride);
-      }
-    
-      size_t addr_to_index(address_t addr) {
-        return (addr - range.start) / stride;
-      }
-
-      metadata_t const *getaddr(address_t addr) {
-        return mem[addr_to_index(addr)];
-      }
-
-      bool contains(address_t addr) {
-	return (addr >= range.start) && (addr <= range.end);
-      }
-      
-      size_t size() {
-	return mem.size();
-      }
-      
-      void add_range(address_t start, address_t end, metadata_t const *metadata) {
-
-        if (range.start == range.end) {
-          range.start = start;
-          assert(mem.size() == 0); // first range added
-        }
-        else if (start < range.start) {
-        
-          // inserting before the existing base - have to insert a bit
-          int n_insert = (range.start - start) / stride;
-          mem.insert(mem.begin(), n_insert, nullptr);
-          range.start = start;
-        }
-      
-        int s = (start - range.start) / stride;
-        int e = (end - range.start) / stride;
-      
-        if (e > mem.size()) {
-          mem.resize(e, nullptr);
-          range.end = index_to_addr(e);
-        }
-
-        metadata_t md;
-        while (s < e) {
-
-          md = *metadata;
-          if ( mem[s] )
-            md.insert(mem[s]);
-
-          mem[s++] = md_cache->canonize(&md);
-        }
-      
-        return;
-      }
-
-    };
-  
-    address_t base;
-    address_t end_address;
-    metadata_cache_t *md_cache;
-
-    std::vector<mem_region_t> mrs;
-  
-  public:
-
-    void add_range(address_t start, address_t end, metadata_t const *metadata);
-    metadata_t const *get_metadata(address_t addr) {
-
-      for ( auto &mr : mrs ) {
-        if ( mr.contains(addr) )
-          return mr.getaddr(addr);
-      }
-      return nullptr;
+    void add_md(class mem_tag_boundary_t mb) {
+      add_md(mb.metadata);
     }
 
-    metadata_memory_map_t() : base(-1){ md_cache = new metadata_cache_t(); }
-    metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
+    void add_md(metadata_t const *add_md) {
 
-    template <class Type, class UnqualifiedType = std::remove_cv<Type> >
-      class ForwardIterator 
-      : public std::iterator<std::forward_iterator_tag,
+      if ( !add_md )
+	return;
+      
+      metadata_t md = *add_md;
+
+      if ( metadata ) 
+	md.insert(metadata);
+
+      metadata = md_cache->canonize(&md);
+
+      return;
+    }
+  };
+  
+  metadata_cache_t *md_cache;  
+  std::vector<mem_tag_boundary_t> mrs;
+  
+ public:
+  
+  void add_range(address_t start, address_t end, metadata_t const *metadata);
+
+  metadata_t const *get_metadata(address_t addr) {
+
+    iterator lmr;
+    
+    /* todo: make binary search */
+    for ( auto &mr : mrs ) {
+      if ( mr.start > addr) 
+	return lmr.metadata;
+      lmr = mr;
+    }
+    
+    return nullptr;
+  }
+  
+ metadata_memory_map_t() : base(-1){ md_cache = new metadata_cache_t(); }
+ metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
+  
+  template <class Type, class UnqualifiedType = std::remove_cv<Type> >
+    class ForwardIterator 
+    : public std::iterator<std::forward_iterator_tag,
       UnqualifiedType,
       std::ptrdiff_t,
       Type*,
