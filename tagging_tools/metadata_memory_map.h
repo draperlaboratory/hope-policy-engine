@@ -28,7 +28,7 @@
 #define METADATA_MEMORY_MAP_H
 
 #include <stdint.h>
-#include <vector>
+#include <list>
 
 #include "platform_types.h"
 #include "metadata.h"
@@ -36,152 +36,124 @@
 
 namespace policy_engine {
 
-  class mem_tag_boundary_t {
-    address_t start;            // boundary 
-    metadata_t const *metadata; // metadata to right of boundary
+  class metadata_memory_map_t {
 
-    void add_md(class mem_tag_boundary_t mb) {
-      add_md(mb.metadata);
-    }
-
-    void add_md(metadata_t const *add_md) {
-
-      if ( !add_md )
-	return;
+    struct range_t { address_t start, end; };    
+    
+    struct mem_tag_boundary_t {
+      address_t start;            // boundary 
+      metadata_t const *metadata; // metadata to right of boundary
+    };
+    
+  private:
+    
+    metadata_cache_t *md_cache;  
+    std::list<mem_tag_boundary_t> mrs;
+    
+  public:
+    
+    void add_range(address_t start, address_t end, metadata_t const *metadata);
+    
+    metadata_t const *get_metadata(address_t addr) {
       
-      metadata_t md = *add_md;
-
-      if ( metadata ) 
-	md.insert(metadata);
-
-      metadata = md_cache->canonize(&md);
-
-      return;
-    }
-  };
-  
-  metadata_cache_t *md_cache;  
-  std::vector<mem_tag_boundary_t> mrs;
-  
- public:
-  
-  void add_range(address_t start, address_t end, metadata_t const *metadata);
-
-  metadata_t const *get_metadata(address_t addr) {
-
-    iterator lmr;
+      mem_tag_boundary_t lmr;
+      
+      if ( !addr )
+	return nullptr;
+      
+      /* todo: make binary search? */
+      for ( auto &mr : mrs ) {
+	if ( mr.start > addr)
+	  return lmr.metadata;
+	lmr = mr;
+      }
     
-    /* todo: make binary search */
-    for ( auto &mr : mrs ) {
-      if ( mr.start > addr) 
-	return lmr.metadata;
-      lmr = mr;
+      return nullptr;
     }
-    
-    return nullptr;
-  }
   
- metadata_memory_map_t() : base(-1){ md_cache = new metadata_cache_t(); }
- metadata_memory_map_t(metadata_cache_t *mc) : base(-1), md_cache(mc) { }
+  metadata_memory_map_t() { md_cache = new metadata_cache_t(); }
+  metadata_memory_map_t(metadata_cache_t *mc) : md_cache(mc) { }
   
-  template <class Type, class UnqualifiedType = std::remove_cv<Type> >
-    class ForwardIterator 
-    : public std::iterator<std::forward_iterator_tag,
+    template <class Type, class UnqualifiedType = std::remove_cv<Type> >
+      class ForwardIterator 
+      : public std::iterator<std::forward_iterator_tag,
       UnqualifiedType,
       std::ptrdiff_t,
       Type*,
       Type&> {
     private:
 
-    mem_region_t::iterator mr_it;
-    std::vector<mem_region_t> &mrs;
-    std::vector<mem_region_t>::iterator it;
+    std::list<mem_tag_boundary_t>::iterator mb_it;
+    std::list<mem_tag_boundary_t> &mbs;
     
     typedef std::pair<range_t, metadata_t const *> result_type_t;      
     result_type_t current;
 
-      void advance() {
+    void advance() {
 
-	/* dont advance if done */
-	if ( it == mrs.end() ) {
-	  mr_it = mem_region_t::iterator(nullptr);
-	  return;
-	}
+      /* skip empty regions */
+      while ( (mb_it != mbs.end()) && !mb_it->metadata )
+	++mb_it;
 
-	/* move to next mr if necessary */
-	if ( mr_it == it->end() ) {
-	  if ( ++it != mrs.end() ) 
-	    mr_it = it->begin();
-	  else { /* if we hit end */
-	    mr_it = mem_region_t::iterator(nullptr);
-	    return;
-	  }
-	}
-	
-	/* record start */
-	current.first.start = it->itr_to_addr(mr_it);
-	current.second = *mr_it;
-
-	/* pass over all contiguous identical tags */
-	do {
-	  ++mr_it;
-	} while ( ((mr_it) != it->end()) &&
-		(*mr_it == *(mr_it - 1)) );
-
-	/* record end */
-	if ( mr_it == it->end() )
-	  current.first.end = it->range.end;
-	else
-	  current.first.end = it->itr_to_addr(mr_it);
-
+      /* dont advance if done */
+      if ( mb_it == mbs.end() )
 	return;
-      }
-    
+
+      /* record start */
+      current.first.start = mb_it->start;
+      current.second = mb_it->metadata;
+
+      /* record end (ie begininning of next memory region) */
+      if ( ++mb_it == mbs.end() )
+	current.first.end = ~0;
+      else
+	current.first.end = mb_it->start;
+
+      return;
+    }
+
     public:
 
     /* constructor for iterator */
-    ForwardIterator(metadata_memory_map_t *map, bool begin) : mrs(map->mrs) {
-	if ( begin && (mrs.begin() != mrs.end()) ) {
-	  it = mrs.begin();
-	  mr_it = it->begin();
-	  advance(); // set current to the 0th val
-	}
-	else { // bool implies end or the struct is empty
-	  it = mrs.end();
-	  mr_it = mem_region_t::iterator(nullptr);
-	}
+    ForwardIterator(metadata_memory_map_t *map, bool begin) : mbs(map->mrs) {
+      if ( begin && (mbs.begin() != mbs.end()) ) {
+	mb_it = mbs.begin();
+	advance(); // set current to the 0th val
       }
+      else { // bool implies end or the struct is empty
+	mb_it = mbs.end();
+      }
+    }
 
-      void swap(ForwardIterator& other) noexcept {
-        using std::swap;
-        swap(mrs, other.mrs);
-	swap(mr_it, other.mr_it);
-	swap(it, other.it);
-      }
+    void swap(ForwardIterator& other) noexcept {
+      using std::swap;
+      swap(mbs, other.mbs);
+      swap(mb_it, other.mb_it);
+    }
     
-      // Pre-increment
-      ForwardIterator& operator++ () {
-        advance();
-        return *this;
-      }
+    // Pre-increment
+    ForwardIterator& operator++ () {
+      advance();
+      return *this;
+    }
     
-      // Post-increment
-      ForwardIterator operator++ (int) {
-        ForwardIterator tmp(*this);
-        advance();
-        return tmp; 
-      }
+    // Post-increment
+    ForwardIterator operator++ (int) {
+      ForwardIterator tmp(*this);
+      advance();
+      return tmp; 
+    }
     
-      // two-way comparison: v.begin() == v.cbegin() and vice versa
-      template<class OtherType>
-      bool operator == (const ForwardIterator<OtherType>& rhs) const {
-        return ((it == mrs.end()) && (rhs.it == rhs.mrs.end())) ||
-	(((mr_it - it->begin()) == (rhs.mr_it - rhs.it->begin())) && (it == rhs.it));
-      }
+    // two-way comparison: v.begin() == v.cbegin() and vice versa
+    template<class OtherType>
+    bool operator == (const ForwardIterator<OtherType>& rhs) const {
+      return ((mb_it == mbs.end()) && (rhs.mb_it == rhs.mbs.end())) ||
+      ((mb_it->start == rhs.mb_it->start) && (mb_it->metadata == rhs.mb_it->metadata));
+       }
     
       template<class OtherType>
       bool operator != (const ForwardIterator<OtherType>& rhs) const {
-        return !this->operator==(rhs);
+	return !(this->operator == (rhs));
       }
       result_type_t &operator* () { return current; }
       result_type_t *operator-> () { return &current; }
@@ -192,8 +164,8 @@ namespace policy_engine {
 
     iterator begin() { return iterator(this, true); }
     iterator end() { return iterator(this, false); }
-  };
+    };
 
-} // namespace policy_engine
+  } // namespace policy_engine
 
 #endif

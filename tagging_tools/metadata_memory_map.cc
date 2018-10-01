@@ -44,7 +44,7 @@ std::string render_metadata(metadata_t const *metadata) {
 }
   
 void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
-  
+
   /* this is a meaningless call */
   if ( start >= end )
     return;
@@ -64,40 +64,63 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
   mem_tag_boundary_t end_mb;
   end_mb.start = end;
   
-  iterator lmb, hmb, nmb;
+  auto lmb = mrs.begin();
+  auto hmb = mrs.begin();
   
   /* find next memory boundary after start of new region */
-  for ( hmb = mrs.begin(); hmb != mrs.end(); ++hmb ) {
-    if ( hmb.start >= start )
-      break;
-    lmb = hmb;
+  for ( hmb = mrs.begin(); (hmb->start <= start) && (hmb != mrs.end()); ) {
+    /* TODO: find a way to avoid adding this redundant entry rather than just 
+       deleting it after the fact */
+    /* if we see a redundant entry, we can delete it */
+    if ( (hmb != mrs.begin()) && (lmb->metadata == hmb->metadata) )
+      hmb = mrs.erase(hmb);
+    else
+      lmb = hmb++;
   }
-    
-  /* add a new memory boundary for start of new region */
-  if ( hmb.start != start )
-    nmb = mrs.insert(hmb, new_mb);
-  else
-    nmb = hmb;
+
+  /* 
+     hmb = first region with start >  start
+     lmb = last region with start  <= start
+   */
+
+  /* save the metadata that will exist after our region */
+  end_mb.metadata = lmb->metadata;
   
-  /* inherit meteadata of left boundary */
-  nmb->add_md(lmb);
-
-  /* until end */
-  for ( ; hmb != mrs.end(); ++hmb ) {
-    if ( hmb.start >= end )
-      break;
-    lmb = hmb;
-
-    /* inherit new metadata */
-    hmb->add_md(nmb);
+  /* new range inherits meteadata of left boundary */
+  if ( lmb->metadata && (lmb->metadata != new_mb.metadata) ) {
+    metadata_t md = *lmb->metadata;
+    
+    md.insert(metadata);
+    
+    new_mb.metadata = md_cache->canonize(&md);
   }
+  
+  /* insert new boundary if we dont already have one & metadata is different */
+  if ( (start != lmb->start) && (lmb->metadata != new_mb.metadata) ) 
+    mrs.insert(hmb, new_mb);
+    
+  /* allow the loop to process the first region in special case */
+  if ( lmb->start == start )
+    hmb = lmb;
+  
+  for ( ; (hmb->start < end) && (hmb != mrs.end()); ++hmb ) {
 
-  if ( (hmb == mrs.end()) || (hmb.start == end))
-    return;
+    /* update saved ending metadata */
+    end_mb.metadata = lmb->metadata;
+    lmb = hmb;
+    
+    /* inherit new metadata */
+    metadata_t md = *metadata;
+    
+    if ( hmb->metadata ) 
+      md.insert(hmb->metadata);
+    
+    hmb->metadata = md_cache->canonize(&md);
+  }
 
   /* add end boundary */
-  end_mb.metadata = lmb.metadata;
-  mrs.insert(hmb, end_mb);
+  if ( (hmb == mrs.end()) || (hmb->start != end) )
+    mrs.insert(hmb, end_mb);
 
   return;
 }
