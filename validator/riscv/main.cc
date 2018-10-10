@@ -104,6 +104,9 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
     else {
       throw configuration_exception_t("Must provide soc_cfg file path in validator yaml configuration");
     }
+    if (cfg["rule_cache_name"]) {
+      rv_validator->config_rule_cache(cfg["rule_cache_name"].as<std::string>());
+    }
     printf("set policy dir: %s\n", policy_dir.c_str());
     printf("set taginfo file: %s\n", tags_file.c_str());
     printf("set soc cfg file: %s\n", soc_cfg_path.c_str());
@@ -354,21 +357,4 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 }
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
-}
-
-extern "C" void e_v_config_rule_cache(const char* rule_cache_name){
-  if (!DOA) {
-    try {
-      rv_validator->config_rule_cache(rule_cache_name);
-    } catch (exception_t &e) {
-      printf("validator exception %s while setting rule cache name\n", e.what());
-      DOA = true;
-    } catch (std::exception &e) {
-      printf("c++ exception %s while setting rule cache name \n", e.what());
-      DOA = true;
-    } catch (...) {
-      printf("c++ exception while setting rule cache name DOA\n");
-      DOA = true;
-    }
-  }
 }
