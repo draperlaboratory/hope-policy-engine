@@ -104,8 +104,12 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
     else {
       throw configuration_exception_t("Must provide soc_cfg file path in validator yaml configuration");
     }
-    if (cfg["rule_cache_name"]) {
-      rv_validator->config_rule_cache(cfg["rule_cache_name"].as<std::string>());
+    if (cfg["rule_cache"]) {
+      for (auto element: cfg["rule_cache"]) {
+        std::string element_string = element.first.as<std::string>();
+        if (element_string == "name")
+          rv_validator->config_rule_cache(cfg["rule_cache"]["name"].as<std::string>());
+      }
     }
     printf("set policy dir: %s\n", policy_dir.c_str());
     printf("set taginfo file: %s\n", tags_file.c_str());
