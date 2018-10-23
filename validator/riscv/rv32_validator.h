@@ -101,8 +101,11 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ctx);
     free(ops);
     free(res);
-    if (rule_cache)
+    if (rule_cache) {
+      double hit_rate = rule_cache_hits / (rule_cache_hits + rule_cache_misses);
+      printf("rule cache hit rate was %f%%!\n", hit_rate * 100);
       delete rule_cache;
+    }
   }
 
   bool validate(address_t pc, insn_bits_t insn);
@@ -132,6 +135,8 @@ class rv32_validator_t : public rv32_validator_base_t {
   context_t failed_ctx;
   operands_t failed_ops;
   rule_cache_t *rule_cache = nullptr;
+  uint64_t rule_cache_hits;
+  uint64_t rule_cache_misses;
 };
 
 } // namespace policy_engine

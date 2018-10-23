@@ -126,6 +126,8 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   config->apply(&tag_bus, this);
   failed = false;
   has_insn_mem_addr = false;
+  rule_cache_hits = 0;
+  rule_cache_misses = 0;
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
@@ -134,8 +136,11 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
   mem_addr = memory_addr;
 
   bool result = validate(pc, insn);
-  if (rule_cache)
+  if (rule_cache) {
     *hit = rule_cache_hit;
+    if (rule_cache_hit) rule_cache_hits++;
+    else rule_cache_misses++;
+  }
   return result;
 }
 
