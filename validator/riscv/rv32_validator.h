@@ -125,7 +125,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   void complete_eval();
 
   void flush_rule_cache();
-  void config_rule_cache(const std::string cache_name);
+  void config_rule_cache(const std::string cache_name, int capacity);
 
   // fields used by main.cc
   bool failed;

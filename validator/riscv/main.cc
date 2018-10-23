@@ -45,6 +45,8 @@ rv32_validator_t *rv_validator;
 std::string policy_dir;
 std::string tags_file;
 std::string soc_cfg_path;
+std::string rule_cache_name;
+int rule_cache_capacity;
 
 static bool DOA = false;
 
@@ -67,6 +69,8 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       } else {
         rv_validator->apply_metadata(&map);
       }
+      if (rule_cache_name.size() != 0)
+        rv_validator->config_rule_cache(rule_cache_name, rule_cache_capacity);
     } catch (exception_t &e) {
       printf("validator exception %s while setting callbacks - policy code DOA\n", e.what());
       DOA = true;
@@ -108,7 +112,9 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
       for (auto element: cfg["rule_cache"]) {
         std::string element_string = element.first.as<std::string>();
         if (element_string == "name")
-          rv_validator->config_rule_cache(cfg["rule_cache"]["name"].as<std::string>());
+          rule_cache_name = element.second.as<std::string>();
+        if (element_string == "capacity")
+          rule_cache_capacity = element.second.as<int>();
       }
     }
     printf("set policy dir: %s\n", policy_dir.c_str());
