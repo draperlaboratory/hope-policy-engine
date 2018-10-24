@@ -34,7 +34,6 @@
 
 using namespace policy_engine;
 
-metadata_cache_t md_cache;
 metadata_factory_t *md_factory;
 
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
@@ -115,7 +114,7 @@ int main(int argc, char **argv) {
 
   init(policy_dir);
 
-  metadata_memory_map_t map(&md_cache);
+  metadata_memory_map_t map;
 
   if (!load_range_file(&map, range_file_name))
     return 1;
