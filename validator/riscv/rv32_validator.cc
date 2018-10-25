@@ -376,9 +376,9 @@ void rv32_validator_t::config_rule_cache(const std::string rule_cache_name, int 
 
 void rv32_validator_t::rule_cache_stats() {
   if (rule_cache) {
-    fprintf(stderr, "rule cache hits %d misses %d\n", rule_cache_hits, rule_cache_misses);
-    /* BUG: Divide by 0 since hits/misses aren't incrementing */
-    double hit_rate = rule_cache_hits / (rule_cache_hits + rule_cache_misses);
+    fprintf(stderr, "rule cache: hits %ld misses %ld total %ld\n",
+	rule_cache_hits, rule_cache_misses, rule_cache_hits + rule_cache_misses);
+    double hit_rate = (double)rule_cache_hits / (rule_cache_hits + rule_cache_misses);
     fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
   }
 };
