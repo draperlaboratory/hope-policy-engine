@@ -157,10 +157,16 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   prepare_eval(pc, insn);
   if (rule_cache) {
     if (rule_cache->allow(ops, res)) {
+      //fprintf(stderr, "rule cache hit\n");
+      rule_cache_hits++;
       rule_cache_hit = true;
       return true;
     }
-    else rule_cache_hit = false;
+    else {
+      //fprintf(stderr, "rule cache miss\n");
+      rule_cache_misses++;
+      rule_cache_hit = false;
+    }
   }
 
   policy_result = eval_policy(ctx, ops, res);
