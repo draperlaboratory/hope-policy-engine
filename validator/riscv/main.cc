@@ -170,6 +170,10 @@ extern "C" void e_v_flush_rule_cache() {
   rv_validator->flush_rule_cache();
 }
 
+extern "C" void e_v_rule_cache_stats() {
+  rv_validator->rule_cache_stats();
+}
+
 extern "C" void e_v_pc_tag(char* dest, int n) {
   const meta_set_t *ms = (const meta_set_t*) rv_validator->pc_tag;
   meta_set_to_string(ms, dest, n);

@@ -102,8 +102,6 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ops);
     free(res);
     if (rule_cache) {
-      double hit_rate = rule_cache_hits / (rule_cache_hits + rule_cache_misses);
-      printf("rule cache hit rate was %f%%!\n", hit_rate * 100);
       delete rule_cache;
     }
   }
@@ -129,6 +127,7 @@ class rv32_validator_t : public rv32_validator_base_t {
 
   void flush_rule_cache();
   void config_rule_cache(const std::string cache_name, int capacity);
+  void rule_cache_stats();
 
   // fields used by main.cc
   bool failed;
