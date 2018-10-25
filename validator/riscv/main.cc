@@ -127,7 +127,7 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
 }
 
 extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
-//  printf("validating 0x%x: 0x%x\n", pc, instr);
+//  printf("uncached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
       return rv_validator->validate(pc, instr);
@@ -140,7 +140,7 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
 }
 
 extern "C" uint32_t e_v_validate_cached(uint32_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
-  //  printf("validating 0x%x: 0x%x\n", pc, instr);
+//  printf("cached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
       return rv_validator->validate(pc, instr, mem_addr, hit);
