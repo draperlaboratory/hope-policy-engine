@@ -5,6 +5,12 @@ SOC:
     end:   0x01ffffff,
     heterogeneous: true
     }
+  TEST: {
+    name: SOC.IO.TEST,
+    start: 0x00100000,
+    end:   0x00100fff,
+    heterogeneous: true
+    }
   CLINT: {
     name: SOC.IO.CLINT,
     start: 0x02000000,
