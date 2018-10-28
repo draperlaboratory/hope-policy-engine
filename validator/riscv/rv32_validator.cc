@@ -157,14 +157,14 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   prepare_eval(pc, insn);
   if (rule_cache) {
     if (rule_cache->allow(ops, res)) {
-      //fprintf(stderr, "rule cache hit: pc 0x%x\n", pc);
       rule_cache_hits++;
       rule_cache_hit = true;
+      //fprintf(stderr, "Hit: Validating 0x%x %d\n", pc, rule_cache_hits);
       return true;
     }
     else {
-      //fprintf(stderr, "rule cache miss: pc 0x%x\n", pc);
       rule_cache_misses++;
+      //fprintf(stderr, "Miss: Validating 0x%x %d\n", pc, rule_cache_misses);
       rule_cache_hit = false;
     }
   }
