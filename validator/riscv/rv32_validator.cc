@@ -172,8 +172,6 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
   if (policy_result == POLICY_SUCCESS) {
-    if (rule_cache)
-      rule_cache->install_rule(ops, res);
     complete_eval();
   } else {
     printf("violation address: 0x%x\n",pc);
@@ -246,6 +244,18 @@ bool rv32_validator_t::commit() {
       }
     }
     csr_tags[pending_CSR] = new_tag;
+  }
+
+  if (rule_cache) {
+    results_t res_copy = {
+      .pc = (meta_set_t *)ms_cache->canonize(*res->pc),
+      .rd = (meta_set_t *)ms_cache->canonize(*res->rd),
+      .csr = (meta_set_t *)ms_cache->canonize(*res->csr),
+      .pcResult = res->pcResult,
+      .rdResult = res->rdResult,
+      .csrResult = res->csrResult
+    };
+    rule_cache->install_rule(ops, &res_copy);
   }
   return hit_watch;
 }
