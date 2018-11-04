@@ -5,10 +5,6 @@
 #include <functional>
 #include "ideal_rule_cache.h"
 
-#ifndef FINITE_RULE_CACHE_CAPACITY
-#define FINITE_RULE_CACHE_CAPACITY 16
-#endif
-
 class finite_rule_cache_t : public ideal_rule_cache_t
 {
 

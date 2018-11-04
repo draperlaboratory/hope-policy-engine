@@ -126,6 +126,8 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   config->apply(&tag_bus, this);
   failed = false;
   has_insn_mem_addr = false;
+  rule_cache_hits = 0;
+  rule_cache_misses = 0;
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
@@ -134,8 +136,11 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
   mem_addr = memory_addr;
 
   bool result = validate(pc, insn);
-  if (rule_cache)
+  if (rule_cache) {
     *hit = rule_cache_hit;
+    if (rule_cache_hit) rule_cache_hits++;
+    else rule_cache_misses++;
+  }
   return result;
 }
 
@@ -152,10 +157,16 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   prepare_eval(pc, insn);
   if (rule_cache) {
     if (rule_cache->allow(ops, res)) {
+      rule_cache_hits++;
       rule_cache_hit = true;
+      //fprintf(stderr, "Hit: Validating 0x%x %d\n", pc, rule_cache_hits);
       return true;
     }
-    else rule_cache_hit = false;
+    else {
+      rule_cache_misses++;
+      //fprintf(stderr, "Miss: Validating 0x%x %d\n", pc, rule_cache_misses);
+      rule_cache_hit = false;
+    }
   }
 
   policy_result = eval_policy(ctx, ops, res);
@@ -361,20 +372,29 @@ void rv32_validator_t::complete_eval() {
 //  printf("complete eval\n");
 }
 
-void rv32_validator_t::config_rule_cache(const std::string rule_cache_name) {
-  printf("%s rule cache!\n", rule_cache_name.c_str());
+void rv32_validator_t::config_rule_cache(const std::string rule_cache_name, int capacity) {
+  printf("%s rule cache with capacity %d!\n", rule_cache_name.c_str(), capacity);
   for (auto s : rule_cache_name)
     s = tolower(s);
   if (rule_cache_name == "ideal") {
     rule_cache = new ideal_rule_cache_t();
   }
   else if (rule_cache_name == "finite") {
-    rule_cache = new finite_rule_cache_t(FINITE_RULE_CACHE_CAPACITY);
+    rule_cache = new finite_rule_cache_t(capacity);
   }
   else if (rule_cache_name == "dmhc") {
-    rule_cache = new dmhc_rule_cache_t(DMHC_RULE_CACHE_CAPACITY, DMHC_RULE_CACHE_IWIDTH, DMHC_RULE_CACHE_OWIDTH, DMHC_RULE_CACHE_K, DMHC_RULE_CACHE_NO_EVICT);
+    rule_cache = new dmhc_rule_cache_t(capacity, DMHC_RULE_CACHE_IWIDTH, DMHC_RULE_CACHE_OWIDTH, DMHC_RULE_CACHE_K, DMHC_RULE_CACHE_NO_EVICT);
   }
-  else {
+  else if (rule_cache_name.size() != 0) {
     throw configuration_exception_t("Invalid rule cache name");
   }
 }
+
+void rv32_validator_t::rule_cache_stats() {
+  if (rule_cache) {
+    fprintf(stderr, "rule cache: hits %ld misses %ld total %ld\n",
+	rule_cache_hits, rule_cache_misses, rule_cache_hits + rule_cache_misses);
+    double hit_rate = (double)rule_cache_hits / (rule_cache_hits + rule_cache_misses);
+    fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
+  }
+};

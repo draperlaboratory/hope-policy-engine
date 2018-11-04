@@ -101,8 +101,9 @@ class rv32_validator_t : public rv32_validator_base_t {
     free(ctx);
     free(ops);
     free(res);
-    if (rule_cache)
+    if (rule_cache) {
       delete rule_cache;
+    }
   }
 
   bool validate(address_t pc, insn_bits_t insn);
@@ -125,13 +126,16 @@ class rv32_validator_t : public rv32_validator_base_t {
   void complete_eval();
 
   void flush_rule_cache();
-  void config_rule_cache(const std::string cache_name);
+  void config_rule_cache(const std::string cache_name, int capacity);
+  void rule_cache_stats();
 
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
   rule_cache_t *rule_cache = nullptr;
+  uint64_t rule_cache_hits;
+  uint64_t rule_cache_misses;
 };
 
 } // namespace policy_engine

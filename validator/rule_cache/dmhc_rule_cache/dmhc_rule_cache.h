@@ -6,9 +6,6 @@
 #include "dmhc.h"
 
 //#define DMHC_DEBUG 1
-#ifndef DMHC_RULE_CACHE_CAPACITY
-#define DMHC_RULE_CACHE_CAPACITY 1024
-#endif
 
 #ifndef DMHC_RULE_CACHE_IWIDTH
 #define DMHC_RULE_CACHE_IWIDTH 32

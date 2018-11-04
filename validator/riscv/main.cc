@@ -35,6 +35,7 @@
 #include "validator_exception.h"
 #include "policy_utils.h"
 #include "platform_types.h"
+#include <yaml-cpp/yaml.h>
 
 using namespace policy_engine;
 
@@ -44,6 +45,8 @@ rv32_validator_t *rv_validator;
 std::string policy_dir;
 std::string tags_file;
 std::string soc_cfg_path;
+std::string rule_cache_name;
+int rule_cache_capacity;
 
 static bool DOA = false;
 
@@ -63,6 +66,8 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       } else {
         rv_validator->apply_metadata(&map);
       }
+      if (rule_cache_name.size() != 0)
+        rv_validator->config_rule_cache(rule_cache_name, rule_cache_capacity);
     } catch (exception_t &e) {
       printf("validator exception %s while setting callbacks - policy code DOA\n", e.what());
       DOA = true;
@@ -76,14 +81,42 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
   }
 }
 
-extern "C" void e_v_set_metadata(const char *policy_path, const char *tag_info_file, const char *soc_cfg) {
+extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
   try {
-    policy_dir = std::string(policy_path);
-    tags_file = std::string(tag_info_file);
-    soc_cfg_path = std::string(soc_cfg);
-    printf("set policy dir: %s\n", policy_path);
-    printf("set taginfo file: %s\n", tag_info_file);
-    printf("set soc cfg file: %s\n", soc_cfg);
+    YAML::Node cfg = YAML::LoadFile(validator_cfg_path);
+    if (!cfg) {
+      throw configuration_exception_t("Unable to load validator yaml configuration!");
+    }
+    if (cfg["policy_dir"]) {
+      policy_dir = cfg["policy_dir"].as<std::string>();
+    }
+    else {
+      throw configuration_exception_t("Must provide policy directory in validator yaml configuration");
+    }
+    if (cfg["tags_file"]) {
+      tags_file = cfg["tags_file"].as<std::string>();
+    }
+    else {
+      throw configuration_exception_t("Must provide taginfo file path in validator yaml configuration");
+    }
+    if (cfg["soc_cfg_path"]) {
+      soc_cfg_path = cfg["soc_cfg_path"].as<std::string>();
+    }
+    else {
+      throw configuration_exception_t("Must provide soc_cfg file path in validator yaml configuration");
+    }
+    if (cfg["rule_cache"]) {
+      for (auto element: cfg["rule_cache"]) {
+        std::string element_string = element.first.as<std::string>();
+        if (element_string == "name")
+          rule_cache_name = element.second.as<std::string>();
+        if (element_string == "capacity")
+          rule_cache_capacity = element.second.as<int>();
+      }
+    }
+    printf("set policy dir: %s\n", policy_dir.c_str());
+    printf("set taginfo file: %s\n", tags_file.c_str());
+    printf("set soc cfg file: %s\n", soc_cfg_path.c_str());
   } catch (std::exception &e) {
       printf("c++ exception %s while setting metadata - policy code DOA\n", e.what());
       DOA = true;
@@ -94,7 +127,7 @@ extern "C" void e_v_set_metadata(const char *policy_path, const char *tag_info_f
 }
 
 extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
-//  printf("validating 0x%x: 0x%x\n", pc, instr);
+//  printf("uncached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
       return rv_validator->validate(pc, instr);
@@ -107,7 +140,7 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
 }
 
 extern "C" uint32_t e_v_validate_cached(uint32_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
-  //  printf("validating 0x%x: 0x%x\n", pc, instr);
+//  printf("cached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
       return rv_validator->validate(pc, instr, mem_addr, hit);
@@ -135,6 +168,10 @@ extern "C" uint32_t e_v_commit() {
 
 extern "C" void e_v_flush_rule_cache() {
   rv_validator->flush_rule_cache();
+}
+
+extern "C" void e_v_rule_cache_stats() {
+  rv_validator->rule_cache_stats();
 }
 
 extern "C" void e_v_pc_tag(char* dest, int n) {
@@ -331,21 +368,4 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 }
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
-}
-
-extern "C" void e_v_config_rule_cache(const char* rule_cache_name){
-  if (!DOA) {
-    try {
-      rv_validator->config_rule_cache(rule_cache_name);
-    } catch (exception_t &e) {
-      printf("validator exception %s while setting rule cache name\n", e.what());
-      DOA = true;
-    } catch (std::exception &e) {
-      printf("c++ exception %s while setting rule cache name \n", e.what());
-      DOA = true;
-    } catch (...) {
-      printf("c++ exception while setting rule cache name DOA\n");
-      DOA = true;
-    }
-  }
 }

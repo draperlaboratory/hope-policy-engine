@@ -39,7 +39,7 @@ typedef uint32_t (*MemoryReader_t)(uint32_t);
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
 uint32_t e_v_validate(uint32_t pc, uint32_t instr);
 uint32_t e_v_commit(void);
-void e_v_set_metadata(const char *policy_path, const char *tag_info_file, const char *soc_cfg);
+void e_v_set_metadata(const char *validator_cfg_path);
 void e_v_violation_msg(char *dest, int n);
 void e_v_pc_tag(char *dest, int n);
 void e_v_csr_tag(char *dest, int n, uint64_t addr);
@@ -49,7 +49,7 @@ void e_v_set_pc_watch(bool watching);
 void e_v_set_reg_watch(uint64_t addr);
 void e_v_set_csr_watch(uint64_t addr);
 void e_v_set_mem_watch(uint64_t addr);
-void e_v_config_rule_cache(const char *rule_cache_name);
+void e_v_rule_cache_stats(void);
 
 
 #ifdef __cplusplus
