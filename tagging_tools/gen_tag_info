@@ -110,7 +110,7 @@ def main():
 
     args = parser.parse_args()
 
-    asm_file_name = args.bin + ".text"
+    asm_file_name = args.tag_file.replace('.taginfo','') + ".text"
     policy_modules = {}
 
     numeric_level = getattr(logging, args.log.upper(), None)
