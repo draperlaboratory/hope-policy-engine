@@ -1,4 +1,10 @@
 SOC:
+  TEST: {
+    name: SOC.IO.TEST,
+    start: 0x00100000,
+    end:   0x00100fff,
+    heterogeneous: true
+    }
   RAM: {
     name: SOC.Memory.Ram_0,
     start: 0x80000000,
