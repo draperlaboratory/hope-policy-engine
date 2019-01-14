@@ -72,10 +72,18 @@ policy_map = {
         }
     },
     "cfi": {
-        "target": {
+        "call-tgt": {
             "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "dover.Tools.GCC.CFI_Target"
-        }
+            "policy_name": "llvm.CFI_Call-Tgt"
+        },
+        "branch-tgt": {
+            "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
+            "policy_name": "llvm.CFI_Branch-Tgt"
+        },
+        "return-tgt": {
+            "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
+            "policy_name": "llvm.CFI_Return-Tgt"
+        },
     },
     "stack": {
         "prologue": {
