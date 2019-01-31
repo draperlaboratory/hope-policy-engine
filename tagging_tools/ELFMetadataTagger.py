@@ -81,29 +81,38 @@ def bytes_to_uint(it, size):
         data.append(next(it))
     return int.from_bytes(data, byteorder='little', signed=False)
 
+needs_tag_cache = {}
 
-def policy_needs_tag(tag):
+def policy_needs_tag(policy_inits, tag):
 
-    d = policy_inits_yaml['Require']
+    global needs_tag_cache
+
+    if tag in needs_tag_cache:
+        return needs_tag_cache[tag]
+
+    d = policy_inits['Require']
     for item in tag.split("."):
         try:
             d = d[item]
         except KeyError:
+            needs_tag_cache[tag] = False
             return False
-
+        
+    needs_tag_cache[tag] = True
     return True
-
+    
 def check_and_write_range(range_file, start, end, tag_specifier,
-                          policy, range_map=None):
+                          policy_inits, range_map=None):
     for policy, tags in policy_map.items():
-        if policy_needs_tag(tags['name']):
+        if policy_needs_tag(policy_inits, tags['name']):
             if tags['tag_specifier'] == tag_specifier:
                 range_file.write_range(start, end, tags['name'])
                 if range_map:
                     range_map.add_range(start, end, tags['name'])
 
-
-def generate_policy_ranges(ef, range_file, policy):
+# TODO: the rangemap arg here is a placeholder to help get policy-specific
+#     stuff out of this file. It should be re-evaluated
+def generate_policy_ranges(ef, range_file, policy_inits, rangemap):
     metadata = ef.get_section_by_name(b'.dover_metadata')
     if not metadata:
         metadata = ef.get_section_by_name(".dover_metadata")
@@ -112,12 +121,7 @@ def generate_policy_ranges(ef, range_file, policy):
 
     it = iter(metadata)
 
-    global policy_inits_yaml
-
-    with open("/home/scott/hope/policies/policy_tests/output/webapp.hifive/osv.hifive.main.ppac-usr_type/osv.hifive.main.ppac-usr_type/policy_init.yml", "r") as pmf:
-        policy_inits_yaml = yaml.load(pmf.read())    
-    
-    if policy == "cfi" or policy == "threeClass" or policy == "ppac":
+    if rangemap:
         range_map = TaggingUtils.RangeMap()
     else:
         range_map = None
@@ -133,7 +137,7 @@ def generate_policy_ranges(ef, range_file, policy):
                           " at address " + hex(address) + '\n')
 
             check_and_write_range(range_file, address, address + PTR_SIZE, tag_specifier,
-                                  policy, range_map)
+                                  policy_inits, range_map)
 
         elif (byte == metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
             start_address = bytes_to_uint(it, PTR_SIZE) + base_address
@@ -144,7 +148,7 @@ def generate_policy_ranges(ef, range_file, policy):
                           hex(start_address) + ":" + hex(end_address) + '\n')
 
             check_and_write_range(range_file, start_address, end_address, tag_specifier,
-                                  policy, range_map)
+                                  policy_inits, range_map)
 
         elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL']):
             logging.critical("Saw policy symbol!\n")

@@ -58,27 +58,14 @@ def write_section_range(ef, range_file, section_name, tag):
     range_file.write_range(start, end, tag)
 
 
-def generate_stack_ranges(ef, range_file):
-    ELFMetadataTagger.generate_policy_ranges(ef, range_file, "stack")
-
-
 def generate_rwx_ranges(ef, range_file):
     RWXTagger.generate_rwx_ranges(ef, range_file)
 
-
-def generate_cpi_ranges(ef, range_file):
-    ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cpi")
-
-def generate_ppac_ranges(ef, range_file):
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "ppac")
-
-    
 def generate_cfi_ranges(ef, range_file):
+    
     code_range_map = TaggingUtils.RangeMap()
     add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cfi")
+    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits, True)
 
     for (start, end, tags) in code_range_map:
         for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
@@ -87,9 +74,10 @@ def generate_cfi_ranges(ef, range_file):
                 range_file.write_range(s, e, NoCFI)
 
 def generate_threeClass_ranges(ef, range_file):
+
     code_range_map = TaggingUtils.RangeMap()
     add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "threeClass")
+    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits, True)
 
     for (start, end, tags) in code_range_map:
         for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
@@ -133,6 +121,10 @@ def main():
     with open(args.policy_dir + "/policy_modules.yml", "r") as pmf:
         policy_modules = yaml.load(pmf.read())
 
+    global policy_inits
+    with open(args.policy_dir + "/policy_init.yml", "r") as pmf:
+        policy_inits = yaml.load(pmf.read())
+        
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
 
@@ -147,6 +139,11 @@ def main():
                 sys.exit(-1)
             generate_ranges_func = 'generate_' + policy + '_ranges'
             logging.info("Generating tags for policy {}".format(policy))
+
+            if 'llvm' in policy_inits['Require']:
+                if not policy == "cfi" and not policy == "threeClass":
+                    ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits, False)
+            
             if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
                 globals()[generate_ranges_func](ef, range_file)
             else:
