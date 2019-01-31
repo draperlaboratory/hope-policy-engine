@@ -48,17 +48,6 @@ def add_code_section_ranges(ef, range_map):
                 range_map.add_range(start, end)
 
 
-def generate_cfi_ranges(ef, range_file):
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cfi")
-
-    for (start, end, tags) in code_range_map:
-        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
-            e = s + ELFMetadataTagger.PTR_SIZE
-            if (s, e, tags) not in range_map:
-                range_file.write_range(s, e, NoCFI)
-
 
 def write_section_range(ef, range_file, section_name, tag):
     section = ef.get_section_by_name("." + section_name)
@@ -80,6 +69,22 @@ def generate_rwx_ranges(ef, range_file):
 def generate_cpi_ranges(ef, range_file):
     ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cpi")
 
+def generate_ppac_ranges(ef, range_file):
+    code_range_map = TaggingUtils.RangeMap()
+    add_code_section_ranges(ef, code_range_map)
+    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "ppac")
+
+    
+def generate_cfi_ranges(ef, range_file):
+    code_range_map = TaggingUtils.RangeMap()
+    add_code_section_ranges(ef, code_range_map)
+    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cfi")
+
+    for (start, end, tags) in code_range_map:
+        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
+            e = s + ELFMetadataTagger.PTR_SIZE
+            if (s, e, tags) not in range_map:
+                range_file.write_range(s, e, NoCFI)
 
 def generate_threeClass_ranges(ef, range_file):
     code_range_map = TaggingUtils.RangeMap()

@@ -1,6 +1,7 @@
 import TaggingUtils
 import logging
 import sys
+import yaml
 
 PTR_SIZE = 4
 
@@ -31,69 +32,45 @@ tag_specifiers = {
 }
 
 policy_map = {
-    "threeClass": {
-        "call-tgt": {
-            "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "llvm.CFI_Call-Tgt"
-        },
-        "branch-tgt": {
-            "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
-            "policy_name": "llvm.CFI_Branch-Tgt"
-        },
-        "return-tgt": {
-            "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
-            "policy_name": "llvm.CFI_Return-Tgt"
-        },
-        "call-instr": {
-            "tag_specifier": tag_specifiers["DMT_CALL_INSTR"],
-            "policy_name": "llvm.CFI_Call-Instr"
-        },
-        "branch-instr": {
-            "tag_specifier": tag_specifiers["DMT_BRANCH_INSTR"],
-            "policy_name": "llvm.CFI_Branch-Instr"
-        },
-        "return-instr": {
-            "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
-            "policy_name": "llvm.CFI_Return-Instr"
-        }
+    "call-tgt": {
+        "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
+        "name": "llvm.CFI_Call-Tgt"
     },
-    "cpi": {
-        "fptrcreate": {
-            "tag_specifier": tag_specifiers["DMT_FPTR_CREATE_AUTHORITY"],
-            "policy_name": "llvm.CPI.FPtrCreate"
-        },
-        "fptrstore": {
-            "tag_specifier": tag_specifiers["DMT_FPTR_STORE_AUTHORITY"],
-            "policy_name": "llvm.CPI.FPtrStore"
-        },
-        "return-instr": {
-            "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
-            "policy_name": "llvm.CFI_Return-Instr"
-        }
+    "branch-tgt": {
+        "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
+        "name": "llvm.CFI_Branch-Tgt"
     },
-    "cfi": {
-        "call-tgt": {
-            "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
-            "policy_name": "llvm.CFI_Call-Tgt"
-        },
-        "branch-tgt": {
-            "tag_specifier": tag_specifiers["DMT_BRANCH_VALID_TGT"],
-            "policy_name": "llvm.CFI_Branch-Tgt"
-        },
-        "return-tgt": {
-            "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
-            "policy_name": "llvm.CFI_Return-Tgt"
-        },
+    "return-tgt": {
+        "tag_specifier": tag_specifiers["DMT_RET_VALID_TGT"],
+        "name": "llvm.CFI_Return-Tgt"
     },
-    "stack": {
-        "prologue": {
-            "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
-            "policy_name": "dover.Tools.GCC.Prologue"
-        },
-        "epilogue": {
-            "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
-            "policy_name": "dover.Tools.GCC.Epilogue"
-        }
+    "call-instr": {
+        "tag_specifier": tag_specifiers["DMT_CALL_INSTR"],
+        "name": "llvm.CFI_Call-Instr"
+    },
+    "branch-instr": {
+        "tag_specifier": tag_specifiers["DMT_BRANCH_INSTR"],
+        "name": "llvm.CFI_Branch-Instr"
+    },
+    "return-instr": {
+        "tag_specifier": tag_specifiers["DMT_RETURN_INSTR"],
+        "name": "llvm.CFI_Return-Instr"
+    },
+    "fptrcreate": {
+        "tag_specifier": tag_specifiers["DMT_FPTR_CREATE_AUTHORITY"],
+        "name": "llvm.CPI.FPtrCreate"
+    },
+    "fptrstore": {
+        "tag_specifier": tag_specifiers["DMT_FPTR_STORE_AUTHORITY"],
+        "name": "llvm.CPI.FPtrStore"
+    },
+    "prologue": {
+        "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
+        "name": "dover.Tools.GCC.Prologue"
+    },
+    "epilogue": {
+        "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
+        "name": "dover.Tools.GCC.Epilogue"
     }
 }
 
@@ -105,14 +82,25 @@ def bytes_to_uint(it, size):
     return int.from_bytes(data, byteorder='little', signed=False)
 
 
+def policy_needs_tag(tag):
+
+    d = policy_inits_yaml['Require']
+    for item in tag.split("."):
+        try:
+            d = d[item]
+        except KeyError:
+            return False
+
+    return True
+
 def check_and_write_range(range_file, start, end, tag_specifier,
                           policy, range_map=None):
-    policy_mappings = policy_map[policy]
-    for policy, tags in policy_mappings.items():
-        if tags['tag_specifier'] == tag_specifier:
-            range_file.write_range(start, end, tags['policy_name'])
-            if range_map:
-                range_map.add_range(start, end, tags['policy_name'])
+    for policy, tags in policy_map.items():
+        if policy_needs_tag(tags['name']):
+            if tags['tag_specifier'] == tag_specifier:
+                range_file.write_range(start, end, tags['name'])
+                if range_map:
+                    range_map.add_range(start, end, tags['name'])
 
 
 def generate_policy_ranges(ef, range_file, policy):
@@ -124,7 +112,12 @@ def generate_policy_ranges(ef, range_file, policy):
 
     it = iter(metadata)
 
-    if policy == "cfi" or policy == "threeClass":
+    global policy_inits_yaml
+
+    with open("/home/scott/hope/policies/policy_tests/output/webapp.hifive/osv.hifive.main.ppac-usr_type/osv.hifive.main.ppac-usr_type/policy_init.yml", "r") as pmf:
+        policy_inits_yaml = yaml.load(pmf.read())    
+    
+    if policy == "cfi" or policy == "threeClass" or policy == "ppac":
         range_map = TaggingUtils.RangeMap()
     else:
         range_map = None
@@ -190,5 +183,6 @@ def generate_policy_ranges(ef, range_file, policy):
         else:
             logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
             sys.exit(-1)
+
 
     return range_map
