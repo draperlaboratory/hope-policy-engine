@@ -108,7 +108,6 @@ def main():
             if policy not in module_policies:
                 logging.fatal("Tried to generate tag info for invalid policy")
                 sys.exit(-1)
-            generate_ranges_func = 'generate_' + policy + '_ranges'
             logging.info("Generating tags for policy {}".format(policy))
 
             # ELF section tagging
@@ -132,11 +131,6 @@ def main():
                                 range_file.write_range(s, e, NoCFI)
 
                 
-            if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
-                globals()[generate_ranges_func](ef, range_file)
-            else:
-                print('No such policy generation function: ' + generate_ranges_func + '\n')
-
         range_file.finish();
 
         presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
