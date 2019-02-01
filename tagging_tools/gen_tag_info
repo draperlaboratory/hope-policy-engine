@@ -21,23 +21,6 @@ md_code = 'md_code'
 md_asm_ann = 'md_asm_ann'
 md_entity = 'md_entity'
 
-def policy_has_module(yf, name):
-    modules = yf["Modules"]
-    for m in modules:
-        if m["name"] == name:
-            return True
-    return False
-
-
-def write_section_range(ef, range_file, section_name, tag):
-    section = ef.get_section_by_name("." + section_name)
-    if not section:
-        logging.fatal("Couldn't find section {} in elf file!".format(section_name))
-    start = section['sh_addr']
-    end = start + section['sh_size']
-    range_file.write_range(start, end, tag)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
