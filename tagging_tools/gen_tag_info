@@ -35,7 +35,6 @@ def policy_has_module(yf, name):
 def round_up(x, align):
     return ~((~x) & ~align)
 
-
 def add_code_section_ranges(ef, range_map):
     for s in ef.iter_sections():
         flags = s['sh_flags']
@@ -46,8 +45,6 @@ def add_code_section_ranges(ef, range_map):
             if ((flags & (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_WRITE | SH_FLAGS.SHF_EXECINSTR)) ==
                 (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
                 range_map.add_range(start, end)
-
-
 
 def write_section_range(ef, range_file, section_name, tag):
     section = ef.get_section_by_name("." + section_name)
@@ -60,30 +57,6 @@ def write_section_range(ef, range_file, section_name, tag):
 
 def generate_rwx_ranges(ef, range_file):
     RWXTagger.generate_rwx_ranges(ef, range_file)
-
-def generate_cfi_ranges(ef, range_file):
-    
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits, True)
-
-    for (start, end, tags) in code_range_map:
-        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
-            e = s + ELFMetadataTagger.PTR_SIZE
-            if (s, e, tags) not in range_map:
-                range_file.write_range(s, e, NoCFI)
-
-def generate_threeClass_ranges(ef, range_file):
-
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits, True)
-
-    for (start, end, tags) in code_range_map:
-        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
-            e = s + ELFMetadataTagger.PTR_SIZE
-            if (s, e, tags) not in range_map:
-                range_file.write_range(s, e, NoCFI)
 
 
 def main():
@@ -141,9 +114,20 @@ def main():
             logging.info("Generating tags for policy {}".format(policy))
 
             if 'llvm' in policy_inits['Require']:
-                if not policy == "cfi" and not policy == "threeClass":
-                    ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits, False)
-            
+                range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits)
+
+                if policy == 'cfi' or policy == 'threeClass':
+
+                    code_range_map = TaggingUtils.RangeMap()
+                    add_code_section_ranges(ef, code_range_map)
+
+                    for (start, end, tags) in code_range_map:
+                        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
+                            e = s + ELFMetadataTagger.PTR_SIZE
+                            if (s, e, tags) not in range_map:
+                                range_file.write_range(s, e, NoCFI)
+
+                
             if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
                 globals()[generate_ranges_func](ef, range_file)
             else:

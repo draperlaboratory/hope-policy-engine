@@ -102,17 +102,16 @@ def policy_needs_tag(policy_inits, tag):
     return True
     
 def check_and_write_range(range_file, start, end, tag_specifier,
-                          policy_inits, range_map=None):
+                          policy_inits, range_map):
     for policy, tags in policy_map.items():
         if policy_needs_tag(policy_inits, tags['name']):
             if tags['tag_specifier'] == tag_specifier:
                 range_file.write_range(start, end, tags['name'])
-                if range_map:
-                    range_map.add_range(start, end, tags['name'])
+                range_map.add_range(start, end, tags['name'])
 
 # TODO: the rangemap arg here is a placeholder to help get policy-specific
 #     stuff out of this file. It should be re-evaluated
-def generate_policy_ranges(ef, range_file, policy_inits, rangemap):
+def generate_policy_ranges(ef, range_file, policy_inits):
     metadata = ef.get_section_by_name(b'.dover_metadata')
     if not metadata:
         metadata = ef.get_section_by_name(".dover_metadata")
@@ -121,10 +120,7 @@ def generate_policy_ranges(ef, range_file, policy_inits, rangemap):
 
     it = iter(metadata)
 
-    if rangemap:
-        range_map = TaggingUtils.RangeMap()
-    else:
-        range_map = None
+    range_map = TaggingUtils.RangeMap()
 
     for byte in it:
         if (byte == metadata_ops['DMD_SET_BASE_ADDRESS_OP']):
@@ -136,8 +132,8 @@ def generate_policy_ranges(ef, range_file, policy_inits, rangemap):
             logging.debug("tag is " + hex(tag_specifier) +
                           " at address " + hex(address) + '\n')
 
-            check_and_write_range(range_file, address, address + PTR_SIZE, tag_specifier,
-                                  policy_inits, range_map)
+            check_and_write_range(range_file, address, address + PTR_SIZE,
+                                  tag_specifier, policy_inits, range_map)
 
         elif (byte == metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
             start_address = bytes_to_uint(it, PTR_SIZE) + base_address
@@ -147,8 +143,8 @@ def generate_policy_ranges(ef, range_file, policy_inits, rangemap):
                           " for address range " +
                           hex(start_address) + ":" + hex(end_address) + '\n')
 
-            check_and_write_range(range_file, start_address, end_address, tag_specifier,
-                                  policy_inits, range_map)
+            check_and_write_range(range_file, start_address, end_address,
+                                  tag_specifier, policy_inits, range_map)
 
         elif (byte == metadata_ops['DMD_TAG_POLICY_SYMBOL']):
             logging.critical("Saw policy symbol!\n")
@@ -175,15 +171,13 @@ def generate_policy_ranges(ef, range_file, policy_inits, rangemap):
             end_address = bytes_to_uint(it, PTR_SIZE)
             logging.debug("saw end block tag range = " + hex(base_address) +
                           ":" + hex(base_address + end_address))
-            if range_map:
-                range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
+            range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
         elif (byte == metadata_ops['DMD_FUNCTION_RANGE']):
             start_address = bytes_to_uint(it, PTR_SIZE) + base_address
             end_address = bytes_to_uint(it, PTR_SIZE) + base_address + PTR_SIZE
             logging.debug("saw function range = " + hex(start_address) +
                           ":" + hex(end_address))
-            if range_map:
-                range_map.add_range(start_address, end_address, "COMPILER_GENERATED")
+            range_map.add_range(start_address, end_address, "COMPILER_GENERATED")
         else:
             logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
             sys.exit(-1)
