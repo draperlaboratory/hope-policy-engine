@@ -3,6 +3,9 @@ import logging
 import sys
 import yaml
 
+from elftools.elf.constants import SH_FLAGS
+
+
 PTR_SIZE = 4
 
 metadata_ops = {
@@ -102,7 +105,21 @@ def policy_needs_tag(policy_inits, tag):
         
     needs_tag_cache[tag] = True
     return True
-    
+
+def round_up(x, align):
+    return ~((~x) & ~align)
+
+def add_code_section_ranges(ef, range_map):
+    for s in ef.iter_sections():
+        flags = s['sh_flags']
+        if (flags & SH_FLAGS.SHF_ALLOC):
+            start = s['sh_addr']
+            end = start + s['sh_size']
+            end = round_up(end, PTR_SIZE)
+            if ((flags & (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_WRITE | SH_FLAGS.SHF_EXECINSTR)) ==
+                (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
+                range_map.add_range(start, end)
+
 def check_and_write_range(range_file, start, end, tag_specifier,
                           policy_inits, range_map):
     for policy, tags in policy_map.items():
@@ -182,5 +199,16 @@ def generate_policy_ranges(ef, range_file, policy_inits):
             logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
             sys.exit(-1)
 
+    # tag NoCFI for anythign not specifically noted by llvm
+    if 'NoCFI' in policy_inits['Require']['llvm']:
+
+        code_range_map = TaggingUtils.RangeMap()
+        add_code_section_ranges(ef, code_range_map)
+
+        for (start, end, tags) in code_range_map:
+            for s in range(start, end, PTR_SIZE):
+                e = s + PTR_SIZE
+                if (s, e, tags) not in range_map:
+                    range_file.write_range(s, e, "llvm.NoCFI")
 
     return range_map
