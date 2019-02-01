@@ -18,6 +18,7 @@ metadata_ops = {
     "DMD_FUNCTION_RANGE": 0xa
 }
 
+# LLVM feature mappings. See header file in LLVM
 tag_specifiers = {
     "DMT_CFI3L_VALID_TGT": 0x01,
     "DMT_STACK_PROLOGUE_AUTHORITY": 0x02,
@@ -31,6 +32,7 @@ tag_specifiers = {
     "DMT_FPTR_CREATE_AUTHORITY": 0x0a
 }
 
+# Names policies will use to access features
 policy_map = {
     "call-tgt": {
         "tag_specifier": tag_specifiers["DMT_CFI3L_VALID_TGT"],
@@ -66,11 +68,11 @@ policy_map = {
     },
     "prologue": {
         "tag_specifier": tag_specifiers["DMT_STACK_PROLOGUE_AUTHORITY"],
-        "name": "dover.Tools.GCC.Prologue"
+        "name": "llvm.Prologue"
     },
     "epilogue": {
         "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
-        "name": "dover.Tools.GCC.Epilogue"
+        "name": "llvm.Epilogue"
     }
 }
 
@@ -109,8 +111,6 @@ def check_and_write_range(range_file, start, end, tag_specifier,
                 range_file.write_range(start, end, tags['name'])
                 range_map.add_range(start, end, tags['name'])
 
-# TODO: the rangemap arg here is a placeholder to help get policy-specific
-#     stuff out of this file. It should be re-evaluated
 def generate_policy_ranges(ef, range_file, policy_inits):
     metadata = ef.get_section_by_name(b'.dover_metadata')
     if not metadata:

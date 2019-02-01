@@ -9,7 +9,7 @@ import logging
 import TaggingUtils
 import RWXTagger
 import OpCodeTagger
-import ELFMetadataTagger
+import LLVMMetadataTagger
 import yaml
 
 from elftools.elf.elffile import ELFFile
@@ -41,7 +41,7 @@ def add_code_section_ranges(ef, range_map):
         if (flags & SH_FLAGS.SHF_ALLOC):
             start = s['sh_addr']
             end = start + s['sh_size']
-            end = round_up(end, ELFMetadataTagger.PTR_SIZE)
+            end = round_up(end, LLVMMetadataTagger.PTR_SIZE)
             if ((flags & (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_WRITE | SH_FLAGS.SHF_EXECINSTR)) ==
                 (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
                 range_map.add_range(start, end)
@@ -56,8 +56,6 @@ def write_section_range(ef, range_file, section_name, tag):
 
 
 def generate_rwx_ranges(ef, range_file):
-    RWXTagger.generate_rwx_ranges(ef, range_file)
-
 
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
@@ -113,17 +111,23 @@ def main():
             generate_ranges_func = 'generate_' + policy + '_ranges'
             logging.info("Generating tags for policy {}".format(policy))
 
+            # ELF section tagging
+            if 'elf' in policy_inits['Require']:
+                ELFSectionTagger.generate_rwx_ranges(ef, range_file)
+            
+            # LLVM tagging
             if 'llvm' in policy_inits['Require']:
-                range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits)
+                range_map = LLVMMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits)
 
+                # TODO: get policy dependencies out of tagging tools.
                 if policy == 'cfi' or policy == 'threeClass':
 
                     code_range_map = TaggingUtils.RangeMap()
                     add_code_section_ranges(ef, code_range_map)
 
                     for (start, end, tags) in code_range_map:
-                        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
-                            e = s + ELFMetadataTagger.PTR_SIZE
+                        for s in range(start, end, LLVMMetadataTagger.PTR_SIZE):
+                            e = s + LLVMMetadataTagger.PTR_SIZE
                             if (s, e, tags) not in range_map:
                                 range_file.write_range(s, e, NoCFI)
 
