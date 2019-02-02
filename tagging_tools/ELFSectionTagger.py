@@ -4,9 +4,9 @@ from elftools.elf.constants import SH_FLAGS
 # really not needed, but it's where you find RangeFile
 import TaggingUtils
 
-RWX_X = 'ELF.Section.SHF_EXECINSTR'
-RWX_R = 'ELF.Section.SHF_ALLOC'
-RWX_W = 'ELF.Section.SHF_WRITE'
+RWX_X = 'elf.Section.SHF_EXECINSTR'
+RWX_R = 'elf.Section.SHF_ALLOC'
+RWX_W = 'elf.Section.SHF_WRITE'
 
 def generate_rwx_ranges(ef, range_file):
      for s in ef.iter_sections():
