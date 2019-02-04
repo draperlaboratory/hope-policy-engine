@@ -20,6 +20,7 @@ include_directories("./tagging_tools")
 
 add_library(validator
   validator/src/metadata_factory.cc
+  validator/src/opgroup_rule.cc
   validator/src/tag_based_validator.cc
   validator/src/soc_tag_configuration.cc
   )
@@ -27,6 +28,7 @@ set_property(TARGET validator PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(validator PRIVATE
   ./policy/include
   ./validator/riscv
+  ./validator/include/policy-glue
   )
 
 add_library(rv32_validator

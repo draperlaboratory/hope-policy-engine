@@ -55,8 +55,10 @@ class metadata_tool_t {
   metadata_t const *lookup_metadata(std::string const &dotted_path) {
     return md_factory->lookup_metadata(dotted_path);
   }
-  bool apply_group_tag(address_t start, address_t end, const char *group) {
-    metadata_t const *metadata = md_factory->lookup_group_metadata(group);
+  bool apply_group_tag(address_t start, address_t end, const char *group,
+                       int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3,
+                       uint32_t rd, int32_t imm) {
+    metadata_t const *metadata = md_factory->lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
     if (!metadata)
       return false;
     md_map.add_range(start, end, metadata);
