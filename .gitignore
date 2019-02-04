@@ -3,3 +3,5 @@ build/*
 autom4te.cache/*
 policy/*
 *.taginfo
+*.swp
+*.swo

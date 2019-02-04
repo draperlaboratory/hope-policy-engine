@@ -113,16 +113,20 @@ try {
       uint32_t rs1, rs2, rs3, rd;
       int32_t imm;
       const char *name;
-	  uint32_t opdef;
+      uint32_t opdef;
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
-      metadata_t const *metadata = md_factory->lookup_group_metadata(name);
-      if (!metadata) {
-	fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
-      } else {
-//	std::string s = md_factory->render(metadata);
-//	printf("0x%08x: %s\n", code_address, s.c_str());
 
-	map.add_range(code_address, code_address + 4, metadata);
+      metadata_t const *metadata =
+        md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
+
+      if (metadata == nullptr) {
+        fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n",
+            code_address, insn, name);
+      } else {
+        // std::string s = md_factory->render(metadata);
+        // printf("0x%08x: %s\n", code_address, s.c_str());
+
+        map.add_range(code_address, code_address + 4, metadata);
       }
       code_address += 4;
     }

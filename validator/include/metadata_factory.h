@@ -31,9 +31,11 @@
 #include <map>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
+#include <stdio.h>
 
 #include "policy_types.h" // meta_t
 #include "metadata.h"
+#include "opgroup_rule.h"
 
 namespace policy_engine {
 
@@ -48,6 +50,7 @@ class metadata_factory_t {
   std::unordered_map<std::string, meta_t> encoding_map;
   std::unordered_map<std::string, metadata_t const *> path_map;
   std::unordered_map<std::string, metadata_t const *> group_map;
+  std::unordered_map<std::string, opgroup_rule_t *> opgroup_rule_map;
 
   std::map<std::string, entity_init_t> entity_initializers;
 
@@ -62,15 +65,30 @@ class metadata_factory_t {
 
   static std::vector<std::string> split_dotted_name(const std::string &name);
 
+  private:
+  void update_rule_map(std::string key, YAML::Node &node);
+
   public:
   metadata_factory_t(std::string policy_dir);
   metadata_t const *lookup_metadata(std::string dotted_path);
-  metadata_t const *lookup_group_metadata(std::string const &opgroup) {
-    auto const &it = group_map.find(opgroup);
-    if (it == group_map.end()) {
+
+  metadata_t const *lookup_group_metadata(std::string const &opgroup,
+                                          int32_t flags, uint32_t rs1, uint32_t rs2,
+                                          uint32_t rs3, uint32_t rd, int32_t imm) {
+    metadata_t *metadata;
+    auto const &it_opgroup_rule = opgroup_rule_map.find(opgroup);
+    if (it_opgroup_rule != opgroup_rule_map.end()) {
+      metadata = it_opgroup_rule->second->match(flags, rs1, rs2, rs3, rd, imm);
+      if (metadata != nullptr) {
+        return metadata;
+      }
+    }
+
+    auto const &it_group = group_map.find(opgroup);
+    if (it_group == group_map.end()) {
       return nullptr;
     }
-    return it->second;
+    return it_group->second;
   }
 
   std::string render(meta_t meta, bool abbrev = false);

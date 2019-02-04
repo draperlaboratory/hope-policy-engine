@@ -24,7 +24,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <linux/limits.h>
 #include <string.h>
+#include <stdio.h>
 #include <sstream>
 #include <exception>
 
@@ -48,8 +50,8 @@ void metadata_factory_t::init_entity_initializers(YAML::Node const &reqsAST, std
       init.entity_name = prefix;
       YAML::Node mnode = it->second;
       for (size_t i = 0; i < mnode.size(); i++) {
-	std::string name = mnode[i]["name"].as<std::string>();
-	init.meta_names.push_back(name);
+        std::string name = mnode[i]["name"].as<std::string>();
+        init.meta_names.push_back(name);
       }
       entity_initializers[prefix] = init;
 //      printf("adding: %s\n", prefix.c_str());
@@ -80,8 +82,6 @@ std::vector<std::string> metadata_factory_t::split_dotted_name(const std::string
     res.push_back(elt);
   return res;
 }
-
-#include <stdio.h>
 
 static void dump_node(YAML::Node node) {
   printf("node: %p\n", &node);
@@ -125,24 +125,94 @@ metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
 #endif
 }
 
-void metadata_factory_t::init_group_map(YAML::Node &n) {
-  n = n["Groups"];
-  for (YAML::const_iterator it = n.begin(); it != n.end(); ++it) {
+static const std::unordered_map<std::string, operand_rule_match_t> operand_match_yaml_ids {
+  {"match_all", OPERAND_RULE_ANY},
+  {"match_equal", OPERAND_RULE_EQUAL},
+  {"match_not_equal", OPERAND_RULE_NOT},
+  {"match_in_range", OPERAND_RULE_RANGE},
+  {"match_not_in_range", OPERAND_RULE_NOT_RANGE},
+};
+
+void metadata_factory_t::update_rule_map(std::string key, YAML::Node &node) {
+  std::string name;
+  YAML::Node operand_rules;
+  metadata_t *metadata;
+  opgroup_rule_t *opgroup_rule;
+
+  metadata = new metadata_t();
+
+  for (const auto &it : node) {
+    name = it.first.as<std::string>();
+    operand_rules = it.second;
+  }
+
+  metadata->insert(encoding_map[name]);
+
+  opgroup_rule = new opgroup_rule_t(metadata);
+
+  for (size_t i = 0; i < operand_rules.size(); i++) {
+    std::vector<uint32_t> values;
+    operand_rule_match_t match = OPERAND_RULE_UNKNOWN;
+
+    if (operand_rules[i].IsScalar()) {
+      opgroup_rule->add_operand_rule(values, OPERAND_RULE_ANY);
+      continue;
+    }
+
+    if (operand_rules[i].IsMap()) {
+      std::string operand_id;
+
+      for (const auto &it : operand_rules[i]) {
+        operand_id = it.first.as<std::string>();
+
+        for (size_t j = 0; j < it.second.size(); j++) {
+          values.push_back(it.second[j].as<uint32_t>());
+        }
+      }
+
+      for (const auto &id : operand_match_yaml_ids) {
+        if (operand_id.compare(id.first) == 0) {
+          match = id.second;
+        }
+      }
+
+      if (match == OPERAND_RULE_UNKNOWN) {
+        throw std::runtime_error("Invalid operand rule type: " + operand_id);
+      }
+    }
+
+    opgroup_rule->add_operand_rule(values, match);
+  }
+
+  opgroup_rule_map[key] = opgroup_rule;
+}
+
+void metadata_factory_t::init_group_map(YAML::Node &node) {
+  node = node["Groups"];
+
+  for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
     metadata_t *metadata = new metadata_t();
     std::string key = it->first.as<std::string>();
-//    printf("key = %s\n", key.c_str());
-    YAML::Node node = it->second;
 
-    // iterate over names
-    for (size_t i = 0; i < node.size(); i++) {
-      std::string name = node[i].as<std::string>();
-      metadata->insert(encoding_map[name]);
+    YAML::Node instruction_node = it->second;
+
+    for (size_t i = 0; i < instruction_node.size(); i++) {
+      YAML::Node opgroup_node = instruction_node[i];
+
+      if (opgroup_node.IsScalar()) {
+        std::string name = opgroup_node.as<std::string>();
+        metadata->insert(encoding_map[name]);
+      }
+
+      if (opgroup_node.IsMap()) {
+        update_rule_map(key, opgroup_node);
+      }
     }
+
     group_map[key] = metadata;
   }
 }
 
-#include <linux/limits.h>
 YAML::Node metadata_factory_t::load_yaml(const char *yml_file) {
   char path_buff[PATH_MAX];
   try {
@@ -161,7 +231,7 @@ metadata_factory_t::metadata_factory_t(std::string policy_dir)
   YAML::Node reqsAST = load_yaml("policy_init.yml");
   // load up the individual tag encodings
   YAML::Node metaAST = load_yaml("policy_meta.yml");
-//  meta_tree.populate(reqsAST);
+  // meta_tree.populate(reqsAST);
   init_entity_initializers(reqsAST["Require"], "");
   init_encoding_map(metaAST);
   YAML::Node groupAST = load_yaml("policy_group.yml");
