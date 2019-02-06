@@ -67,6 +67,7 @@ def main():
 
         module_policies = [module['name'].split('.')[-1] for module in policy_modules['Modules']]
         policies = args.policy_dir.split('.')[-1].split('-')
+        tagger = LLVMMetadataTagger()
 
         for policy in policies:
             if policy not in module_policies:
@@ -80,7 +81,7 @@ def main():
             
             # LLVM tagging
             if 'llvm' in policy_inits['Require']:
-                range_map = LLVMMetadataTagger.generate_policy_ranges(ef, range_file, policy_inits)
+                range_map = tagger.generate_policy_ranges(ef, range_file, policy_inits)
 
         range_file.finish();
 
