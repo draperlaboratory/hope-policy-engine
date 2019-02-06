@@ -5,6 +5,15 @@ import yaml
 
 from elftools.elf.constants import SH_FLAGS
 
+def bytes_to_uint(it, size):
+    data = []
+    for _ in range(size):
+        data.append(next(it))
+    return int.from_bytes(data, byteorder='little', signed=False)
+
+def round_up(x, align):
+    return ~((~x) & ~align)
+
 class LLVMMetadataTagger:
     PTR_SIZE = 4
 
@@ -82,14 +91,7 @@ class LLVMMetadataTagger:
     def __init__(self):
         self.needs_tag_cache = {}
 
-    def bytes_to_uint(it, size):
-        data = []
-        for _ in range(size):
-            data.append(next(it))
-        return int.from_bytes(data, byteorder='little', signed=False)
-
-
-    def policy_needs_tag(policy_inits, tag):
+    def policy_needs_tag(self, policy_inits, tag):
 
         if tag in self.needs_tag_cache:
             return self.needs_tag_cache[tag]
@@ -105,10 +107,7 @@ class LLVMMetadataTagger:
         self.needs_tag_cache[tag] = True
         return True
 
-    def round_up(x, align):
-        return ~((~x) & ~align)
-
-    def add_code_section_ranges(ef, range_map):
+    def add_code_section_ranges(self, ef, range_map):
         for s in ef.iter_sections():
             flags = s['sh_flags']
             if (flags & SH_FLAGS.SHF_ALLOC):
@@ -119,15 +118,15 @@ class LLVMMetadataTagger:
                     (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
                     range_map.add_range(start, end)
 
-    def check_and_write_range(range_file, start, end, tag_specifier,
+    def check_and_write_range(self, range_file, start, end, tag_specifier,
                             policy_inits, range_map):
         for policy, tags in self.policy_map.items():
-            if policy_needs_tag(policy_inits, tags['name']):
+            if self.policy_needs_tag(policy_inits, tags['name']):
                 if tags['tag_specifier'] == tag_specifier:
                     range_file.write_range(start, end, tags['name'])
                     range_map.add_range(start, end, tags['name'])
 
-    def generate_policy_ranges(ef, range_file, policy_inits):
+    def generate_policy_ranges(self, ef, range_file, policy_inits):
         metadata = ef.get_section_by_name(b'.dover_metadata')
         if not metadata:
             metadata = ef.get_section_by_name(".dover_metadata")
@@ -148,7 +147,7 @@ class LLVMMetadataTagger:
                 logging.debug("tag is " + hex(tag_specifier) +
                             " at address " + hex(address) + '\n')
 
-                check_and_write_range(range_file, address, address + self.PTR_SIZE,
+                self.check_and_write_range(range_file, address, address + self.PTR_SIZE,
                                     tag_specifier, policy_inits, range_map)
 
             elif (byte == self.metadata_ops['DMD_TAG_ADDRESS_RANGE_OP']):
@@ -159,7 +158,7 @@ class LLVMMetadataTagger:
                             " for address range " +
                             hex(start_address) + ":" + hex(end_address) + '\n')
 
-                check_and_write_range(range_file, start_address, end_address,
+                self.check_and_write_range(range_file, start_address, end_address,
                                     tag_specifier, policy_inits, range_map)
 
             elif (byte == self.metadata_ops['DMD_TAG_POLICY_SYMBOL']):
@@ -202,7 +201,7 @@ class LLVMMetadataTagger:
         if 'NoCFI' in policy_inits['Require']['llvm']:
 
             code_range_map = TaggingUtils.RangeMap()
-            add_code_section_ranges(ef, code_range_map)
+            self.add_code_section_ranges(ef, code_range_map)
 
             for (start, end, tags) in code_range_map:
                 for s in range(start, end, self.PTR_SIZE):

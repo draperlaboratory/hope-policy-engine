@@ -58,7 +58,7 @@ def main():
 
     with open(args.policy_dir + "/policy_init.yml", "r") as pmf:
         policy_inits = yaml.load(pmf.read())
-        
+
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
 
@@ -77,7 +77,7 @@ def main():
             # ELF section tagging
             if 'elf' in policy_inits['Require']:
                 ELFSectionTagger.generate_rwx_ranges(ef, range_file)
-            
+
             # LLVM tagging
             if 'llvm' in policy_inits['Require']:
                 range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
