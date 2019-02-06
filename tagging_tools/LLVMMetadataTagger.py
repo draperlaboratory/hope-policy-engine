@@ -5,7 +5,6 @@ import yaml
 
 from elftools.elf.constants import SH_FLAGS
 
-
 PTR_SIZE = 4
 
 metadata_ops = {

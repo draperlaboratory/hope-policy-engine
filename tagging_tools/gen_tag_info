@@ -56,7 +56,6 @@ def main():
     with open(args.policy_dir + "/policy_modules.yml", "r") as pmf:
         policy_modules = yaml.load(pmf.read())
 
-    global policy_inits
     with open(args.policy_dir + "/policy_init.yml", "r") as pmf:
         policy_inits = yaml.load(pmf.read())
         
