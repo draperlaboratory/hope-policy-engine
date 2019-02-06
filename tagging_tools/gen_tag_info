@@ -53,11 +53,11 @@ def main():
         print('could not remove ' + args.tag_file)
         sys.exit(-1)
 
-    with open(args.policy_dir + "/policy_modules.yml", "r") as pmf:
-        policy_modules = yaml.load(pmf.read())
+    with open(args.policy_dir + "/policy_modules.yml", "r") as policy_modules_file:
+        policy_modules = yaml.load(policy_modules_file.read())
 
-    with open(args.policy_dir + "/policy_init.yml", "r") as pmf:
-        policy_inits = yaml.load(pmf.read())
+    with open(args.policy_dir + "/policy_init.yml", "r") as policy_modules_file:
+        policy_inits = yaml.load(policy_modules_file.read())
 
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)

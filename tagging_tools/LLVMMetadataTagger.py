@@ -107,8 +107,8 @@ class LLVMMetadataTagger:
         self.needs_tag_cache[tag] = True
         return True
 
-    def add_code_section_ranges(self, ef, range_map):
-        for s in ef.iter_sections():
+    def add_code_section_ranges(self, elf_file, range_map):
+        for s in elf_file.iter_sections():
             flags = s['sh_flags']
             if (flags & SH_FLAGS.SHF_ALLOC):
                 start = s['sh_addr']
@@ -126,10 +126,10 @@ class LLVMMetadataTagger:
                     range_file.write_range(start, end, tags['name'])
                     range_map.add_range(start, end, tags['name'])
 
-    def generate_policy_ranges(self, ef, range_file, policy_inits):
-        metadata = ef.get_section_by_name(b'.dover_metadata')
+    def generate_policy_ranges(self, elf_file, range_file, policy_inits):
+        metadata = elf_file.get_section_by_name(b'.dover_metadata')
         if not metadata:
-            metadata = ef.get_section_by_name(".dover_metadata")
+            metadata = elf_file.get_section_by_name(".dover_metadata")
         metadata = metadata.data()
         assert metadata[0] == self.metadata_ops['DMD_SET_BASE_ADDRESS_OP'], "Invalid metadata found in ELF file!"
 
@@ -197,11 +197,11 @@ class LLVMMetadataTagger:
                 logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
                 sys.exit(-1)
 
-        # tag NoCFI for anythign not specifically noted by llvm
+        # tag NoCFI for anything not specifically noted by llvm
         if 'NoCFI' in policy_inits['Require']['llvm']:
 
             code_range_map = TaggingUtils.RangeMap()
-            self.add_code_section_ranges(ef, code_range_map)
+            self.add_code_section_ranges(elf_file, code_range_map)
 
             for (start, end, tags) in code_range_map:
                 for s in range(start, end, self.PTR_SIZE):
