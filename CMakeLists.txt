@@ -46,6 +46,7 @@ add_library(rv32_validator
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
+  policy/src/policy_reclaimer.cc
   )
 set_property(TARGET rv32_validator PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(rv32_validator PRIVATE
