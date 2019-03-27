@@ -7,9 +7,9 @@ import subprocess
 import argparse
 import logging
 import TaggingUtils
-import RWXTagger
+import ELFSectionTagger
 import OpCodeTagger
-import ELFMetadataTagger
+import LLVMMetadataTagger
 import yaml
 
 from elftools.elf.elffile import ELFFile
@@ -20,78 +20,6 @@ md_range = 'md_range'
 md_code = 'md_code'
 md_asm_ann = 'md_asm_ann'
 md_entity = 'md_entity'
-
-NoCFI = 'dover.Tools.GCC.NoCFI'
-
-
-def policy_has_module(yf, name):
-    modules = yf["Modules"]
-    for m in modules:
-        if m["name"] == name:
-            return True
-    return False
-
-
-def round_up(x, align):
-    return ~((~x) & ~align)
-
-
-def add_code_section_ranges(ef, range_map):
-    for s in ef.iter_sections():
-        flags = s['sh_flags']
-        if (flags & SH_FLAGS.SHF_ALLOC):
-            start = s['sh_addr']
-            end = start + s['sh_size']
-            end = round_up(end, ELFMetadataTagger.PTR_SIZE)
-            if ((flags & (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_WRITE | SH_FLAGS.SHF_EXECINSTR)) ==
-                (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
-                range_map.add_range(start, end)
-
-
-def generate_cfi_ranges(ef, range_file):
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cfi")
-
-    for (start, end, tags) in code_range_map:
-        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
-            e = s + ELFMetadataTagger.PTR_SIZE
-            if (s, e, tags) not in range_map:
-                range_file.write_range(s, e, NoCFI)
-
-
-def write_section_range(ef, range_file, section_name, tag):
-    section = ef.get_section_by_name("." + section_name)
-    if not section:
-        logging.fatal("Couldn't find section {} in elf file!".format(section_name))
-    start = section['sh_addr']
-    end = start + section['sh_size']
-    range_file.write_range(start, end, tag)
-
-
-def generate_stack_ranges(ef, range_file):
-    ELFMetadataTagger.generate_policy_ranges(ef, range_file, "stack")
-
-
-def generate_rwx_ranges(ef, range_file):
-    RWXTagger.generate_rwx_ranges(ef, range_file)
-
-
-def generate_cpi_ranges(ef, range_file):
-    ELFMetadataTagger.generate_policy_ranges(ef, range_file, "cpi")
-
-
-def generate_threeClass_ranges(ef, range_file):
-    code_range_map = TaggingUtils.RangeMap()
-    add_code_section_ranges(ef, code_range_map)
-    range_map = ELFMetadataTagger.generate_policy_ranges(ef, range_file, "threeClass")
-
-    for (start, end, tags) in code_range_map:
-        for s in range(start, end, ELFMetadataTagger.PTR_SIZE):
-            e = s + ELFMetadataTagger.PTR_SIZE
-            if (s, e, tags) not in range_map:
-                range_file.write_range(s, e, NoCFI)
-
 
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
@@ -125,8 +53,11 @@ def main():
         print('could not remove ' + args.tag_file)
         sys.exit(-1)
 
-    with open(args.policy_dir + "/policy_modules.yml", "r") as pmf:
-        policy_modules = yaml.load(pmf.read())
+    with open(args.policy_dir + "/policy_modules.yml", "r") as policy_modules_file:
+        policy_modules = yaml.load(policy_modules_file.read())
+
+    with open(args.policy_dir + "/policy_init.yml", "r") as policy_modules_file:
+        policy_inits = yaml.load(policy_modules_file.read())
 
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
@@ -135,17 +66,21 @@ def main():
 
         module_policies = [module['name'].split('.')[-1] for module in policy_modules['Modules']]
         policies = args.policy_dir.split('.')[-1].split('-')
+        llvm_tagger = LLVMMetadataTagger.LLVMMetadataTagger()
 
         for policy in policies:
             if policy not in module_policies and policy != "debug":
                 logging.fatal("Tried to generate tag info for invalid policy")
                 sys.exit(-1)
-            generate_ranges_func = 'generate_' + policy + '_ranges'
             logging.info("Generating tags for policy {}".format(policy))
-            if generate_ranges_func in globals() and callable(globals()[generate_ranges_func]):
-                globals()[generate_ranges_func](ef, range_file)
-            else:
-                print('No such policy generation function: ' + generate_ranges_func + '\n')
+
+            # ELF section tagging
+            if 'elf' in policy_inits['Require']:
+                ELFSectionTagger.generate_rwx_ranges(ef, range_file)
+
+            # LLVM tagging
+            if 'llvm' in policy_inits['Require']:
+                range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
 
         range_file.finish();
 
