@@ -66,23 +66,23 @@ void dump_tag(meta_set_t const *ms) {
 }
 
 extern "C" void debug_operands(context_t *ctx, operands_t *ops) {
-  printf("  pc = "); dump_tag(ops->pc); printf("\n");
-  printf("  ci = "); dump_tag(ops->ci); printf("\n");
-  printf("  op1 = "); dump_tag(ops->op1); printf("\n");
-  printf("  op2 = "); dump_tag(ops->op2); printf("\n");
-  printf("  op3 = "); dump_tag(ops->op3); printf("\n");
-  printf("  mem = "); dump_tag(ops->mem); printf("\n");
+  printf("    pc = "); dump_tag(ops->pc); printf("\n");
+  printf("    ci = "); dump_tag(ops->ci); printf("\n");
+  printf("    op1 = "); dump_tag(ops->op1); printf("\n");
+  printf("    op2 = "); dump_tag(ops->op2); printf("\n");
+  printf("    op3 = "); dump_tag(ops->op3); printf("\n");
+  printf("    mem = "); dump_tag(ops->mem); printf("\n");
 }
 
 extern "C" void debug_results(context_t *ctx, results_t *res) {
   if (res->pcResult) {
-    printf("  pc = "); dump_tag(res->pc); printf("\n");
+    printf("      pc = "); dump_tag(res->pc); printf("\n");
   }
   if (res->rdResult) {
-    printf("  rd = "); dump_tag(res->rd); printf("\n");
+    printf("      rd = "); dump_tag(res->rd); printf("\n");
   }
   if (res->csrResult) {
-    printf("  csr = "); dump_tag(res->csr); printf("\n");
+    printf("      csr = "); dump_tag(res->csr); printf("\n");
   }
 }
 
