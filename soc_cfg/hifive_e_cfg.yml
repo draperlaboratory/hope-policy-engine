@@ -95,3 +95,9 @@ SOC:
     end:   0x44004010,
     heterogeneous: false
     }
+  GEM0: {
+    name: SOC.IO.GEM0,
+    start: 0x10090000,
+    end:   0x10092000,
+    heterogeneous: false
+    }
