@@ -30,6 +30,7 @@
 
 #include "policy_utils.h"
 #include "policy_eval.h"
+#include "policy_debug.h"
 
 using namespace policy_engine;
 

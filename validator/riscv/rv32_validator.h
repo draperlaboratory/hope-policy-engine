@@ -115,6 +115,10 @@ class rv32_validator_t : public rv32_validator_base_t {
     return tag_bus.load_tag(addr, tag);
   }
 
+  virtual bool store_tag(address_t addr, tag_t tag) {
+    return tag_bus.store_tag(addr, tag);
+  }
+
   void set_pc_watch(bool watching);
   void set_reg_watch(address_t addr);
   void set_csr_watch(address_t addr);

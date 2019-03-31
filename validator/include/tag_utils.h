@@ -34,6 +34,8 @@
 
 #include "platform_types.h"
 
+#include "policy_debug.h"
+
 namespace policy_engine {
 
 /**

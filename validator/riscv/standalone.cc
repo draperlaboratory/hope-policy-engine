@@ -40,11 +40,11 @@
 
 using namespace policy_engine;
 
-static meta_set_cache_t ms_cache;
-static meta_set_factory_t *ms_factory;
-static metadata_factory_t *md_factory;
-static rv32_validator_t *rv_validator;
-static metadata_memory_map_t *md_map;
+meta_set_cache_t ms_cache;
+meta_set_factory_t *ms_factory;
+metadata_factory_t *md_factory;
+rv32_validator_t *rv_validator;
+metadata_memory_map_t *md_map;
 
 static fake_riscv_t rv32;
 
