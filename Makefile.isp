@@ -2,7 +2,7 @@
 .PHONY: install
 .PHONY: clean
 
-ISP_PREFIX ?= /opt/isp/
+ISP_PREFIX ?= $(HOME)/.local/isp/
 
 all: build/Makefile
 	$(MAKE) -C build
