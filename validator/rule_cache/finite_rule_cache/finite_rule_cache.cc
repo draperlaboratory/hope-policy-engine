@@ -1,51 +1,45 @@
 #include "finite_rule_cache.h"
+#include <string.h>
 
 finite_rule_cache_t::finite_rule_cache_t(int capacity) : ideal_rule_cache_t() {
   this->capacity = capacity;
-  entries = (operands_t**) malloc(sizeof(operands_t*) *capacity);
+  entries = (operands_t*) calloc(capacity, sizeof(operands_t));
   next_entry = 0;
-  entry_used = (bool*) malloc(sizeof(bool) *capacity);
-  for (int i=0;i<capacity;i++){
-    entry_used[i]=false;
-  }
+  cache_full = false;
 }
 
 finite_rule_cache_t::~finite_rule_cache_t() {
-  for (int i=0;i<capacity;i++) {
-    delete entries[i];
-  }
   delete entries;
-  delete entry_used;
 }
 
 void finite_rule_cache_t::install_rule(operands_t *ops, results_t *res) {
-  if (entry_used[next_entry]==true) {
-    auto existing_entry = rule_cache_table.find(*entries[next_entry]);
+  if(cache_full) {
+    auto existing_entry = rule_cache_table.find(entries[next_entry]);
     if ((existing_entry==rule_cache_table.end())) {
-      printf("failed to find operand\n");
+      printf("Internal error in rule cache - do not trust results.\n");
     } else {
       rule_cache_table.erase(existing_entry);
     }
   }
-  rule_cache_table.insert(std::make_pair(*ops, *res));
-  entries[next_entry]=ops;
-  entry_used[next_entry]=true;
+  auto new_entry = rule_cache_table.insert(std::make_pair(*ops, *res));
+  memcpy(entries+next_entry, ops, sizeof(operands_t));
 
-  // circular buffer of things to remove
   next_entry++;
-  if (next_entry>=capacity)
+  if(next_entry>=capacity) {
+    cache_full = true;
     next_entry=0;
+  }
 }
 
 bool finite_rule_cache_t::allow(operands_t *ops, results_t *res) {
-  auto entries = rule_cache_table.find(*ops);
-  if (!(entries == rule_cache_table.end())) {
-    *res->pc = *entries->second.pc;
-    *res->rd = *entries->second.rd;
-    *res->csr = *entries->second.csr;
-    res->pcResult = entries->second.pcResult;
-    res->rdResult = entries->second.rdResult;
-    res->csrResult = entries->second.csrResult;
+  auto existing_entry = rule_cache_table.find(*ops);
+  if (!(existing_entry == rule_cache_table.end())) {
+    *res->pc = *existing_entry->second.pc;
+    *res->rd = *existing_entry->second.rd;
+    *res->csr = *existing_entry->second.csr;
+    res->pcResult = existing_entry->second.pcResult;
+    res->rdResult = existing_entry->second.rdResult;
+    res->csrResult = existing_entry->second.csrResult;
   }
-  return !(entries == rule_cache_table.end());
+  return !(existing_entry == rule_cache_table.end());
 }

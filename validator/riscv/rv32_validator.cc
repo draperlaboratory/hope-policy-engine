@@ -85,6 +85,7 @@ void rv32_validator_t::handle_violation(context_t *ctx, operands_t *ops){
 void rv32_validator_base_t::setup_validation() {
   memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));
+  ctx->cached=true;
 
   if (res->pcResult) {
     memset(res->pc, 0, sizeof(meta_set_t));
@@ -153,7 +154,6 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
 
   setup_validation();
-  
   prepare_eval(pc, insn);
   if (rule_cache) {
     if (rule_cache->allow(ops, res)) {
@@ -255,7 +255,10 @@ bool rv32_validator_t::commit() {
       .rdResult = res->rdResult,
       .csrResult = res->csrResult
     };
-    rule_cache->install_rule(ops, &res_copy);
+
+    if (ctx->cached && !rule_cache->allow(ops, res)) {
+      rule_cache->install_rule(ops, &res_copy);
+    }
   }
   return hit_watch;
 }
@@ -297,6 +300,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   
   memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));
+  ctx->cached=true;
 
   if(res->pcResult){
     memset(res->pc, 0, sizeof(meta_set_t));
