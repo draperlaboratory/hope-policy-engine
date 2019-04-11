@@ -77,6 +77,12 @@ SOC:
     end:   0x10014fff,
     heterogeneous: false
     }
+  GEM0: {
+    name: SOC.IO.GEM0,
+    start: 0x10090000,
+    end:   0x10092000,
+    heterogeneous: false
+    }
   FLASH: {
     name: SOC.Memory.Flash_0,
     start: 0x20000000,
