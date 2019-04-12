@@ -151,6 +151,7 @@ void rv32_validator_t::flush_rule_cache() {
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
+  printf("Validating 0x%X\n", pc);
   int policy_result = POLICY_EXP_FAILURE;
 
   setup_validation();
@@ -177,6 +178,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     printf("violation address: 0x%x\n",pc);
     handle_violation(ctx, ops);
   }
+  printf(" Done 0x%X\n", pc);
   return policy_result == POLICY_SUCCESS;
 }
 
