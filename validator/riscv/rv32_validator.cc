@@ -169,7 +169,10 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
       rule_cache_hit = false;
     }
   }
-
+  if(pc == 0x20431F8C) {
+    printf("mem_addr: 0x%x,   bad_addr: 0x%x\n",mem_addr, ctx->bad_addr);
+    debug_operands(ctx,ops);
+  }
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
   if (policy_result == POLICY_SUCCESS) {
