@@ -348,6 +348,9 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
         printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);
     } else {
       ops->mem = t_to_m(mtag);
+      if(!ops->mem) {
+        printf("Warning: Unintialized tag for memory (0x%x) at instruction 0x%x.\n  This may crash the policy.\n",mem_addr,pc);
+      }
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));
 //      printf("mr tag = 0x%p\n", ops->mem);
     }
