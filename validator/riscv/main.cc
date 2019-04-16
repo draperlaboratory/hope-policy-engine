@@ -368,4 +368,5 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 }
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
+  printf("watchpoint set for addr 0x%x\n", addr);
 }

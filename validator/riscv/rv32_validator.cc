@@ -178,13 +178,22 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     printf("violation address: 0x%x\n",pc);
     handle_violation(ctx, ops);
   }
-  printf(" Done 0x%X\n", pc);
+
+
+  printf("    new tag @ 0x%x = '%s'\n", mem_addr, tag_name(res->rd));
+
   return policy_result == POLICY_SUCCESS;
 }
 
 bool rv32_validator_t::commit() {
   bool hit_watch = false;
 
+  printf("  commit for pc == 0x%x\n", ctx->epc);
+  printf("    mem == 0x%x\n", mem_addr);
+  printf("    mr tag = '%s'\n", tag_name(res->rd));
+
+
+  
   if (res->pcResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
     if(watch_pc && pc_tag != new_tag){
@@ -216,12 +225,13 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
     if (!tag_bus.load_tag(mem_addr, old_tag)) {
-        printf("failed to load MR tag @ 0x%x\n", mem_addr);
+      printf("failed to load MR tag @ 0x%x\n", mem_addr);
       fflush(stdout);
       // might as well halt
       hit_watch = true;
     }
-//    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
+    
+    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(mem_addr == *it && old_tag != new_tag){
         printf("Watch tag mem");
@@ -230,7 +240,7 @@ bool rv32_validator_t::commit() {
       }
     }
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
-        printf("failed to store MR tag @ 0x%x\n", mem_addr);
+      printf("failed to store MR tag @ 0x%x\n", mem_addr);
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -344,14 +354,14 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
         mem_addr += imm;
     }
     ctx->bad_addr = mem_addr;
-//    printf("  mem_addr = 0x%08x\n", mem_addr);
+    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
     if (!tag_bus.load_tag(mem_addr, mtag)) {
         printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);
     } else {
       ops->mem = t_to_m(mtag);
-//      printf("  mr tag = '%s'\n", tag_name(ops->mem));
-//      printf("mr tag = 0x%p\n", ops->mem);
+      printf("    mr tag = '%s' (0x%x)\n", tag_name(ops->mem), mtag);
+      printf("    mr tag = 0x%p\n", ops->mem);
     }
   }
 

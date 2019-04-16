@@ -137,6 +137,10 @@ class tag_bus_t {
   bool store_tag(address_t addr, tag_t tag) {
     tag_provider_t *tp;
     address_t offset;
+
+    if ( addr == 0x80f0081c )
+      printf("new tag for 0x80f0081c == 0x%x\n", tag);
+    
     tp = provider_map.get_provider(addr, offset);
     if (tp)
       return tp->set_tag(offset, tag);
