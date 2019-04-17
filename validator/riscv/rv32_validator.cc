@@ -186,7 +186,7 @@ bool rv32_validator_t::commit() {
   if (res->pcResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->pc));
     if(watch_pc && pc_tag != new_tag){
-      printf("Watch tag pc");
+      printf("Watch tag pc\n");
       fflush(stdout);
       hit_watch = true;
     }
@@ -197,7 +197,7 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
       if(pending_RD == *it && ireg_tags[pending_RD] != new_tag){
-        printf("Watch tag reg");
+        printf("Watch tag reg\n");
         fflush(stdout);
         hit_watch = true;
       }
@@ -222,7 +222,7 @@ bool rv32_validator_t::commit() {
 //    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(mem_addr == *it && old_tag != new_tag){
-        printf("Watch tag mem");
+        printf("Watch tag mem at PC 0x%x\n", ctx->epc);
         fflush(stdout);
         hit_watch = true;
       }
@@ -238,7 +238,7 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->csr));
     for(std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
       if(pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
-        printf("Watch tag CSR");
+        printf("Watch tag CSR\n");
         fflush(stdout);
         hit_watch = true;
       }
@@ -340,6 +340,10 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
       mem_addr = reg_reader(rs1);
       if (flags & HAS_IMM)
         mem_addr += imm;
+
+      // metadata memory map can only handle aligned addrs, so treat this
+      //   like an aligned addr.
+      mem_addr &= ~((uintptr_t)0x3);
     }
     ctx->bad_addr = mem_addr;
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
