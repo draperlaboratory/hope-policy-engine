@@ -130,6 +130,7 @@ class LLVMMetadataTagger:
         metadata = elf_file.get_section_by_name(b'.dover_metadata')
         if not metadata:
             metadata = elf_file.get_section_by_name(".dover_metadata")
+        assert metadata, "No metadata found in ELF file!"
         metadata = metadata.data()
         assert metadata[0] == self.metadata_ops['DMD_SET_BASE_ADDRESS_OP'], "Invalid metadata found in ELF file!"
 
