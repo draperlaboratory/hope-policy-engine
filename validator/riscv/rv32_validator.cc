@@ -343,6 +343,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
       // metadata memory map can only handle aligned addrs, so treat this
       //   like an aligned addr.
+      //      if ( mem_addr & (uintptr_t)0x3 )
+	//	printf("warning: misaligned addr 0x%x @ pc 0x%x\n", pc, mem_addr);
       mem_addr &= ~((uintptr_t)0x3);
     }
     ctx->bad_addr = mem_addr;
