@@ -54,10 +54,10 @@ def main():
         sys.exit(-1)
 
     with open(args.policy_dir + "/policy_modules.yml", "r") as policy_modules_file:
-        policy_modules = yaml.load(policy_modules_file.read())
+        policy_modules = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
 
     with open(args.policy_dir + "/policy_init.yml", "r") as policy_modules_file:
-        policy_inits = yaml.load(policy_modules_file.read())
+        policy_inits = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
 
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
