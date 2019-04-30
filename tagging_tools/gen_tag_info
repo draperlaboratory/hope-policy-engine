@@ -68,19 +68,13 @@ def main():
         policies = args.policy_dir.split('.')[-1].split('-')
         llvm_tagger = LLVMMetadataTagger.LLVMMetadataTagger()
 
-        for policy in policies:
-            if policy not in module_policies and policy != "debug":
-                logging.fatal("Tried to generate tag info for invalid policy")
-                sys.exit(-1)
-            logging.info("Generating tags for policy {}".format(policy))
+        # ELF section tagging
+        if 'elf' in policy_inits['Require']:
+            ELFSectionTagger.generate_rwx_ranges(ef, range_file)
 
-            # ELF section tagging
-            if 'elf' in policy_inits['Require']:
-                ELFSectionTagger.generate_rwx_ranges(ef, range_file)
-
-            # LLVM tagging
-            if 'llvm' in policy_inits['Require']:
-                range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
+        # LLVM tagging
+        if 'llvm' in policy_inits['Require']:
+            range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
 
         range_file.finish();
 
