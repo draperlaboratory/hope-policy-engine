@@ -31,7 +31,7 @@ target_include_directories(validator PRIVATE
   ./validator/include/policy-glue
   )
 
-add_library(rv32_validator
+set(rv32_validator_SOURCES
   validator/riscv/debug.cc
   validator/riscv/inst_decoder.c
   validator/riscv/rv32_validator.cc
@@ -46,8 +46,15 @@ add_library(rv32_validator
   # I would prefer to put these in a policy library build, but there are some
   # circular dependency issues that are being a pain.
   policy/src/policy_meta_set.c policy/src/policy_rule.c policy/src/policy_utils.c
-  policy/src/policy_reclaimer.cc
   )
+
+if (HOPE_USE_COLOR_RECLAIMER)
+  set(rv32_validator_SOURCES ${rv32_validator_SOURCES} policy/src/policy_reclaimer.cc)
+  add_definitions(-DHOPE_USE_COLOR_RECLAIMER=1)
+endif()
+
+add_library(rv32_validator ${rv32_validator_SOURCES})
+
 set_property(TARGET rv32_validator PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(rv32_validator PRIVATE
   ./policy/include

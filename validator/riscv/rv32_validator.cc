@@ -30,7 +30,10 @@
 
 #include "policy_utils.h"
 #include "policy_eval.h"
+
+#if HOPE_USE_COLOR_RECLAIMER
 #include "policy_debug.h"
+#endif
 
 using namespace policy_engine;
 

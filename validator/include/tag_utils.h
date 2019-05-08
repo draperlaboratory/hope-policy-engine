@@ -34,7 +34,9 @@
 
 #include "platform_types.h"
 
+#if HOPE_USE_COLOR_RECLAIMER
 #include "policy_debug.h"
+#endif
 
 namespace policy_engine {
 
