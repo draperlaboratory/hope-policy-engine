@@ -51,6 +51,7 @@ set(rv32_validator_SOURCES
 if (HOPE_USE_COLOR_RECLAIMER)
   set(rv32_validator_SOURCES ${rv32_validator_SOURCES} policy/src/policy_reclaimer.cc)
   add_definitions(-DHOPE_USE_COLOR_RECLAIMER=1)
+  add_definitions(-DHOPE_ENABLE_COLOR_RECLAIMER=1)
 endif()
 
 add_library(rv32_validator ${rv32_validator_SOURCES})
