@@ -173,6 +173,8 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     }
   }
 
+  rule_cache_stats();
+
   policy_result = eval_policy(ctx, ops, res);
   ctx->policy_result = policy_result;
   if (policy_result == POLICY_SUCCESS) {
