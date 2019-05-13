@@ -32,6 +32,7 @@
 #include "policy_eval.h"
 
 #if HOPE_USE_COLOR_RECLAIMER
+#include "policy_reclaimer.h"
 #include "policy_debug.h"
 #endif
 
@@ -156,6 +157,11 @@ void rv32_validator_t::flush_rule_cache() {
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
+
+#if HOPE_USE_COLOR_RECLAIMER
+  reclaimer_do_scan();
+#endif
+
 
   setup_validation();
   prepare_eval(pc, insn);
