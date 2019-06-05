@@ -41,6 +41,7 @@ uint32_t e_v_validate(uint32_t pc, uint32_t instr);
 uint32_t e_v_commit(void);
 void e_v_set_metadata(const char *validator_cfg_path);
 void e_v_violation_msg(char *dest, int n);
+bool e_v_last_cached(void);
 void e_v_pc_tag(char *dest, int n);
 void e_v_csr_tag(char *dest, int n, uint64_t addr);
 void e_v_reg_tag(char *dest, int n, uint64_t addr);

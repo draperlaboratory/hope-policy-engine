@@ -275,6 +275,10 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
   }
 }
 
+extern "C" bool e_v_last_cached(void) {
+   return rv_validator->rule_cache_last_hit();
+}
+
 extern "C" void e_v_meta_log_short(char* dest, int n) {
     const int s = 512;
     char tmp[s];

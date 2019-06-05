@@ -407,3 +407,11 @@ void rv32_validator_t::rule_cache_stats() {
     fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
   }
 };
+
+bool rv32_validator_t::rule_cache_last_hit() {
+  if (rule_cache) {
+     return rule_cache_hit;
+  } else {
+     return true;
+  }
+};
