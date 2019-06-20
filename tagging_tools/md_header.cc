@@ -24,20 +24,50 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef TAG_FILE_H
-#define TAG_FILE_H
+#include <stdio.h>
+#include "tag_file.h"
 
+using namespace policy_engine;
+
+#include <fstream>
+#include <sstream>
 #include <string>
-#include "metadata_memory_map.h"
+#include <cstring>
 
-namespace policy_engine {
+void usage() {
+  printf("usage: md_range <code_start> <code_end> <data_start> <data_end> <tag_file> <-m32/-m64> (default -m32)\n");
+}
 
-bool load_tags(metadata_memory_map_t *map, std::string file_name);
-bool save_tags(metadata_memory_map_t *map, std::string file_name);
-bool write_headers(std::pair<uintptr_t, uintptr_t> code_range,
-                   std::pair<uintptr_t, uintptr_t> data_range,
-                   bool is_64_bit, std::string file_name);
+int main(int argc, char **argv) {
+  const char *file_name;
+  uintptr_t code_start, code_end;
+  uintptr_t data_start, data_end;
+  bool is_64_bit = false;
 
-} // namespace policy_engine
+  if (argc < 6) {
+    usage();
+    return 0;
+  }
 
-#endif
+  code_start = strtoul(argv[1], NULL, 10);
+  code_end = strtoul(argv[2], NULL, 10);
+
+  data_start = strtoul(argv[3], NULL, 10);
+  data_end = strtoul(argv[4], NULL, 10);
+
+  file_name = argv[5];
+
+  if(argc == 7) {
+    if(strcmp(argv[6], "-m64") == 0) {
+      is_64_bit = true;
+    }
+  }
+
+  if(write_headers(std::make_pair(code_start, code_end),
+                   std::make_pair(data_start, data_end),
+                   is_64_bit, std::string(file_name)) == false) {
+    return 1;
+  }
+
+  return 0;
+}

@@ -68,6 +68,11 @@ add_library(tagging_tools
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+add_executable(md_header
+	tagging_tools/md_header.cc
+	)
+target_link_libraries(md_header tagging_tools validator yaml-cpp)
+
 add_executable(md_range
 	tagging_tools/md_range.cc
 	)

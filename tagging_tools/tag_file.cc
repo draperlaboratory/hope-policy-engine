@@ -121,3 +121,75 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
   fclose(fp);
   return true;
 }
+
+bool policy_engine::write_headers(std::pair<uintptr_t, uintptr_t> code_range,
+                                   std::pair<uintptr_t, uintptr_t> data_range,
+                                   bool is_64_bit, std::string file_name) {
+  FILE *in_fp, *out_fp;
+  size_t in_size;
+  uint8_t *in_buffer;
+
+  in_fp = fopen(file_name.c_str(), "rb");
+  if(in_fp == NULL) {
+    return false;
+  }
+
+  fseek(in_fp, 0L, SEEK_END);
+  in_size = ftell(in_fp);
+  fseek(in_fp, 0L, SEEK_SET);
+
+  in_buffer = (uint8_t *)malloc(in_size);
+  if(in_buffer == NULL) {
+    fclose(in_fp);
+    return false;
+  }
+
+  if (fread(in_buffer, 1, in_size, in_fp) != in_size) {
+    free(in_buffer);
+    fclose(in_fp);
+    return false;
+  }
+
+  fclose(in_fp);
+
+  out_fp = fopen(file_name.c_str(), "wb");
+  if(out_fp == NULL) {
+    return false;
+  }
+
+  file_writer_t writer(out_fp);
+
+  if(!write_uleb<file_writer_t, uint8_t>(&writer, (uint8_t)is_64_bit)) {
+    fclose(out_fp);
+    return false;
+  }
+
+  if(!write_uleb<file_writer_t, uintptr_t>(&writer, code_range.first)) {
+    fclose(out_fp);
+    return false;
+  }
+  if(!write_uleb<file_writer_t, uintptr_t>(&writer, code_range.second)) {
+    fclose(out_fp);
+    return false;
+  }
+
+  if(!write_uleb<file_writer_t, uintptr_t>(&writer, data_range.first)) {
+    fclose(out_fp);
+    return false;
+  }
+  if(!write_uleb<file_writer_t, uintptr_t>(&writer, data_range.second)) {
+    fclose(out_fp);
+    return false;
+  }
+
+  if(fwrite(in_buffer, 1, in_size, out_fp) != in_size) {
+    free(in_buffer);
+    fclose(out_fp);
+    return false;
+  }
+
+  fclose(out_fp);
+  free(in_buffer);
+
+  return true;
+}

@@ -20,6 +20,7 @@ md_range = 'md_range'
 md_code = 'md_code'
 md_asm_ann = 'md_asm_ann'
 md_entity = 'md_entity'
+md_header = 'md_header'
 
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
@@ -35,6 +36,9 @@ def main():
     parser.add_argument("-e", "--entities", nargs='+', default=[],
                         required=False,
                         help="Entities file for policy")
+    parser.add_argument("-H", "--hardware", action="store_true",
+                        required=False,
+                        help="Format the tag file for use on the PEX hardware")
 
     args = parser.parse_args()
 
@@ -106,6 +110,14 @@ def main():
                                   asm_file_name])
         if presult != 0:
             sys.exit(presult)
+
+        # Prepend host address ranges for instructions/data
+        if args.hardware == True:
+            code_range, data_range = ELFSectionTagger.get_memory_ranges(ef)
+            presult = subprocess.call([md_header, str(code_range[0]), str(code_range[1]), str(data_range[0]), str(data_range[1]), args.tag_file])
+            if presult != 0:
+                sys.exit(presult)
+
 
 if (__name__ == "__main__"):
     main()
