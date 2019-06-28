@@ -53,3 +53,21 @@ void policy_engine::populate_symbol_table(symbol_table_t *symtab, elf_image_t *i
   }
 }
 
+void policy_engine::get_elf_sections(elf_image_t *img,
+                                     std::list<Elf_Shdr const *>&code_sections,
+                                     std::list<Elf_Shdr const *>&data_sections) {
+  Elf_Shdr const *shdrs = img->get_shdrs();
+  size_t i;
+  unsigned int flags;
+
+  for(i = 0; i < img->get_shdr_count(); i++) {
+     if (shdrs[i].sh_flags & SHF_ALLOC) {
+      flags = shdrs[i].sh_flags;
+      if ((flags & (SHF_WRITE | SHF_EXECINSTR)) == (SHF_EXECINSTR)) {
+        code_sections.push_back(&shdrs[i]);
+      } else {
+        data_sections.push_back(&shdrs[i]);
+      }
+    }
+  }
+}

@@ -29,14 +29,16 @@
 
 #include <string>
 #include "metadata_memory_map.h"
+#include "elf_utils.h"
 
 namespace policy_engine {
 
 bool load_tags(metadata_memory_map_t *map, std::string file_name);
 bool save_tags(metadata_memory_map_t *map, std::string file_name);
-bool write_headers(std::pair<uintptr_t, uintptr_t> code_range,
-                   std::pair<uintptr_t, uintptr_t> data_range,
-                   bool is_64_bit, std::string file_name);
+bool write_headers(std::list<Elf_Shdr const *> &code_sections,
+                   std::list<Elf_Shdr const *> &data_sections,
+                   std::list<range_t> &soc_ranges, bool is_64_bit,
+                   std::string tag_filename);
 
 } // namespace policy_engine
 

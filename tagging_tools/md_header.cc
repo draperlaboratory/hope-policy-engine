@@ -25,7 +25,10 @@
  */
 
 #include <stdio.h>
+#include <yaml-cpp/yaml.h>
 #include "tag_file.h"
+#include "elf_utils.h"
+#include "basic_elf_io.h"
 
 using namespace policy_engine;
 
@@ -35,39 +38,93 @@ using namespace policy_engine;
 #include <cstring>
 
 void usage() {
-  printf("usage: md_range <code_start> <code_end> <data_start> <data_end> <tag_file> <-m32/-m64> (default -m32)\n");
+  printf("usage: md_header <elf_file> <soc_file> <tag_file>\n");
+}
+
+bool get_soc_ranges(std::string file_name, std::list<range_t> &ranges,
+                    reporter_t *err) {
+  YAML::Node node = YAML::LoadFile(file_name);
+  if (node["SOC"] == NULL) {
+    err->error("SOC root node not present\n");
+    return false;
+  }
+
+  YAML::Node soc = node["SOC"];
+  for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
+    range_t range;
+    std::string name;
+
+    if(it->second["name"] == NULL) {
+      err->error("'name' node not present\n");
+      return false;
+    }
+
+    // exclude Memory SOC elements, as they're already
+    // accounted for by ELF sections
+    name = it->second["name"].as<std::string>().c_str();
+    if(name.rfind("SOC.Memory", 0) == 0) {
+      continue;
+    }
+
+    if(it->second["start"] == NULL) {
+      err->error("'start' node not present\n");
+      return false;
+    }
+    range.start = it->second["start"].as<address_t>();
+
+    if(it->second["end"] == NULL) {
+      err->error("'end' node not present\n");
+      return false;
+    }
+    range.end = it->second["end"].as<address_t>();
+
+    ranges.push_back(range);
+  }
+
+  return true;
 }
 
 int main(int argc, char **argv) {
-  const char *file_name;
-  uintptr_t code_start, code_end;
-  uintptr_t data_start, data_end;
+  stdio_reporter_t err;
+  const char *elf_filename;
+  FILE *elf_file;
+  std::list<Elf_Shdr const *> code_sections;
+  std::list<Elf_Shdr const *> data_sections;
+  const char *soc_filename;
+  std::list<range_t> soc_ranges;
+  const char *tag_filename;
   bool is_64_bit = false;
 
-  if (argc < 6) {
+  if (argc < 4) {
     usage();
     return 0;
   }
 
-  code_start = strtoul(argv[1], NULL, 10);
-  code_end = strtoul(argv[2], NULL, 10);
+  elf_filename = argv[1];
+  soc_filename = argv[2];
+  tag_filename = argv[3];
 
-  data_start = strtoul(argv[3], NULL, 10);
-  data_end = strtoul(argv[4], NULL, 10);
-
-  file_name = argv[5];
-
-  if(argc == 7) {
-    if(strcmp(argv[6], "-m64") == 0) {
-      is_64_bit = true;
-    }
-  }
-
-  if(write_headers(std::make_pair(code_start, code_end),
-                   std::make_pair(data_start, data_end),
-                   is_64_bit, std::string(file_name)) == false) {
+  elf_file = fopen(elf_filename, "rb");
+  if(elf_file == NULL) {
+    err.error("Failed to open ELF file\n");
     return 1;
   }
+  FILE_reader_t elf_reader(elf_file);
+  elf_image_t elf_image(&elf_reader, &err);
+  elf_image.load();
+  get_elf_sections(&elf_image, code_sections, data_sections);
+  if(elf_image.get_ehdr().e_ident[EI_CLASS] == ELFCLASS64) {
+    is_64_bit = true;
+  }
+
+  get_soc_ranges(soc_filename, soc_ranges, &err);
+
+  if(write_headers(code_sections, data_sections, soc_ranges, is_64_bit, std::string(tag_filename)) == false) {
+    err.error("Failed to write headers to tag file\n");
+    return 1;
+  }
+
+  fclose(elf_file);
 
   return 0;
 }

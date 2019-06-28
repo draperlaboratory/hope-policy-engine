@@ -36,9 +36,8 @@ def main():
     parser.add_argument("-e", "--entities", nargs='+', default=[],
                         required=False,
                         help="Entities file for policy")
-    parser.add_argument("-H", "--hardware", action="store_true",
-                        required=False,
-                        help="Format the tag file for use on the PEX hardware")
+    parser.add_argument("-s", "--soc-file", required=False,
+                        help="SOC config file. If present, write TMT headers for PEX firmware")
 
     args = parser.parse_args()
 
@@ -112,9 +111,8 @@ def main():
             sys.exit(presult)
 
         # Prepend host address ranges for instructions/data
-        if args.hardware == True:
-            code_range, data_range = ELFSectionTagger.get_memory_ranges(ef)
-            presult = subprocess.call([md_header, str(code_range[0]), str(code_range[1]), str(data_range[0]), str(data_range[1]), args.tag_file])
+        if args.soc_file is not None:
+            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file])
             if presult != 0:
                 sys.exit(presult)
 

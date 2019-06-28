@@ -56,6 +56,7 @@ public:
   ~elf_image_t();
   bool load();//bool load_symbols = false, bool load_phdrs = true);
   uintptr_t get_entry_point() const;
+  Elf_Ehdr get_ehdr() const { return eh; }
   Elf_Phdr const* get_phdrs() const { return phdrs; }
   int get_phdr_count() const { return eh.e_phnum; }
   Elf_Shdr const* get_shdrs() const { return shdrs; }

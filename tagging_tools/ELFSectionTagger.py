@@ -23,17 +23,3 @@ def generate_rwx_ranges(ef, range_file):
           elif flags & SH_FLAGS.SHF_ALLOC:
                range_file.write_range(start, end, RWX_R)
                print('R {0}: 0x{1:X}'.format(s.name, start))
-
-def get_memory_ranges(ef):
-    code_range = (0, 0)
-    data_range = (0, 0)
-    for s in ef.iter_sections():
-        flags = s['sh_flags']
-        start = s['sh_addr']
-        end = start + s['sh_size']
-        if flags & SH_FLAGS.SHF_EXECINSTR:
-            code_range = (start, end)
-        elif flags & SH_FLAGS.SHF_WRITE:
-            data_range = (start, end)
-
-    return (code_range, data_range)
