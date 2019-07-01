@@ -21,6 +21,7 @@ md_code = 'md_code'
 md_asm_ann = 'md_asm_ann'
 md_entity = 'md_entity'
 md_header = 'md_header'
+md_index = 'md_index'
 
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
@@ -110,8 +111,13 @@ def main():
         if presult != 0:
             sys.exit(presult)
 
+        # Save tags by index to optimize PEX startup
         # Prepend host address ranges for instructions/data
         if args.soc_file is not None:
+            presult = subprocess.call([md_index, args.tag_file])
+            if presult != 0:
+                sys.exit(presult)
+
             presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file])
             if presult != 0:
                 sys.exit(presult)

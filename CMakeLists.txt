@@ -73,6 +73,11 @@ add_executable(md_header
 	)
 target_link_libraries(md_header tagging_tools validator yaml-cpp)
 
+add_executable(md_index
+	tagging_tools/md_index.cc
+	)
+target_link_libraries(md_index tagging_tools validator yaml-cpp)
+
 add_executable(md_range
 	tagging_tools/md_range.cc
 	)

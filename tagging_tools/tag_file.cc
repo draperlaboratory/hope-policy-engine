@@ -122,76 +122,61 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
   return true;
 }
 
-namespace {
-static void get_address_ranges(std::list<Elf_Shdr const *> &sections,
-                               std::list<range_t> &ranges) {
-  for(const auto &it : sections) {
-    range_t range;
-    range.start = it->sh_addr;
-    range.end = it->sh_addr + it->sh_size;
-    ranges.push_back(range);
+bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
+                                     std::map<range_t, uint32_t, range_compare> &index_map,
+                                     std::string file_name) {
+  FILE *fp = fopen(file_name.c_str(), "wb");
+
+  if (!fp)
+    return false;
+  file_writer_t writer(fp);
+
+  if(!write_uleb<file_writer_t, uint32_t>(&writer, metadata_values.size())) {
+    fclose(fp);
+    return false;
   }
-}
 
-static bool compare_range(range_t &first, range_t &second) {
-  return (first.start < second.start);
-}
-
-static void coalesce_ranges(std::list<range_t> &ranges) {
-  std::list<range_t>::iterator it = ++ranges.begin();
-
-  while(it != ranges.end()) {
-    auto previous = std::prev(it, 1);
-
-    if((*it).end <= (*previous).end) {
-      ranges.erase(it++);
-      continue;
+  for (auto &v: metadata_values) {
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, v->size())) {
+      fclose(fp);
+      return false;
     }
-
-    if(((*it).start - (*previous).end) <= 1) {
-      (*previous).end = (*it).end;
-      ranges.erase(it++);
-      continue;
+    for (auto &m: *v) {
+      if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
+        fclose(fp);
+        return false;
+      }
     }
-
-    it++;
   }
-}
+
+  for (auto &e: index_map) {
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.start)) {
+      fclose(fp);
+      return false;
+    }
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.end)) {
+      fclose(fp);
+      return false;
+    }
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second)) {
+      fclose(fp);
+      return false;
+    }
+  }
+  fclose(fp);
+  return true;
 }
 
-bool policy_engine::write_headers(std::list<Elf_Shdr const *> &code_sections,
-                                  std::list<Elf_Shdr const *> &data_sections,
-                                  std::list<range_t> &soc_ranges, bool is_64_bit,
-                                  std::string tag_filename) {
+bool policy_engine::write_headers(std::list<range_t> &code_ranges,
+                                  std::list<range_t> &data_ranges,
+                                  bool is_64_bit, std::string tag_filename) {
   FILE *in_fp, *out_fp;
   size_t in_size;
   uint8_t *in_buffer;
-  std::list<range_t> code_ranges;
-  std::list<range_t> data_ranges;
 
   in_fp = fopen(tag_filename.c_str(), "rb");
   if(in_fp == NULL) {
     return false;
-  }
-
-  get_address_ranges(code_sections, code_ranges);
-  get_address_ranges(data_sections, data_ranges);
-  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
-
-  code_ranges.sort(compare_range);
-  data_ranges.sort(compare_range);
-
-  coalesce_ranges(code_ranges);
-  coalesce_ranges(data_ranges);
-
-  printf("Code ranges:\n");
-  for(const auto &it : code_ranges) {
-    printf("{ 0x%08x - 0x%08x }\n", it.start, it.end);
-  }
-
-  printf("Data ranges:\n");
-  for(const auto &it : data_ranges) {
-    printf("{ 0x%08x - 0x%08x }\n", it.start, it.end);
   }
 
   fseek(in_fp, 0L, SEEK_END);
