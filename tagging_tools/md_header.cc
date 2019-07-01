@@ -1,28 +1,26 @@
-/*
- * Copyright © 2017-2018 Dover Microsystems, Inc.
- * All rights reserved. 
- *
- * Use and disclosure subject to the following license. 
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/* Copyright © 2017-2019 The Charles Stark Draper Laboratory, Inc. and/or Dover Microsystems, Inc. */
+/* All rights reserved. */
+
+/* Use and disclosure subject to the following license. */
+
+/* Permission is hereby granted, free of charge, to any person obtaining */
+/* a copy of this software and associated documentation files (the */
+/* "Software"), to deal in the Software without restriction, including */
+/* without limitation the rights to use, copy, modify, merge, publish, */
+/* distribute, sublicense, and/or sell copies of the Software, and to */
+/* permit persons to whom the Software is furnished to do so, subject to */
+/* the following conditions: */
+
+/* The above copyright notice and this permission notice shall be */
+/* included in all copies or substantial portions of the Software. */
+
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND */
+/* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE */
+/* LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION */
+/* OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION */
+/* WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #include <stdio.h>
 #include <yaml-cpp/yaml.h>
@@ -84,20 +82,86 @@ bool get_soc_ranges(std::string file_name, std::list<range_t> &ranges,
   return true;
 }
 
+void elf_sections_to_ranges(std::list<Elf_Shdr const *> &sections,
+                            std::list<range_t> &ranges) {
+  for(const auto &it : sections) {
+    range_t range;
+    range.start = it->sh_addr;
+    range.end = it->sh_addr + it->sh_size;
+    ranges.push_back(range);
+  }
+}
+
+bool compare_range(range_t &first, range_t &second) {
+  return (first.start < second.start);
+}
+
+void coalesce_ranges(std::list<range_t> &ranges) {
+  std::list<range_t>::iterator it = ++ranges.begin();
+
+  while(it != ranges.end()) {
+    auto previous = std::prev(it, 1);
+
+    if((*it).end <= (*previous).end) {
+      ranges.erase(it++);
+      continue;
+    }
+
+    if(((*it).start - (*previous).end) <= 1) {
+      (*previous).end = (*it).end;
+      ranges.erase(it++);
+      continue;
+    }
+
+    it++;
+  }
+}
+
+void get_address_ranges(elf_image_t &elf_image,
+                        std::list<range_t> &soc_ranges,
+                        std::list<range_t> &code_ranges,
+                        std::list<range_t> &data_ranges) {
+  std::list<Elf_Shdr const *> code_sections;
+  std::list<Elf_Shdr const *> data_sections;
+
+  get_elf_sections(&elf_image, code_sections, data_sections);
+
+  elf_sections_to_ranges(code_sections, code_ranges);
+  elf_sections_to_ranges(data_sections, data_ranges);
+
+  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+
+  code_ranges.sort(compare_range);
+  data_ranges.sort(compare_range);
+
+  coalesce_ranges(code_ranges);
+  coalesce_ranges(data_ranges);
+
+  printf("Code ranges:\n");
+  for(const auto &it : code_ranges) {
+    printf("{ 0x%08x - 0x%08x }\n", it.start, it.end);
+  }
+
+  printf("Data ranges:\n");
+  for(const auto &it : data_ranges) {
+    printf("{ 0x%08x - 0x%08x }\n", it.start, it.end);
+  }
+}
+
 int main(int argc, char **argv) {
   stdio_reporter_t err;
   const char *elf_filename;
   FILE *elf_file;
-  std::list<Elf_Shdr const *> code_sections;
-  std::list<Elf_Shdr const *> data_sections;
   const char *soc_filename;
   std::list<range_t> soc_ranges;
+  std::list<range_t> code_ranges;
+  std::list<range_t> data_ranges;
   const char *tag_filename;
   bool is_64_bit = false;
 
   if (argc < 4) {
     usage();
-    return 0;
+    return 1;
   }
 
   elf_filename = argv[1];
@@ -111,15 +175,23 @@ int main(int argc, char **argv) {
   }
   FILE_reader_t elf_reader(elf_file);
   elf_image_t elf_image(&elf_reader, &err);
-  elf_image.load();
-  get_elf_sections(&elf_image, code_sections, data_sections);
+  if(elf_image.load() == false) {
+    err.error("Failed to load ELF image\n");
+    return 1;
+  }
+
   if(elf_image.get_ehdr().e_ident[EI_CLASS] == ELFCLASS64) {
     is_64_bit = true;
   }
 
-  get_soc_ranges(soc_filename, soc_ranges, &err);
+  if(get_soc_ranges(soc_filename, soc_ranges, &err) == false) {
+    err.error("Failed to get SOC ranges\n");
+    return 1;
+  }
 
-  if(write_headers(code_sections, data_sections, soc_ranges, is_64_bit, std::string(tag_filename)) == false) {
+  get_address_ranges(elf_image, soc_ranges, code_ranges, data_ranges);
+
+  if(write_headers(code_ranges, data_ranges, is_64_bit, std::string(tag_filename)) == false) {
     err.error("Failed to write headers to tag file\n");
     return 1;
   }
