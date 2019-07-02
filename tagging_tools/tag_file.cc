@@ -250,3 +250,114 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
 
   return true;
 }
+
+bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
+                                           std::list<range_t> &data_ranges,
+                                           std::vector<const metadata_t *> &metadata_values,
+                                           metadata_index_map_t &metadata_index_map,
+                                           std::string file_name) {
+  uint8_t is_64_bit;
+  uint32_t code_range_count;
+  uint32_t data_range_count;
+  uint32_t metadata_value_count;
+  FILE *fp = fopen(file_name.c_str(), "rb");
+
+  if(!fp)
+    return false;
+
+  file_reader_t reader(fp);
+  fseek(fp, 0, SEEK_END);
+  size_t eof_point = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
+  if(!read_uleb<file_reader_t, uint8_t>(&reader, is_64_bit)) {
+    fclose(fp);
+    return false;
+  }
+
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, code_range_count)) {
+    fclose(fp);
+    return false;
+  }
+  for(size_t i = 0; i < code_range_count; i++) {
+    range_t range;
+    if(!read_uleb<file_reader_t, address_t>(&reader, range.start)) {
+      fclose(fp);
+      return false;
+    }
+
+    if(!read_uleb<file_reader_t, address_t>(&reader, range.end)) {
+      fclose(fp);
+      return false;
+    }
+    code_ranges.push_back(range);
+  }
+
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, data_range_count)) {
+    fclose(fp);
+    return false;
+  }
+  for(size_t i = 0; i < data_range_count; i++) {
+    range_t range;
+    if(!read_uleb<file_reader_t, address_t>(&reader, range.start)) {
+      fclose(fp);
+      return false;
+    }
+
+    if(!read_uleb<file_reader_t, address_t>(&reader, range.end)) {
+      fclose(fp);
+      return false;
+    }
+    data_ranges.push_back(range);
+  }
+
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, metadata_value_count)) {
+    fclose(fp);
+    return false;
+  }
+
+  for(size_t i = 0; i < metadata_value_count; i++) {
+    uint32_t metadata_count;
+
+    if(!read_uleb<file_reader_t, uint32_t>(&reader, metadata_count)) {
+      fclose(fp);
+      return false;
+    }
+
+    metadata_t *metadata = new metadata_t();
+    for(size_t j = 0; j < metadata_count; j++) {
+      meta_t meta;
+      if(!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
+        fclose(fp);
+        delete metadata;
+        return false;
+      }
+      metadata->insert(meta);
+    }
+    metadata_values.push_back(metadata);
+  }
+
+  while (eof_point != ftell(fp)) {
+    range_t range;
+    uint32_t metadata_index;
+
+    if (!read_uleb<file_reader_t, uint32_t>(&reader, range.start)) {
+      fclose(fp);
+      return false;
+    }
+
+    if (!read_uleb<file_reader_t, uint32_t>(&reader, range.end)) {
+      fclose(fp);
+      return false;
+    }
+    if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_index)) {
+      fclose(fp);
+      return false;
+    }
+
+    std::pair<range_t, uint32_t> p(range, metadata_index);
+    metadata_index_map.insert(p);
+  }
+
+  return true;
+}
