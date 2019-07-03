@@ -145,6 +145,65 @@ be constructed as follows:
 entities:
 ```
 
+## `md_index`
+
+The `md_index` utility will construct a list of all unique tags in an existing tag file.
+It is invoked as follows:
+
+```
+md_index <tag_file>
+```
+
+It will then rewrite the tag file, replacing each tag entry with an offset into the tag list.
+For example, `md_index` transforms the following set of tags:
+
+```
+{ 0x20400000 - 0x2040002c }: { allGrp }
+{ 0x2040002c - 0x20400030 }: { allGrp loadGrp }
+{ 0x20400030 - 0x20400034 }: { storeGrp allGrp }
+```
+
+to the format:
+
+```
+0: { allGrp }
+1: { allGrp loadGrp }
+2: { storeGrp allGrp }
+
+{ 0x20400000 - 0x2040002c }: 0
+{ 0x2040002c - 0x20400030 }: 1
+{ 0x20400030 - 0x20400034 }: 2
+```
+
+This step is performed to comply with the tag format used by the PEX firmware. `md_index` is one of
+two additional utilities required by the firmware, the other being `md_header`.
+
+## `md_header`
+
+The `md_header` utility will prepend a header to the tag file as needed to initialize the PEX firmware.
+This header contains a list of all contiguous regions of mapped memory, divided into code and data sections.
+`md_header` takes an ELF binary, a memory map of the SOC, and a tag file as input. It is invoked as follows:
+
+```
+md_header <elf_file> <soc_file> <tag_file>
+```
+
+The header format is as follows:
+
+```
+64-bit? (1B)
+
+# of code ranges (4B)
+for each code range:
+  start (4B)
+  end (4B)
+
+# of data ranges (4B)
+for each data range:
+  start (4B)
+  end (4B)
+```
+
 # Scripts
 
 There is one script that can be used used on an ELF format binary to generate tagging information
