@@ -54,6 +54,18 @@ if (HOPE_USE_COLOR_RECLAIMER)
   add_definitions(-DHOPE_ENABLE_COLOR_RECLAIMER=1)
 endif()
 
+if (HOPE_PRINT_RULE_CACHE_LOG)
+  add_definitions(-DHOPE_PRINT_RULE_CACHE_LOG=${HOPE_PRINT_RULE_CACHE_LOG})
+endif()
+
+if (HOPE_COLOR_RECLAIMER_SPEED)
+  add_definitions(-DHOPE_COLOR_RECLAIMER_SPEED=${HOPE_COLOR_RECLAIMER_SPEED})
+endif()
+
+if (HOPE_COLOR_COUNT)
+  add_definitions(-DHOPE_COLOR_COUNT=${HOPE_COLOR_COUNT})
+endif()
+
 add_library(rv32_validator ${rv32_validator_SOURCES})
 
 set_property(TARGET rv32_validator PROPERTY POSITION_INDEPENDENT_CODE ON)

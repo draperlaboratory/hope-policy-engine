@@ -169,12 +169,16 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     if (rule_cache->allow(ops, res)) {
       rule_cache_hits++;
       rule_cache_hit = true;
-      //fprintf(stderr, "Hit: Validating 0x%x %d\n", pc, rule_cache_hits);
+#if HOPE_PRINT_RULE_CACHE_LOG
+      fprintf(stderr, "Hit: Validating 0x%x %d\n", pc, rule_cache_hits);
+#endif
       return true;
     }
     else {
       rule_cache_misses++;
-      //fprintf(stderr, "Miss: Validating 0x%x %d\n", pc, rule_cache_misses);
+#if HOPE_PRINT_RULE_CACHE_LOG
+      fprintf(stderr, "Miss: Validating 0x%x %d\n", pc, rule_cache_misses);
+#endif
       rule_cache_hit = false;
     }
   }
@@ -220,6 +224,10 @@ bool rv32_validator_t::commit() {
     // dont update metadata on regZero
     if(pending_RD)
         ireg_tags[pending_RD] = new_tag;
+
+#if HOPE_USE_COLOR_RECLAIMER
+    DEBUG("  <???> committed. rd = %d. pc = %x.", pending_RD, ctx->epc);
+#endif
   }
   
   if (has_pending_mem && res->rdResult) {
