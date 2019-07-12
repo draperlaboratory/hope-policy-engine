@@ -78,6 +78,11 @@ add_executable(md_index
 	)
 target_link_libraries(md_index tagging_tools validator yaml-cpp)
 
+add_executable(md_firmware_test
+	tagging_tools/md_firmware_test.cc
+	)
+target_link_libraries(md_firmware_test tagging_tools validator yaml-cpp)
+
 add_executable(md_range
 	tagging_tools/md_range.cc
 	)
