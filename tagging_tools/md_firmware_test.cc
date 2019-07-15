@@ -84,7 +84,8 @@ int main(int argc, char **argv) {
     printf("}\n");
   }
 
-  printf("\nTag entries:\n");
+  printf("\nTag entries (showing %lu of %lu):\n",
+      num_entries, metadata_index_map.size());
   size_t entry_index = 0;
   for(auto &it : metadata_index_map) {
     printf("{ 0x%08x - 0x%08x }: %x\n", it.first.start, it.first.end, it.second);

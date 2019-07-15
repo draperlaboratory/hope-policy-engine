@@ -161,18 +161,22 @@ For example, `md_index` transforms the following set of tags:
 { 0x20400000 - 0x2040002c }: { allGrp }
 { 0x2040002c - 0x20400030 }: { allGrp loadGrp }
 { 0x20400030 - 0x20400034 }: { storeGrp allGrp }
+...
 ```
 
 to the format:
 
 ```
+Tag value count: 3
 0: { allGrp }
 1: { allGrp loadGrp }
 2: { storeGrp allGrp }
 
+Tag entry count: <number of entries>
 { 0x20400000 - 0x2040002c }: 0
 { 0x2040002c - 0x20400030 }: 1
 { 0x20400030 - 0x20400034 }: 2
+...
 ```
 
 This step is performed to comply with the tag format used by the PEX firmware. `md_index` is one of
