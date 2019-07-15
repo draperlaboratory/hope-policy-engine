@@ -149,6 +149,11 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
     }
   }
 
+  if(!write_uleb<file_writer_t, uint32_t>(&writer, index_map.size())) {
+    fclose(fp);
+    return false;
+  }
+
   for (auto &e: index_map) {
     if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.start)) {
       fclose(fp);
@@ -260,6 +265,7 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   uint32_t code_range_count;
   uint32_t data_range_count;
   uint32_t metadata_value_count;
+  uint32_t metadata_index_count;
   FILE *fp = fopen(file_name.c_str(), "rb");
 
   if(!fp)
@@ -337,7 +343,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     metadata_values.push_back(metadata);
   }
 
-  while (eof_point != ftell(fp)) {
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, metadata_index_count)) {
+    fclose(fp);
+    return false;
+  }
+
+  for(size_t i = 0; i < metadata_index_count; i++) {
     range_t range;
     uint32_t metadata_index;
 
