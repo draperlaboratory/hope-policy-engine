@@ -24,35 +24,23 @@ public:
 
 namespace std
 {
-  inline void hash_combine(std::size_t& seed) { }
-
-  template <typename T, typename... Rest>
-      inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
-    std::hash<T> hasher;
-    seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-    hash_combine(seed, rest...);
-  }
-
   template <>
       struct hash<operands_t>
   {
     size_t operator()(const operands_t& ops) const
     {
-      size_t res = 0;
-      hash_combine(res, *ops.pc->tags, *ops.ci->tags);
-      if (ops.op1)
-        hash_combine(res, *ops.op1->tags);
-      if (ops.op2)
-        hash_combine(res, *ops.op2->tags);
-      if (ops.op3)
-        hash_combine(res, *ops.op3->tags);
-      if (ops.mem)
-        hash_combine(res, *ops.mem->tags);
-
-      return res;
+      // XOR all meta_set_t pointers (operands) together.
+      // Shift pointers slightly so that two identical
+      // tags don't cancel out to 0.
+      size_t hash = (size_t) ops.pc;
+      hash ^= (size_t) ops.ci  << 1;
+      hash ^= (size_t) ops.op1 << 2;
+      hash ^= (size_t) ops.op2 << 3;
+      hash ^= (size_t) ops.op3 << 4;
+      hash ^= (size_t) ops.mem << 5;
+      return hash;
     }
   };
-
 }
 
 #endif// __BASE_RULE_CACHE_H__
