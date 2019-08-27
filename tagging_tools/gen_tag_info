@@ -11,6 +11,7 @@ import ELFSectionTagger
 import OpCodeTagger
 import LLVMMetadataTagger
 import yaml
+import comp_tagger
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
@@ -80,10 +81,19 @@ def main():
         if 'llvm' in policy_inits['Require']:
             range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
 
+        # Hooking the compartmentalization tagger here. It would be better if this was
+        # implemented through metadata in the ELF, but for now ad-hoc extraction.
+        if 'Comp' in policy_inits['Require']:
+            print("Compartmentalization policy selected, running compartment tagger...")
+            taginfo_arg_file = open(args.tag_file + ".args", "w")
+            num_globals = comp_tagger.add_object_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir)
+            comp_tagger.add_function_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir, num_globals)
+
         range_file.finish();
 
         presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
                                    args.tag_file])
+
         if presult != 0:
             sys.exit(presult)
 
@@ -108,6 +118,7 @@ def main():
         # annotate the asm file
         presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file,
                                   asm_file_name])
+        
         if presult != 0:
             sys.exit(presult)
 
