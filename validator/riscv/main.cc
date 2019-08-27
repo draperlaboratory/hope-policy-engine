@@ -44,6 +44,7 @@ meta_set_factory_t *ms_factory;
 rv32_validator_t *rv_validator;
 std::string policy_dir;
 std::string tags_file;
+std::string tag_args_file;
 std::string soc_cfg_path;
 std::string rule_cache_name;
 int rule_cache_capacity;
@@ -64,7 +65,17 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       if (!load_tags(&map, tags_file)) {
         printf("failed read\n");
       } else {
-        rv_validator->apply_metadata(&map);
+	printf("Successfully read taginfo file %s. Now reading and applying tag args %s\n",
+	       tags_file.c_str(), tag_args_file.c_str());
+	arg_val_map_t * tag_arg_map = load_tag_args(&map, tag_args_file);
+	if (tag_arg_map != NULL){
+	  printf("Applying metadata based on map I read from %s\n", tags_file.c_str());
+	  rv_validator->apply_metadata(&map, tag_arg_map);
+	  printf("Done applying tags.\n");
+	} else {
+	  printf("No tag tag arguments.\n");
+	  rv_validator->apply_metadata(&map);	  
+	}
       }
       if (rule_cache_name.size() != 0)
         rv_validator->config_rule_cache(rule_cache_name, rule_cache_capacity);
@@ -94,7 +105,13 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
       throw configuration_exception_t("Must provide policy directory in validator yaml configuration");
     }
     if (cfg["tags_file"]) {
+
+      // taginfo file
       tags_file = cfg["tags_file"].as<std::string>();
+
+      // taginfo_args file is implicitly the same name as taginfo file with ".args"
+      tag_args_file = tags_file;
+      tag_args_file.append(".args");
     }
     else {
       throw configuration_exception_t("Must provide taginfo file path in validator yaml configuration");
@@ -368,4 +385,8 @@ extern "C" void e_v_set_csr_watch(address_t addr){
 }
 extern "C" void e_v_set_mem_watch(address_t addr){
   rv_validator->set_mem_watch(addr);
+}
+
+extern "C" void e_v_terminate(void){
+  rv_validator->terminate();
 }

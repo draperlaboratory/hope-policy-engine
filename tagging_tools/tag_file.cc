@@ -25,7 +25,11 @@
  */
 
 #include <stdio.h>
-
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <vector>
+#include <map>
 #include "tag_file.h"
 #include "uleb.h"
 
@@ -75,7 +79,7 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
       fclose(fp);
       return false;
     }
-//    printf("(0x%x, 0x%x): %d meta_t\n", start, end, metadata_count);
+    //printf("tagfile read (0x%x, 0x%x): %d meta_t\n", start, end, metadata_count);
     metadata_t *metadata = new metadata_t();
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
@@ -90,6 +94,64 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
   }
   fclose(fp);
   return true;
+}
+
+// Creates a map that maps addresses to vectors of field values to set on those addresses.
+// Map is created based on content of taginfo.args file that is loaded automatically.
+arg_val_map_t * policy_engine::load_tag_args(metadata_memory_map_t *map, std::string file_name) {
+  
+  printf("Loading tag arguments file %s\n", file_name.c_str());
+
+  arg_val_map_t * tag_arg_map = new std::map<uint32_t, std::vector<uint32_t>*>();
+  
+  // Read taginfo.args file. Current format is just ASCII.
+  try {
+    
+    std::string line;    
+    std::ifstream infile(file_name);
+    if (infile.fail()){
+      printf("Warning: did not find taginfo.args file. No argument set.\n");
+      return tag_arg_map;
+    }
+    
+    while (std::getline(infile, line)) {
+
+      // Cut into tokens
+      std::istringstream iss(line);
+      std::vector<std::string> tokens {std::istream_iterator<std::string>{iss},
+	  std::istream_iterator<std::string>{}};
+      
+      //printf("Line = '%s', numtokens=%lu\n", line.c_str(), tokens.size());
+      if (tokens.size() < 2){
+	printf("Bad line, less than two tokens: %s\n", line.c_str());
+	continue;
+      }
+      
+      // Extract start and end
+      address_t start;
+      address_t end;
+      start = strtol(tokens[0].c_str(), 0, 16);
+      end = strtol(tokens[1].c_str(), 0, 16);
+
+      // Make vector out of argument ints
+      std::vector<uint32_t> * argument_values = new std::vector<uint32_t>();
+      for (int i = 2; i < tokens.size(); i++){
+	uint32_t arg_val = strtol(tokens[i].c_str(), 0, 10);
+ 	argument_values -> push_back(arg_val);
+      }
+
+      // Add to map on each address
+      uint32_t current;
+      for (current = start; current < end; current +=4 ){
+	//printf("Adding to tag arg map on addr %d\n", current);
+	tag_arg_map -> insert(std::pair<uint32_t, std::vector<uint32_t>*>(current, argument_values));
+      }
+    }
+  } catch (...) {
+    fprintf(stderr, "error loading %s\n", file_name.c_str());
+    return NULL;
+  }  
+  return tag_arg_map;
 }
 
 bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name) {

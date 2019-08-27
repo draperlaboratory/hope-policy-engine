@@ -123,8 +123,13 @@ class LLVMMetadataTagger:
         for policy, tags in self.policy_map.items():
             if self.policy_needs_tag(policy_inits, tags['name']):
                 if tags['tag_specifier'] == tag_specifier:
-                    range_file.write_range(start, end, tags['name'])
-                    range_map.add_range(start, end, tags['name'])
+                    # Account for current tagger off-by-one error
+                    if tag_specifier == self.tag_specifiers["DMT_CALL_INSTR"]:
+                        range_file.write_range(start - 4, end - 4, tags['name'])
+                        range_map.add_range(start - 4, end - 4, tags['name'])
+                    else: 
+                        range_file.write_range(start, end, tags['name'])
+                        range_map.add_range(start, end, tags['name'])
 
     def generate_policy_ranges(self, elf_file, range_file, policy_inits):
         metadata = elf_file.get_section_by_name(b'.dover_metadata')

@@ -28,6 +28,8 @@
 #define TAG_FILE_H
 
 #include <string>
+#include <map>
+#include <vector>
 #include "metadata_memory_map.h"
 #include "metadata_index_map.h"
 #include "elf_utils.h"
@@ -46,7 +48,12 @@ bool load_firmware_tag_file(std::list<range_t> &code_ranges,
                             std::vector<const metadata_t *> &metadata_values,
                             metadata_index_map_t &metadata_index_map,
                             std::string file_name);
-
+ 
+  // An arg_val_map maps each address to a vector of arg values stored there
+ typedef std::map<uint32_t, std::vector<uint32_t>*> arg_val_map_t;
+ 
+ arg_val_map_t * load_tag_args(metadata_memory_map_t *map, std::string file_name);
+  
 } // namespace policy_engine
 
 #endif

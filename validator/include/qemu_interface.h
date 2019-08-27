@@ -50,7 +50,7 @@ void e_v_set_reg_watch(uint64_t addr);
 void e_v_set_csr_watch(uint64_t addr);
 void e_v_set_mem_watch(uint64_t addr);
 void e_v_rule_cache_stats(void);
-
+void e_v_terminate(void);
 
 #ifdef __cplusplus
 }

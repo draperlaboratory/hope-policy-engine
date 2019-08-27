@@ -80,6 +80,12 @@ void prepare_eval(context_t *ctx, operands_t *ops, results_t *res);
 int eval_policy(context_t *ctx, operands_t *ops, results_t *res);
 
   /**
+   * Signal to the policy that program has terminated.
+   *
+   */
+void policy_terminate();
+  
+  /**
    * Install rule with operands and results.
    */
 void complete_eval(context_t *ctx, operands_t *ops, results_t *res);

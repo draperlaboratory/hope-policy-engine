@@ -39,9 +39,12 @@
 #include "ideal_rule_cache.h"
 #include "finite_rule_cache.h"
 #include "dmhc_rule_cache.h"
+#include "tag_file.h"
+
+#define CACHE_PRINT_FREQ 1000000
 
 namespace policy_engine {
-
+  
 class rv32_validator_base_t : public tag_based_validator_t {
 protected: 
   tag_bus_t tag_bus;
@@ -56,6 +59,7 @@ public:
 			RegisterReader_t rr);
 
   void apply_metadata(metadata_memory_map_t *md_map);
+  void apply_metadata(metadata_memory_map_t *md_map, arg_val_map_t * tag_arg_map);
   
   // called before we call the policy code - initializes ground state of input/output structures
   void setup_validation();
@@ -128,14 +132,16 @@ class rv32_validator_t : public rv32_validator_base_t {
   void flush_rule_cache();
   void config_rule_cache(const std::string cache_name, int capacity);
   void rule_cache_stats();
+  void terminate();
 
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
   rule_cache_t *rule_cache = nullptr;
-  uint64_t rule_cache_hits;
-  uint64_t rule_cache_misses;
+  uint64_t rule_cache_hits, rule_cache_misses_period;
+  uint64_t rule_cache_misses, rule_cache_hits_period;
+  uint64_t validated_instructions, next_print_instruction;
 };
 
 } // namespace policy_engine

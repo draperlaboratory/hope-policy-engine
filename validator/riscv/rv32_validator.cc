@@ -24,9 +24,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <vector>
+
 #include "soc_tag_configuration.h"
 #include "rv32_validator.h"
 #include "validator_exception.h"
+#include "tag_file.h"
 
 #include "policy_utils.h"
 #include "policy_eval.h"
@@ -62,12 +65,61 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
 
 extern std::string render_metadata(metadata_t const *metadata);
 
+
 void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
   for (auto &e: *md_map) {
     for (address_t start = e.first.start; start < e.first.end; start += 4) {
 //      std::string s = render_metadata(e.second);
 //      printf("0x%08x: %s\n", start, s.c_str());
       if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
+	throw configuration_exception_t("unable to apply metadata");
+      }
+    }
+  }
+}
+
+// This is a variant of apply_metadata that also initializes metadata arguments (fields) from an argument
+// map. 
+void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map, arg_val_map_t * tag_arg_map) {
+  
+  for (auto &e: *md_map) {
+    for (address_t start = e.first.start; start < e.first.end; start += 4) {
+
+      // Lookup this address in the field map
+      auto it = tag_arg_map -> find(start);
+      std::vector<uint32_t> * args_on_word;      
+      if (it == tag_arg_map -> end()){
+	args_on_word = NULL;
+      } else {
+	args_on_word = it -> second;	
+      }
+
+      // Get the current metadata_t on this word
+      metadata_t const * this_metadata = e.second;
+      
+      // Canonize this metadata_t, convert to meta_set_t
+      meta_set_t const * this_meta_set = ms_cache -> canonize(this_metadata);
+
+      // Copy to a fresh meta set
+      meta_set_t new_meta_set;
+      memcpy(&new_meta_set, this_meta_set, sizeof(meta_set_t));
+      
+      // Set field bits, if we have any for this word
+      if (args_on_word != NULL){
+	if (args_on_word -> size() != META_SET_ARGS){
+	  printf("ERROR: wrong number of arguments in taginfo.args file.\n");
+	}
+	for (int i = 0; i < META_SET_ARGS; i++){
+	  new_meta_set.tags[META_SET_BITFIELDS + i] = args_on_word -> at(i);
+	  //printf("Set tag to %d\n", args_on_word -> at(i));
+	}
+      }
+      
+      // Canonize again with potentially changed argument values
+      meta_set_t const * final_meta_set = ms_cache -> canonize((meta_set_t const &) new_meta_set);
+      
+      // Write new canonized meta_set_t to tag bus
+      if (!tag_bus.store_tag(start, m_to_t(final_meta_set))) {
 	throw configuration_exception_t("unable to apply metadata");
       }
     }
@@ -129,6 +181,11 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   has_insn_mem_addr = false;
   rule_cache_hits = 0;
   rule_cache_misses = 0;
+
+  rule_cache_hits_period = 0;
+  rule_cache_misses_period = 0;
+  validated_instructions = 0;
+  next_print_instruction = CACHE_PRINT_FREQ;
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
@@ -158,12 +215,14 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (rule_cache) {
     if (rule_cache->allow(ops, res)) {
       rule_cache_hits++;
+      rule_cache_hits_period++;
       rule_cache_hit = true;
       //fprintf(stderr, "Hit: Validating 0x%x %d\n", pc, rule_cache_hits);
       return true;
     }
     else {
       rule_cache_misses++;
+      rule_cache_misses_period++;
       //fprintf(stderr, "Miss: Validating 0x%x %d\n", pc, rule_cache_misses);
       rule_cache_hit = false;
     }
@@ -181,6 +240,9 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
 }
 
 bool rv32_validator_t::commit() {
+
+  validated_instructions += 1;
+  
   bool hit_watch = false;
 
   if (res->pcResult) {
@@ -258,6 +320,17 @@ bool rv32_validator_t::commit() {
 
     if (ctx->cached && !rule_cache->allow(ops, res)) {
       rule_cache->install_rule(ops, &res_copy);
+    }
+
+    if (validated_instructions == next_print_instruction){
+      
+      double hit_rate = 100.0 * (double) rule_cache_hits_period /
+	(rule_cache_hits_period + rule_cache_misses_period);
+      
+      printf("CACHE: %lu %3.3f %lu %lu\n", validated_instructions, hit_rate, rule_cache_misses_period, rule_cache_hits_period);
+      rule_cache_hits_period = 0;
+      rule_cache_misses_period = 0;
+      next_print_instruction += CACHE_PRINT_FREQ;
     }
   }
   return hit_watch;
@@ -382,7 +455,7 @@ void rv32_validator_t::complete_eval() {
 }
 
 void rv32_validator_t::config_rule_cache(const std::string rule_cache_name, int capacity) {
-  printf("%s rule cache with capacity %d!\n", rule_cache_name.c_str(), capacity);
+  printf("%s rule cache with capacity %d! Updated.\n", rule_cache_name.c_str(), capacity);
   for (auto s : rule_cache_name)
     s = tolower(s);
   if (rule_cache_name == "ideal") {
@@ -407,3 +480,7 @@ void rv32_validator_t::rule_cache_stats() {
     fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
   }
 };
+
+void rv32_validator_t::terminate() {
+  policy_terminate();
+}
