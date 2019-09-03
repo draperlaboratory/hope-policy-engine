@@ -87,7 +87,7 @@ void elf_sections_to_ranges(std::list<Elf_Shdr const *> &sections,
   for(const auto &it : sections) {
     range_t range;
     range.start = it->sh_addr;
-    range.end = it->sh_addr + it->sh_size;
+    range.end = it->sh_addr + it->sh_size - 1;
     ranges.push_back(range);
   }
 }
