@@ -10,6 +10,7 @@ import TaggingUtils
 import ELFSectionTagger
 import OpCodeTagger
 import LLVMMetadataTagger
+import SOCTagger
 import yaml
 
 from elftools.elf.elffile import ELFFile
@@ -80,11 +81,19 @@ def main():
         if 'llvm' in policy_inits['Require']:
             range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
 
+        # SOC element tagging
+        # XXX: make SOC a required parameter once the tag file format is consolidated
+        if 'SOC' in policy_inits['Require'] and args.soc_file is not None:
+            soc_file = open(args.soc_file, "r")
+            SOCTagger.generate_soc_ranges(soc_file, range_file, policy_inits)
+            soc_file.close()
+
         range_file.finish();
 
         presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
                                    args.tag_file])
         if presult != 0:
+            print("md_range failed")
             sys.exit(presult)
 
         range_file.done()
@@ -96,6 +105,7 @@ def main():
         presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
                                  args.entities)
         if presult != 0:
+            print("md_entity failed")
             sys.exit(presult)
 
         # generate the asm file
@@ -103,12 +113,14 @@ def main():
             presult = subprocess.call(["riscv32-unknown-elf-objdump", "-dS", args.bin],
                                      stdout=asm_file)
             if presult != 0:
+                print("objdump failed")
                 sys.exit(presult)
 
         # annotate the asm file
         presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file,
                                   asm_file_name])
         if presult != 0:
+            print("md_asm_ann failed")
             sys.exit(presult)
 
         # Save tags by index to optimize PEX startup
@@ -116,10 +128,12 @@ def main():
         if args.soc_file is not None:
             presult = subprocess.call([md_index, args.tag_file])
             if presult != 0:
+                print("md_index failed")
                 sys.exit(presult)
 
             presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file])
             if presult != 0:
+                print("md_header failed")
                 sys.exit(presult)
 
 
