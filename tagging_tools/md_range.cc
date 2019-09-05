@@ -66,24 +66,24 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
     std::string line;
     while (std::getline(infile, line)) {
       std::istringstream iss(line);
-//      printf("Line = '%s'\n", line.c_str());
+      //      printf("Line = '%s'\n", line.c_str());
       std::vector<std::string> tokens {std::istream_iterator<std::string>{iss},
-	  std::istream_iterator<std::string>{}};
+        std::istream_iterator<std::string>{}};
       if (tokens.size() != 3) {
-	fprintf(stderr, "%s: %d: bad format - wrong number of items\n", file_name.c_str(), lineno);
-	res = false;
+        fprintf(stderr, "%s: %d: bad format - wrong number of items\n", file_name.c_str(), lineno);
+        res = false;
       } else {
-	address_t start;
-	address_t end;
-	start = strtol(tokens[0].c_str(), 0, 16);
-	end = strtol(tokens[1].c_str(), 0, 16);
-//	printf("applying tag to 0x%x, 0x%x ... ", start, end);
-	if (!apply_tag(map, start, end, tokens[2].c_str())) {
-	  fprintf(stderr, "%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
-	  res = false;
-	} else {
-//	  printf("done\n");
-	}
+        address_t start;
+        address_t end;
+        start = strtol(tokens[0].c_str(), 0, 16);
+        end = strtol(tokens[1].c_str(), 0, 16);
+        //	printf("applying tag to 0x%x, 0x%x ... ", start, end);
+        if (!apply_tag(map, start, end, tokens[2].c_str())) {
+          fprintf(stderr, "%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
+          res = false;
+        } else {
+          //	  printf("done\n");
+        }
       }
       lineno++;
     }

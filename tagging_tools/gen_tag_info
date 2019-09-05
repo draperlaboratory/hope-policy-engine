@@ -81,13 +81,6 @@ def main():
         if 'llvm' in policy_inits['Require']:
             range_map = llvm_tagger.generate_policy_ranges(ef, range_file, policy_inits)
 
-        # SOC element tagging
-        # XXX: make SOC a required parameter once the tag file format is consolidated
-        if 'SOC' in policy_inits['Require'] and args.soc_file is not None:
-            soc_file = open(args.soc_file, "r")
-            SOCTagger.generate_soc_ranges(soc_file, range_file, policy_inits)
-            soc_file.close()
-
         range_file.finish();
 
         presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
@@ -126,10 +119,23 @@ def main():
         # Save tags by index to optimize PEX startup
         # Prepend host address ranges for instructions/data
         if args.soc_file is not None:
-            presult = subprocess.call([md_index, args.tag_file])
+            # SOC element tagging
+            # XXX: make SOC a required parameter once the tag file format is consolidated
+            if 'SOC' in policy_inits['Require'] and args.soc_file is not None:
+                with open(args.policy_dir + "/policy_meta.yml", "r") as policy_modules_file:
+                    policy_meta = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
+                soc_file = open(args.soc_file, "r")
+                soc_range_file = TaggingUtils.RangeFile()
+                SOCTagger.generate_soc_ranges(soc_file, soc_range_file, policy_inits, policy_meta)
+                soc_file.close()
+                soc_range_file.finish()
+
+            presult = subprocess.call([md_index, args.tag_file, soc_range_file.name()])
             if presult != 0:
                 print("md_index failed")
                 sys.exit(presult)
+
+            soc_range_file.done()
 
             presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file])
             if presult != 0:
