@@ -18,4 +18,5 @@ def generate_soc_ranges(soc_file, range_file, policy_inits):
         for elem in policy_soc[device_type]:
             name = "SOC.{}.{}".format(device_type, elem)
             if name in soc_ranges:
+                print('{0}: 0x{1:X} - 0x{2:X}'.format(name, soc_ranges[name][0], soc_ranges[name][1]))
                 range_file.write_range(soc_ranges[name][0], soc_ranges[name][1], name)
