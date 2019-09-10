@@ -40,7 +40,7 @@ void usage() {
 }
 
 bool get_soc_ranges(std::string file_name, std::list<range_t> &ranges,
-                    reporter_t *err) {
+                    std::list<std::string> &exclude, reporter_t *err) {
   YAML::Node node = YAML::LoadFile(file_name);
   if (node["SOC"] == NULL) {
     err->error("SOC root node not present\n");
@@ -57,10 +57,17 @@ bool get_soc_ranges(std::string file_name, std::list<range_t> &ranges,
       return false;
     }
 
-    // exclude Memory SOC elements, as they're already
-    // accounted for by ELF sections
     name = it->second["name"].as<std::string>().c_str();
-    if(name.rfind("SOC.Memory", 0) == 0) {
+
+    bool skip = false;
+    for(const auto &it : exclude) {
+      if(name == it) {
+        skip = true;
+        break;
+      }
+    }
+
+    if(skip) {
       continue;
     }
 
@@ -100,6 +107,7 @@ void coalesce_ranges(std::list<range_t> &ranges) {
   std::list<range_t>::iterator it = ++ranges.begin();
 
   while(it != ranges.end()) {
+    printf("Range: 0x%x = 0x%x\n", (*it).start, (*it).end);
     auto previous = std::prev(it, 1);
 
     if((*it).end <= (*previous).end) {
@@ -158,6 +166,7 @@ int main(int argc, char **argv) {
   std::list<range_t> data_ranges;
   const char *tag_filename;
   bool is_64_bit = false;
+  std::list<std::string> soc_exclude;
 
   if (argc < 4) {
     usage();
@@ -167,6 +176,10 @@ int main(int argc, char **argv) {
   elf_filename = argv[1];
   soc_filename = argv[2];
   tag_filename = argv[3];
+
+  for(size_t i = 4; i < argc; i++) {
+    soc_exclude.push_back(std::string(argv[i]));
+  }
 
   elf_file = fopen(elf_filename, "rb");
   if(elf_file == NULL) {
@@ -184,7 +197,7 @@ int main(int argc, char **argv) {
     is_64_bit = true;
   }
 
-  if(get_soc_ranges(soc_filename, soc_ranges, &err) == false) {
+  if(get_soc_ranges(soc_filename, soc_ranges, soc_exclude, &err) == false) {
     err.error("Failed to get SOC ranges\n");
     return 1;
   }

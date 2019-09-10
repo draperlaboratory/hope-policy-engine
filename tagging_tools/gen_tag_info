@@ -24,6 +24,9 @@ md_entity = 'md_entity'
 md_header = 'md_header'
 md_index = 'md_index'
 
+# List of SOC elements to exclude from TMT
+soc_exclude = ['SOC.Memory.DDR4_0', 'SOC.Memory.Ram_0']
+
 def main():
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -131,7 +134,7 @@ def main():
                 print("md_index failed")
                 sys.exit(presult)
 
-            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file])
+            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file] + soc_exclude)
             if presult != 0:
                 print("md_header failed")
                 sys.exit(presult)
