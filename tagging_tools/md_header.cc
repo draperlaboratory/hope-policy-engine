@@ -126,7 +126,6 @@ void coalesce_ranges(std::list<range_t> &ranges) {
 }
 
 void get_address_ranges(elf_image_t &elf_image,
-                        std::list<range_t> &soc_ranges,
                         std::list<range_t> &code_ranges,
                         std::list<range_t> &data_ranges) {
   std::list<Elf_Shdr const *> code_sections;
@@ -136,8 +135,6 @@ void get_address_ranges(elf_image_t &elf_image,
 
   elf_sections_to_ranges(code_sections, code_ranges);
   elf_sections_to_ranges(data_sections, data_ranges);
-
-  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
 
   code_ranges.sort(compare_range);
   data_ranges.sort(compare_range);
@@ -202,7 +199,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  get_address_ranges(elf_image, soc_ranges, code_ranges, data_ranges);
+  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+  get_address_ranges(elf_image, code_ranges, data_ranges);
 
   if(write_headers(code_ranges, data_ranges, is_64_bit, std::string(tag_filename)) == false) {
     err.error("Failed to write headers to tag file\n");
