@@ -125,6 +125,18 @@ metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
 #endif
 }
 
+std::map<std::string, metadata_t const *> *metadata_factory_t::lookup_metadata_map(std::string dotted_path) {
+  std::map<std::string, metadata_t const *> *results = new std::map<std::string, metadata_t const *>();
+
+  for (auto &it : entity_initializers) {
+    if (it.first.rfind(dotted_path) == 0) {
+      (*results)[it.first] = lookup_metadata(it.first);
+    }
+  }
+
+  return results;
+}
+
 static const std::unordered_map<std::string, operand_rule_match_t> operand_match_yaml_ids {
   {"match_all", OPERAND_RULE_ANY},
   {"match_equal", OPERAND_RULE_EQUAL},

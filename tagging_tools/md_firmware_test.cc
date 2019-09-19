@@ -27,6 +27,7 @@
 #include "elf_utils.h"
 #include "basic_elf_io.h"
 #include "metadata_index_map.h"
+#include "metadata_register_map.h"
 
 using namespace policy_engine;
 
@@ -45,8 +46,13 @@ int main(int argc, char **argv) {
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;
   std::vector<const metadata_t *> metadata_values;
-  metadata_index_map_t metadata_index_map;
+  int32_t register_default;
+  int32_t csr_default;
   size_t num_entries = 16;
+
+  auto memory_index_map = metadata_index_map_t<metadata_memory_map_t, range_t>();
+  auto register_index_map = metadata_index_map_t<metadata_register_map_t, std::string>();
+  auto csr_index_map = metadata_index_map_t<metadata_register_map_t, std::string>();
 
   if(argc < 2) {
     usage();
@@ -60,7 +66,8 @@ int main(int argc, char **argv) {
   tag_filename = argv[1];
 
   if(load_firmware_tag_file(code_ranges, data_ranges, metadata_values,
-        metadata_index_map, std::string(tag_filename)) == false) {
+                            memory_index_map, register_index_map, csr_index_map,
+                            register_default, csr_default, std::string(tag_filename)) == false) {
     err.error("Failed to load firmware tag file\n");
     return 1;
   }
@@ -84,10 +91,22 @@ int main(int argc, char **argv) {
     printf("}\n");
   }
 
-  printf("\nTag entries (showing %lu of %lu):\n",
-      num_entries, metadata_index_map.size());
+  printf("\nRegister tag entries:\n");
+  printf("Default: %x\n", register_default);
+  for(auto &it : register_index_map) {
+    printf("%s: %x\n", it.first.c_str(), it.second);
+  }
+
+  printf("\nCSR tag entries:\n");
+  printf("Default: %x\n", csr_default);
+  for(auto &it : csr_index_map) {
+    printf("%s: %x\n", it.first.c_str(), it.second);
+  }
+
+  printf("\nMemory tag entries (showing %lu of %lu):\n",
+      num_entries, memory_index_map.size());
   size_t entry_index = 0;
-  for(auto &it : metadata_index_map) {
+  for(auto &it : memory_index_map) {
     printf("{ 0x%08x - 0x%08x }: %x\n", it.first.start, it.first.end, it.second);
 
     entry_index++;

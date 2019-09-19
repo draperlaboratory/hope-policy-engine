@@ -129,7 +129,7 @@ def main():
         # Save tags by index to optimize PEX startup
         # Prepend host address ranges for instructions/data
         if args.soc_file is not None:
-            presult = subprocess.call([md_index, args.tag_file])
+            presult = subprocess.call([md_index, args.tag_file, args.policy_dir])
             if presult != 0:
                 print("md_index failed")
                 sys.exit(presult)
