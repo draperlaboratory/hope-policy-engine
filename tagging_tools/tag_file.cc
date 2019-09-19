@@ -28,6 +28,7 @@
 
 #include "tag_file.h"
 #include "uleb.h"
+#include "register_name_map.h"
 
 using namespace policy_engine;
 
@@ -123,7 +124,10 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
 }
 
 bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
-                                     std::map<range_t, uint32_t, range_compare> &index_map,
+                                     metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
+                                     metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
+                                     metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
+                                     int32_t register_default, int32_t csr_default,
                                      std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "wb");
 
@@ -149,12 +153,72 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
     }
   }
 
-  if(!write_uleb<file_writer_t, uint32_t>(&writer, index_map.size())) {
+  if(!write_uleb<file_writer_t, uint32_t>(&writer, register_index_map.size())) {
+    fclose(fp);
+    return false;
+  }
+  if(!write_uleb<file_writer_t, int32_t>(&writer, register_default)) {
     fclose(fp);
     return false;
   }
 
-  for (auto &e: index_map) {
+  for (auto &e: register_index_map) {
+    std::string register_name = e.first.substr(e.first.find_last_of(".")+1).c_str();
+    uint32_t register_value;
+    
+    try {
+      register_value = register_name_map.at(register_name);
+    } catch(std::out_of_range &oor) {
+      printf("Invalid register name %s\n", register_name.c_str());
+      return false;
+    }
+
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, register_value)) {
+      fclose(fp);
+      return false;
+    }
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second)) {
+      fclose(fp);
+      return false;
+    }
+  }
+
+  if(!write_uleb<file_writer_t, uint32_t>(&writer, csr_index_map.size())) {
+    fclose(fp);
+    return false;
+  }
+  if(!write_uleb<file_writer_t, int32_t>(&writer, csr_default)) {
+    fclose(fp);
+    return false;
+  }
+
+  for (auto &e: csr_index_map) {
+    std::string csr_name = e.first.substr(e.first.find_last_of(".")+1).c_str();
+    uint32_t csr_value;
+    
+    try {
+      csr_value = csr_name_map.at(csr_name);
+    } catch(std::out_of_range &oor) {
+      printf("Invalid csr name %s\n", csr_name.c_str());
+      return false;
+    }
+
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, csr_value)) {
+      fclose(fp);
+      return false;
+    }
+    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.second)) {
+      fclose(fp);
+      return false;
+    }
+  }
+
+  if(!write_uleb<file_writer_t, uint32_t>(&writer, memory_index_map.size())) {
+    fclose(fp);
+    return false;
+  }
+
+  for (auto &e: memory_index_map) {
     if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;
@@ -259,13 +323,18 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
 bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
                                            std::list<range_t> &data_ranges,
                                            std::vector<const metadata_t *> &metadata_values,
-                                           metadata_index_map_t &metadata_index_map,
+                                           metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
+                                           metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
+                                           metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
+                                           int32_t &register_default, int32_t &csr_default,
                                            std::string file_name) {
   uint8_t is_64_bit;
   uint32_t code_range_count;
   uint32_t data_range_count;
   uint32_t metadata_value_count;
-  uint32_t metadata_index_count;
+  uint32_t memory_index_count;
+  uint32_t register_index_count;
+  uint32_t csr_index_count;
   FILE *fp = fopen(file_name.c_str(), "rb");
 
   if(!fp)
@@ -343,12 +412,89 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     metadata_values.push_back(metadata);
   }
 
-  if(!read_uleb<file_reader_t, uint32_t>(&reader, metadata_index_count)) {
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, register_index_count)) {
+    fclose(fp);
+    return false;
+  }
+  if(!read_uleb<file_reader_t, int32_t>(&reader, register_default)) {
     fclose(fp);
     return false;
   }
 
-  for(size_t i = 0; i < metadata_index_count; i++) {
+  for(size_t i = 0; i < register_index_count; i++) {
+    std::string register_name;
+    uint32_t register_value;
+    uint32_t register_meta;
+
+    if(!read_uleb<file_reader_t, uint32_t>(&reader, register_value)) {
+      fclose(fp);
+      return false;
+    }
+    if(!read_uleb<file_reader_t, uint32_t>(&reader, register_meta)) {
+      fclose(fp);
+      printf("Failed here\n");
+      return false;
+    }
+
+    for(auto &it : register_name_map) {
+      if(register_value == it.second) {
+        register_name = it.first;
+        break;
+      }
+    }
+
+    if(register_name.empty()) {
+      return false;
+    }
+
+    std::pair<std::string, uint32_t> p(register_name, register_meta);
+    register_index_map.insert(p);
+  }
+
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, csr_index_count)) {
+    fclose(fp);
+    return false;
+  }
+  if(!read_uleb<file_reader_t, int32_t>(&reader, csr_default)) {
+    fclose(fp);
+    return false;
+  }
+
+  for(size_t i = 0; i < csr_index_count; i++) {
+    std::string csr_name;
+    uint32_t csr_value;
+    uint32_t csr_meta;
+
+    if(!read_uleb<file_reader_t, uint32_t>(&reader, csr_value)) {
+      fclose(fp);
+      return false;
+    }
+    if(!read_uleb<file_reader_t, uint32_t>(&reader, csr_meta)) {
+      fclose(fp);
+      return false;
+    }
+
+    for(auto &it : csr_name_map) {
+      if(csr_value == it.second) {
+        csr_name = it.first;
+        break;
+      }
+    }
+
+    if(csr_name.empty()) {
+      return false;
+    }
+
+    std::pair<std::string, uint32_t> p(csr_name, csr_meta);
+    csr_index_map.insert(p);
+  }
+
+  if(!read_uleb<file_reader_t, uint32_t>(&reader, memory_index_count)) {
+    fclose(fp);
+    return false;
+  }
+
+  for(size_t i = 0; i < memory_index_count; i++) {
     range_t range;
     uint32_t metadata_index;
 

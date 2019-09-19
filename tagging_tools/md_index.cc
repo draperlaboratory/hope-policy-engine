@@ -27,6 +27,8 @@
 #include "elf_utils.h"
 #include "basic_elf_io.h"
 #include "metadata_index_map.h"
+#include "metadata_factory.h"
+#include "metadata_register_map.h"
 
 using namespace policy_engine;
 
@@ -35,30 +37,61 @@ using namespace policy_engine;
 #include <string>
 #include <cstring>
 
-bool extract_metadata_values(std::string file_name, reporter_t *err) {
-  metadata_memory_map_t metadata_memory_map; 
+void usage() {
+  printf("usage: md_index <tag_file> <policy_dir>\n");
+}
+
+
+int main(int argc, char **argv) {
+  stdio_reporter_t err;
+  const char *tag_filename;
+  const char *policy_dir;
+  metadata_memory_map_t metadata_memory_map;
+  metadata_register_map_t *register_map;
+  metadata_register_map_t *csr_map;
   std::vector<const metadata_t *> metadata_values;
-  metadata_index_map_t metadata_index_map;
+  ssize_t register_default = -1;
+  ssize_t csr_default = -1;
 
-  if(load_tags(&metadata_memory_map, file_name) == false) {
-    err->error("Failed to load tags\n");
-    return false;
+  if(argc < 3) {
+    usage();
+    return 1;
   }
 
-  for(const auto &it : metadata_memory_map) {
-    auto value_iter = std::find(metadata_values.begin(), metadata_values.end(), it.second);
-    uint32_t value_index;
-    if(value_iter == metadata_values.end()) {
-      metadata_values.push_back(it.second);
-      value_index = (metadata_values.end() - metadata_values.begin()) - 1;
-    }
-    else {
-      value_index = value_iter - metadata_values.begin();
-    }
-
-    std::pair<range_t, uint32_t> p(it.first, value_index);
-    metadata_index_map.insert(p);
+  // Retrieve memory metadata from tag file
+  tag_filename = argv[1];
+  if(load_tags(&metadata_memory_map, tag_filename) == false) {
+    err.error("Failed to load tags\n");
+    return 1;
   }
+
+  // Retrieve register metadata from policy
+  policy_dir = argv[2];
+  metadata_factory_t metadata_factory(policy_dir);
+
+  register_map = metadata_factory.lookup_metadata_map("ISA.RISCV.Reg");
+  csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");
+
+  // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
+  auto memory_index_map =
+    metadata_index_map_t<metadata_memory_map_t, range_t>(&metadata_memory_map, &metadata_values);
+
+  auto register_index_map =
+    metadata_index_map_t<metadata_register_map_t, std::string>(register_map, &metadata_values);
+
+  auto csr_index_map =
+    metadata_index_map_t<metadata_register_map_t, std::string>(csr_map, &metadata_values);
+
+  // Separate the default entries from those corresponding to actual registers/CSRs
+  try {
+    register_default = register_index_map.at("ISA.RISCV.Reg.Default");
+    register_index_map.erase("ISA.RISCV.Reg.Default");
+  } catch(const std::out_of_range& oor) { }
+
+  try {
+    csr_default = csr_index_map.at("ISA.RISCV.CSR.Default");
+    csr_index_map.erase("ISA.RISCV.CSR.Default");
+  } catch(const std::out_of_range& oor) { }
 
   printf("Metadata entries:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {
@@ -69,31 +102,9 @@ bool extract_metadata_values(std::string file_name, reporter_t *err) {
     printf("}\n");
   }
 
-  if(save_tag_indexes(metadata_values, metadata_index_map, file_name) == false) {
-    err->error("Failed to save indexes to tag file\n");
-    return false;
-  }
-
-  return true;
-}
-
-void usage() {
-  printf("usage: md_index <tag_file>\n");
-}
-
-int main(int argc, char **argv) {
-  stdio_reporter_t err;
-  const char *tag_filename;
-
-  if(argc < 2) {
-    usage();
-    return 1;
-  }
-
-  tag_filename = argv[1];
-
-  if(extract_metadata_values(tag_filename, &err) == false) {
-    printf("Failed to extract metadata values\n");
+  if(save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map,
+                      register_default, csr_default, tag_filename) == false) {
+    err.error("Failed to save indexes to tag file\n");
     return 1;
   }
 
