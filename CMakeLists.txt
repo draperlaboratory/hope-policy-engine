@@ -67,6 +67,9 @@ add_library(tagging_tools
   tagging_tools/entity_binding.cc
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(tagging_tools PRIVATE
+  ./validator/riscv
+  )
 
 add_executable(md_header
 	tagging_tools/md_header.cc
