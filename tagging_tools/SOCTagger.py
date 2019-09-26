@@ -9,7 +9,7 @@ def generate_soc_ranges(soc_file, range_file, policy_inits):
         elem_fields = soc_cfg['SOC'][elem]
         name = elem_fields['name']
         start = elem_fields['start']
-        end = elem_fields['end']
+        end = elem_fields['end'] + 1
         soc_ranges[name] = (start, end)
 
     # filter SOC range entries by those required by the policy init
