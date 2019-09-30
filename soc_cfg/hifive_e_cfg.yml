@@ -1,6 +1,6 @@
 SOC:
   DEBUG: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.DEBUG,
     start: 0x00000000,
     end:   0x01ffffff,
     heterogeneous: true
@@ -36,31 +36,31 @@ SOC:
     heterogeneous: true
     }
   AON: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.AON,
     start: 0x10000000,
     end:   0x10007fff,
     heterogeneous: false
     }
   PRCI: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.PRCI,
     start: 0x10008000,
     end:   0x1000ffff,
     heterogeneous: false
     }
   OTP: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.OTP,
     start: 0x10010000,
     end:   0x10010fff,
     heterogeneous: false
     }
   EFLASH: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.EFLASH,
     start: 0x10011000,
     end:   0x10011fff,
     heterogeneous: false
     }
   GPIO0: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.GPIO_0,
     start: 0x10012000,
     end:   0x10012fff,
     heterogeneous: false
@@ -72,7 +72,7 @@ SOC:
     heterogeneous: false
     }
   QSPI0: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.QSPI_0,
     start: 0x10014000,
     end:   0x10014fff,
     heterogeneous: false
@@ -90,13 +90,13 @@ SOC:
     heterogeneous: true
     }
   MTIME: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.MTIME,
     start: 0x4400bff8,
     end:   0x4400c000,
     heterogeneous: false
     }
   MTIME_CMP: {
-    name: SOC.IO.UART_0,
+    name: SOC.IO.MTIME_CMP,
     start: 0x44004000,
     end:   0x44004010,
     heterogeneous: false
