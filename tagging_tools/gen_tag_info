@@ -134,7 +134,7 @@ def main():
                 print("md_index failed")
                 sys.exit(presult)
 
-            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file] + soc_exclude)
+            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude)
             if presult != 0:
                 print("md_header failed")
                 sys.exit(presult)
