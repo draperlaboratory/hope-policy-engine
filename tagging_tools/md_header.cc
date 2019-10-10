@@ -27,6 +27,7 @@
 #include "tag_file.h"
 #include "elf_utils.h"
 #include "basic_elf_io.h"
+#include "metadata_factory.h"
 
 using namespace policy_engine;
 
@@ -39,15 +40,31 @@ void usage() {
   printf("usage: md_header <elf_file> <soc_file> <tag_file>\n");
 }
 
-bool get_soc_ranges(std::string file_name, std::list<range_t> &ranges,
-                    std::list<std::string> &exclude, reporter_t *err) {
-  YAML::Node node = YAML::LoadFile(file_name);
-  if (node["SOC"] == NULL) {
-    err->error("SOC root node not present\n");
-    return false;
+bool exclude_unused_soc(YAML::Node soc, std::list<std::string> &exclude,
+                        metadata_factory_t &factory, reporter_t *err) {
+  auto soc_map = factory.lookup_metadata_map("SOC");
+
+  for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
+    std::string name;
+
+    if(it->second["name"] == NULL) {
+      err->error("'name' node not present\n");
+      return false;
+    }
+
+    name = it->second["name"].as<std::string>();
+
+    if(soc_map->find(name) == soc_map->end()) {
+      exclude.push_back(name);
+    }
+
   }
 
-  YAML::Node soc = node["SOC"];
+  return true;
+}
+
+bool get_soc_ranges(YAML::Node soc, std::list<range_t> &ranges,
+                    std::list<std::string> &exclude, reporter_t *err) {
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     range_t range;
     std::string name;
@@ -57,17 +74,10 @@ bool get_soc_ranges(std::string file_name, std::list<range_t> &ranges,
       return false;
     }
 
-    name = it->second["name"].as<std::string>().c_str();
+    name = it->second["name"].as<std::string>();
 
-    bool skip = false;
-    for(const auto &it : exclude) {
-      if(name == it) {
-        skip = true;
-        break;
-      }
-    }
-
-    if(skip) {
+    if(std::find(exclude.begin(), exclude.end(), name) != exclude.end()) {
+      err->info("Excluding %s from SOC ranges\n", name.c_str());
       continue;
     }
 
@@ -164,8 +174,10 @@ int main(int argc, char **argv) {
   const char *tag_filename;
   bool is_64_bit = false;
   std::list<std::string> soc_exclude;
+  const char *policy_dir;
+  YAML::Node soc_node;
 
-  if (argc < 4) {
+  if (argc < 5) {
     usage();
     return 1;
   }
@@ -173,8 +185,11 @@ int main(int argc, char **argv) {
   elf_filename = argv[1];
   soc_filename = argv[2];
   tag_filename = argv[3];
+  policy_dir = argv[4];
 
-  for(size_t i = 4; i < argc; i++) {
+  metadata_factory_t factory(policy_dir);
+
+  for(size_t i = 5; i < argc; i++) {
     soc_exclude.push_back(std::string(argv[i]));
   }
 
@@ -194,7 +209,18 @@ int main(int argc, char **argv) {
     is_64_bit = true;
   }
 
-  if(get_soc_ranges(soc_filename, soc_ranges, soc_exclude, &err) == false) {
+  soc_node = YAML::LoadFile(soc_filename);
+  if (soc_node["SOC"] == NULL) {
+    err.error("SOC root node not present\n");
+    return false;
+  }
+
+  if(exclude_unused_soc(soc_node["SOC"], soc_exclude, factory, &err) == false) {
+    err.error("Failed to get SOC ranges\n");
+    return 1;
+  }
+
+  if(get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude, &err) == false) {
     err.error("Failed to get SOC ranges\n");
     return 1;
   }
