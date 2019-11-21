@@ -104,7 +104,12 @@ void elf_sections_to_ranges(std::list<Elf_Shdr const *> &sections,
   for(const auto &it : sections) {
     range_t range;
     range.start = it->sh_addr;
-    range.end = it->sh_addr + it->sh_size - 1;
+
+    // Round up to the next word boundary, then subtract 1 to make inclusive
+    range.end = it->sh_addr + it->sh_size;
+    range.end += (4 - (range.end % 4)) % 4;
+    range.end -= 1;
+
     ranges.push_back(range);
   }
 }
