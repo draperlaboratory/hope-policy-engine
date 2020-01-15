@@ -163,11 +163,11 @@ void dmhc_t::check_direct_k_hash_conflicts(meta_set_t *ops, bool *consider) {
           printf("%03x ",mtable_hashes[f][i]);
         printf(": [");
         for (int f=0;f<input_fields;f++)
-          printf("%" PRIu32 " ",ops[f].tags[0]);
+          printf("%" PRIu64 " ",ops[f].tags[0]);
         printf("]");
         printf(" [");
         for (int f=0;f<input_fields;f++)
-          printf("%" PRIu32 " ",mtable_inputs[f][i].tags[0]);
+          printf("%" PRIu64 " ",mtable_inputs[f][i].tags[0]);
         printf("]\n");
         direct_conflicts++;
       }
@@ -197,7 +197,7 @@ void dmhc_t::compute_hashes(meta_set_t *ops, int *hashes_to_fill, bool *consider
       printf(" [%x %x]", verify_hashes[h], hashes_to_fill[h]);
     printf(" <-from- ");
     for (h=0;h<input_fields;h++)
-      printf(" %" PRIu32,ops[h].tags[0]);
+      printf(" %" PRIu64,ops[h].tags[0]);
       printf("\n");
       printf("HALTING ON FAILED VERIFY OF PRECOMPUTED HASH\n");
     exit(37); 
@@ -340,14 +340,14 @@ void dmhc_t::insert(meta_set_t *ops, meta_set_t *res, bool *consider) {
 
   insert(mtable_entry,ops,res,0,do_not_victimize_hashes,consider);
 #ifdef DMHC_DEBUG
-  printf("ops - pc: %" PRIu32 ", ci: %" PRIu32, ops[OP_PC].tags[0], ops[OP_CI].tags[0]);
-  if (consider[OP_OP1]) printf(", op1: %" PRIu32, ops[OP_OP1].tags[0]);
-  if (consider[OP_OP2]) printf(", op2: %" PRIu32, ops[OP_OP2].tags[0]);
-  if (consider[OP_OP3]) printf(", op3: %" PRIu32, ops[OP_OP3].tags[0]);
-  if (consider[OP_OP1]) printf(", mem: %" PRIu32, ops[OP_MEM].tags[0]);
+  printf("ops - pc: %" PRIu64 ", ci: %" PRIu64, ops[OP_PC].tags[0], ops[OP_CI].tags[0]);
+  if (consider[OP_OP1]) printf(", op1: %" PRIu64, ops[OP_OP1].tags[0]);
+  if (consider[OP_OP2]) printf(", op2: %" PRIu64, ops[OP_OP2].tags[0]);
+  if (consider[OP_OP3]) printf(", op3: %" PRIu64, ops[OP_OP3].tags[0]);
+  if (consider[OP_OP1]) printf(", mem: %" PRIu64, ops[OP_MEM].tags[0]);
   printf("\n");
-  printf("res - pc: %" PRIu32 ", rd: %" PRIu32 ", csr: %" PRIu32 ", pcRes: %" PRIu32 ", rdRes: %"
-         PRIu32 ", csrRes: %" PRIu32 "\n", victim_res[RES_PC].tags[0], victim_res[RES_RD].tags[0], 
+  printf("res - pc: %" PRIu64 ", rd: %" PRIu64 ", csr: %" PRIu64 ", pcRes: %" PRIu64 ", rdRes: %"
+         PRIu64 ", csrRes: %" PRIu64 "\n", victim_res[RES_PC].tags[0], victim_res[RES_RD].tags[0], 
          victim_res[RES_CSR].tags[0], victim_res[PC_RES].tags[0], victim_res[RD_RES].tags[0], 
          victim_res[CSR_RES].tags[0]);
 #endif
@@ -454,14 +454,14 @@ void dmhc_t::insert(int mtable_address, meta_set_t *ops, meta_set_t *res, int ho
   }
 #ifdef DMHC_DEBUG
   printf("mtable_address: %d, free_slot: %d\n", mtable_address, free_slot);
-  printf("ops - pc: %" PRIu32 ", ci: %" PRIu32, ops[OP_PC].tags[0], ops[OP_CI].tags[0]);
-  if (consider[OP_OP1]) printf(", op1: %" PRIu32, ops[OP_OP1].tags[0]);
-  if (consider[OP_OP2]) printf(", op2: %" PRIu32, ops[OP_OP2].tags[0]);
-  if (consider[OP_OP3]) printf(", op3: %" PRIu32, ops[OP_OP3].tags[0]);
-  if (consider[OP_OP1]) printf(", mem: %" PRIu32, ops[OP_MEM].tags[0]);
+  printf("ops - pc: %" PRIu64 ", ci: %" PRIu64, ops[OP_PC].tags[0], ops[OP_CI].tags[0]);
+  if (consider[OP_OP1]) printf(", op1: %" PRIu64, ops[OP_OP1].tags[0]);
+  if (consider[OP_OP2]) printf(", op2: %" PRIu64, ops[OP_OP2].tags[0]);
+  if (consider[OP_OP3]) printf(", op3: %" PRIu64, ops[OP_OP3].tags[0]);
+  if (consider[OP_OP1]) printf(", mem: %" PRIu64, ops[OP_MEM].tags[0]);
   printf("\n");
-  printf("res - pc: %" PRIu32 ", rd: %" PRIu32 ", csr: %" PRIu32 ", pcRes: %" PRIu32 ", rdRes: %"
-         PRIu32 ", csrRes: %" PRIu32 "\n", res[RES_PC].tags[0], res[RES_RD].tags[0], 
+  printf("res - pc: %" PRIu64 ", rd: %" PRIu64 ", csr: %" PRIu64 ", pcRes: %" PRIu64 ", rdRes: %"
+         PRIu64 ", csrRes: %" PRIu64 "\n", res[RES_PC].tags[0], res[RES_RD].tags[0], 
          res[RES_CSR].tags[0], res[PC_RES].tags[0], res[RD_RES].tags[0], 
          res[CSR_RES].tags[0]);
 #endif
