@@ -15,6 +15,31 @@ sources of information for applying tags to an application.  One set of data cou
 compiler, while another might come from some external specification for marking, say, some particular
 symbols in an application.
 
+# Policy Engine Tag Info Format
+
+Data is encoded to the tag file using the variable-length Unsigned Little
+Endian Base (ULEB) coding.
+
+The field order within the file:
+
+```
+<Start Address> <End Address> <Number of Tags - X> <Tag 0> ... <Tag X>
+<Start Address> <End Address> <Number of Tags - Y> <Tag 0> ... <Tag Y>
+...
+```
+
+The variable-length encoding of the file keeps the format independent from
+the bit-width of the individual fields.  Programs that interact with the
+file must define types of the appropriate width.  Addresses should match the
+address width of the system.  Maximum count and tag field widths depend on
+the number of tags in the system but for simplicity should be set to the
+native integer size.
+
+This is the same approach taken by the policy engine, which will use
+32-bit tags on a 32-bit host machine and 64-bit tags on a 64-bit one.
+Address width is currently a build time setting, but should match the
+targeted architecture.
+
 # Utilities
 
 ## `md_range`
