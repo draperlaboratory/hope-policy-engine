@@ -53,7 +53,7 @@ extern std::string render_metadata(metadata_t const *metadata);
 // so we can do debugging output with string representations of tags
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
 
-static uint32_t reg_reader(uint32_t regno) { return rv32.read_register(regno); }
+static reg_t reg_reader(uint32_t regno) { return rv32.read_register(regno); }
 
 static void init(const char *policy_dir, const char *soc_cfg) {
   try {
