@@ -29,11 +29,22 @@
 
 #include <cstdint>
 
+#ifdef RV64_VALIDATOR
+#define ADDRESS_T_MAX UINT64_MAX
+#else
 #define ADDRESS_T_MAX UINT32_MAX
+#endif
+
 
 namespace policy_engine {
 
+#ifdef RV64_VALIDATOR
+typedef uint64_t address_t;
+typedef uint64_t reg_t;
+#else
 typedef uint32_t address_t;
+typedef uint32_t reg_t;
+#endif
 typedef uint32_t insn_bits_t;
 
 #define PLATFORM_WORD_SIZE 4
