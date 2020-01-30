@@ -182,7 +182,11 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   } else {
+#ifdef RV64_VALIDATOR
+    printf("violation address: 0x%lx\n",pc);
+#else
     printf("violation address: 0x%x\n",pc);
+#endif
     handle_violation(ctx, ops);
   }
   return policy_result == POLICY_SUCCESS;
@@ -222,7 +226,11 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
     if (!tag_bus.load_tag(mem_addr, old_tag)) {
+#ifdef RV64_VALIDATOR
+        printf("failed to load MR tag @ 0x%lx\n", mem_addr);
+#else
         printf("failed to load MR tag @ 0x%x\n", mem_addr);
+#endif
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -230,13 +238,23 @@ bool rv32_validator_t::commit() {
 //    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(mem_addr == *it && old_tag != new_tag){
-        printf("Watch tag mem at PC 0x%x\n", ctx->epc);
+        address_t epc_addr = ctx->epc;
+
+#ifdef RV64_VALIDATOR
+        printf("Watch tag mem at PC 0x%lx\n", epc_addr);
+#else
+        printf("Watch tag mem at PC 0x%x\n", epc_addr);
+#endif
         fflush(stdout);
         hit_watch = true;
       }
     }
     if (!tag_bus.store_tag(mem_addr, new_tag)) {
+#ifdef RV64_VALIDATOR
+        printf("failed to store MR tag @ 0x%lx\n", mem_addr);
+#else
         printf("failed to store MR tag @ 0x%x\n", mem_addr);
+#endif
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -346,11 +364,19 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
     if (!tag_bus.load_tag(mem_addr, mtag)) {
+#ifdef RV64_VALIDATOR
+        printf("failed to load MR tag -- pc: 0x%lx addr: 0x%lx\n", pc, mem_addr);
+#else
         printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);
+#endif
     } else {
       ops->mem = t_to_m(mtag);
       if(!ops->mem) {
+#ifdef RV64_VALIDATOR
+        printf("Error: TMT miss for memory (0x%lx) at instruction 0x%lx. TMT misses are fatal.\n",mem_addr,pc);
+#else
         printf("Error: TMT miss for memory (0x%x) at instruction 0x%x. TMT misses are fatal.\n",mem_addr,pc);
+#endif
         exit(1);
       }
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));

@@ -122,7 +122,11 @@ void coalesce_ranges(std::list<range_t> &ranges) {
   std::list<range_t>::iterator it = ++ranges.begin();
 
   while(it != ranges.end()) {
+#ifdef RV64_VALIDATOR
+    printf("Range: 0x%lx = 0x%lx\n", (*it).start, (*it).end);
+#else
     printf("Range: 0x%x = 0x%x\n", (*it).start, (*it).end);
+#endif
     auto previous = std::prev(it, 1);
 
     if((*it).end <= (*previous).end) {
@@ -159,12 +163,20 @@ void get_address_ranges(elf_image_t &elf_image,
 
   printf("Code ranges:\n");
   for(const auto &it : code_ranges) {
+#ifdef RV64_VALIDATOR
+    printf("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
+#else
     printf("{ 0x%08x - 0x%08x }\n", it.start, it.end);
+#endif
   }
 
   printf("Data ranges:\n");
   for(const auto &it : data_ranges) {
+#ifdef RV64_VALIDATOR
+    printf("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
+#else
     printf("{ 0x%08x - 0x%08x }\n", it.start, it.end);
+#endif
   }
 }
 

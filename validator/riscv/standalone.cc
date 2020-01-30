@@ -126,7 +126,11 @@ int main(int argc, char **argv) {
       
       // get the CI tag
       if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
-	printf("could not load tag for PC 0x%08x\n", rv32.get_pc());
+#ifdef RV64_VALIDATOR
+         printf("could not load tag for PC 0x%08lx\n", rv32.get_pc());
+#else
+         printf("could not load tag for PC 0x%08x\n", rv32.get_pc());
+#endif
       } else {
 	// we can print the tag here
       }

@@ -207,7 +207,7 @@ extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
     }
     else {
       char tmp[128];
-      snprintf(&tmp[0], 128, "Bad Address: %x\n", a);
+      snprintf(&tmp[0], 128, "Bad Address: %lx\n", addr);
       strncpy(dest, &tmp[0], n);
     }
   }
