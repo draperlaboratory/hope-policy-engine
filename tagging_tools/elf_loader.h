@@ -43,12 +43,21 @@ struct file_stream_t {
   virtual bool seek(size_t where, whence_t whence) = 0;
 };
 
+#ifdef RV64_VALIDATOR
+typedef Elf64_Ehdr Elf_Ehdr;
+typedef Elf64_Phdr Elf_Phdr;
+typedef Elf64_Shdr Elf_Shdr;
+typedef Elf64_Sym Elf_Sym;
+#define ELF_ST_BIND ELF64_ST_BIND
+#define ELF_ST_TYPE ELF64_ST_TYPE
+#else
 typedef Elf32_Ehdr Elf_Ehdr;
 typedef Elf32_Phdr Elf_Phdr;
 typedef Elf32_Shdr Elf_Shdr;
 typedef Elf32_Sym Elf_Sym;
 #define ELF_ST_BIND ELF32_ST_BIND
 #define ELF_ST_TYPE ELF32_ST_TYPE
+#endif
 
 class elf_image_t {
 public:
