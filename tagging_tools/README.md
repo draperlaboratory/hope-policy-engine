@@ -151,7 +151,7 @@ The `md_index` utility will construct a list of all unique tags in an existing t
 It is invoked as follows:
 
 ```
-md_index <tag_file>
+md_index <tag_file> <policy_dir>
 ```
 
 It will then rewrite the tag file, replacing each tag entry with an offset into the tag list.
@@ -178,6 +178,9 @@ Tag entry count: <number of entries>
 { 0x20400030 - 0x20400034 }: 2
 ...
 ```
+
+In addition to handling initial tags on memory, `md_index` also initializes tag values on registers
+and CSRs.
 
 This step is performed to comply with the tag format used by the PEX firmware. `md_index` is one of
 two additional utilities required by the firmware, the other being `md_header`.

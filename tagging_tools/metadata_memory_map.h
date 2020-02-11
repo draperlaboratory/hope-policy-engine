@@ -36,7 +36,13 @@
 
 namespace policy_engine {
   
-  struct range_t { address_t start, end; };
+  struct range_t {
+    address_t start, end;
+    bool operator<(range_t other) const {
+      return (start < other.start) ||
+             (start == other.start && end < other.end);
+    }
+  };
   
   class metadata_memory_map_t {
 

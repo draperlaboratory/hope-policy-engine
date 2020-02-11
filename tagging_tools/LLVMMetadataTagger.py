@@ -195,7 +195,7 @@ class LLVMMetadataTagger:
                 range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
             elif (byte == self.metadata_ops['DMD_FUNCTION_RANGE']):
                 start_address = bytes_to_uint(it, self.PTR_SIZE) + base_address
-                end_address = bytes_to_uint(it, self.PTR_SIZE) + base_address + self.PTR_SIZE
+                end_address = bytes_to_uint(it, self.PTR_SIZE) + base_address
                 logging.debug("saw function range = " + hex(start_address) +
                             ":" + hex(end_address))
                 range_map.add_range(start_address, end_address, "COMPILER_GENERATED")

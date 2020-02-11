@@ -71,6 +71,7 @@ class metadata_factory_t {
   public:
   metadata_factory_t(std::string policy_dir);
   metadata_t const *lookup_metadata(std::string dotted_path);
+  std::map<std::string, metadata_t const *> *lookup_metadata_map(std::string dotted_path);
 
   metadata_t const *lookup_group_metadata(std::string const &opgroup,
                                           int32_t flags, uint32_t rs1, uint32_t rs2,
