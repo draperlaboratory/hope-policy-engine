@@ -50,21 +50,6 @@ void alloc_eval_params(context_t **ctx, operands_t **ops, results_t **res);
 void free_eval_params(context_t **ctx, operands_t **ops, results_t **res);
 
   /**
-   * Initialize rule logging data structure
-   */
-    void logRuleInit();
-    
-  /**
-   * Log a rule during evaluation
-   */
-    void logRuleEval(const char* ruleDescription);
-
-  /**
-   * Get the next rule description from the log
-   */
-    const char* nextLogRule(int* idx);
-
-  /**
    * Initialize context and set up operands before policy eval.
    */
 void prepare_eval(context_t *ctx, operands_t *ops, results_t *res);

@@ -119,8 +119,6 @@ class rv32_validator_t : public rv32_validator_base_t {
   void set_reg_watch(address_t addr);
   void set_csr_watch(address_t addr);
   void set_mem_watch(address_t addr);
-  const char* get_first_rule_descr();
-  const char* get_next_rule_descr();
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();

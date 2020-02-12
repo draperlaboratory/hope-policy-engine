@@ -284,15 +284,6 @@ void rv32_validator_t::set_mem_watch(address_t addr){
   watch_addrs.push_back(addr);
 }
 
-const char* rv32_validator_t::get_first_rule_descr(){
-    logIdx = 0;
-    return nextLogRule(&logIdx);
-}
-
-const char* rv32_validator_t::get_next_rule_descr(){
-    return nextLogRule(&logIdx);
-}
-
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
@@ -380,9 +371,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
 
-  // prepare the eval logging structure
-  logRuleInit();
-  
 }
 
 void rv32_validator_t::complete_eval() {
