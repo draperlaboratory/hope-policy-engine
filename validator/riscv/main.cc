@@ -290,30 +290,6 @@ extern "C" void e_v_meta_log_short(char* dest, int n) {
     
     strncpy(dest, msg.c_str(), n);
 }
-extern "C" void e_v_meta_log_long(char* dest, int n) {
-    const int s = 512;
-    char tmp[s];
-    std::string msg = "";
-    const char* rule;
-
-    rule = rv_validator->get_first_rule_descr();
-    while(rule){
-        msg = msg + "    " + rule + "\n";
-        rule = rv_validator->get_next_rule_descr();
-    }
-
-    if(rv_validator->res->rdResult){
-        meta_set_to_string(rv_validator->res->rd, tmp, s);
-        msg = msg + "    RD    : " + tmp + "\n";
-    }
-    if(rv_validator->res->csrResult){
-        meta_set_to_string(rv_validator->res->csr, tmp, s);
-        msg = msg + "    CSR   : " + tmp + "\n";
-    }
-    
-    strncpy(dest, msg.c_str(), n);
-}
-
 
 extern "C" void e_v_rule_eval_log(char* dest, int n) {
     const int s = 512;
@@ -335,13 +311,6 @@ extern "C" void e_v_rule_eval_log(char* dest, int n) {
     meta_set_to_string(rv_validator->ops->mem, tmp, s);
     msg = msg + "    Mem   : " + tmp + "\n";
 
-    msg = msg + "\n" + "Rules:\n";
-    rule = rv_validator->get_first_rule_descr();
-    while(rule){
-        msg = msg + rule + "\n";
-        rule = rv_validator->get_next_rule_descr();
-    }
-    
     msg = msg + "\n" + "Results:\n";
     meta_set_to_string(rv_validator->res->pc, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
