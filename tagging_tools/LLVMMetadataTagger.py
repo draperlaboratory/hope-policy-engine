@@ -44,7 +44,9 @@ class LLVMMetadataTagger:
         "DMT_FPTR_CREATE_AUTHORITY": 0x0a,
         "DMT_ARITY_ZERO": 0x0b,
         "DMT_ARITY_ONE": 0x0c,
-        "DMT_ARITY_MANY": 0x0d
+        "DMT_ARITY_MANY": 0x0d,
+        "DMT_VARARGS_INIT": 0x0e,
+        "DMT_VARARGS_COPY": 0x0f
     }
 
     # Names policies will use to access features
@@ -100,6 +102,14 @@ class LLVMMetadataTagger:
         "arity_many": {
             "tag_specifier": tag_specifiers["DMT_ARITY_MANY"],
             "name": "llvm.ArityMany"
+        },
+        "varargs_init": {
+            "tag_specifier": tag_specifiers["DMT_VARARGS_INIT"],
+            "name": "llvm.VarArgsInit"
+        },
+        "varargs_copy": {
+            "tag_specifier": tag_specifiers["DMT_VARARGS_COPY"],
+            "name": "llvm.VarArgsCopy"
         },
     }
 
