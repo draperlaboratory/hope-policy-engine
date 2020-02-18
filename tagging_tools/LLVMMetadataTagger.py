@@ -41,7 +41,10 @@ class LLVMMetadataTagger:
         "DMT_RETURN_INSTR": 0x07,
         "DMT_CALL_INSTR": 0x08,
         "DMT_BRANCH_INSTR": 0x09,
-        "DMT_FPTR_CREATE_AUTHORITY": 0x0a
+        "DMT_FPTR_CREATE_AUTHORITY": 0x0a,
+        "DMT_ARITY_ZERO": 0x0b,
+        "DMT_ARITY_ONE": 0x0c,
+        "DMT_ARITY_MANY": 0x0d
     }
 
     # Names policies will use to access features
@@ -85,7 +88,19 @@ class LLVMMetadataTagger:
         "epilogue": {
             "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
             "name": "llvm.Epilogue"
-        }
+        },
+        "arity_zero": {
+            "tag_specifier": tag_specifiers["DMT_ARITY_ZERO"],
+            "name": "llvm.ArityZero"
+        },
+        "arity_one": {
+            "tag_specifier": tag_specifiers["DMT_ARITY_ONE"],
+            "name": "llvm.ArityOne"
+        },
+        "arity_many": {
+            "tag_specifier": tag_specifiers["DMT_ARITY_MANY"],
+            "name": "llvm.ArityMany"
+        },
     }
 
     def __init__(self):
