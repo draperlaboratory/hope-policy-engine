@@ -207,6 +207,11 @@
 #define RISCV_FMSUB_Q 178
 #define RISCV_FNMSUB_Q 179
 #define RISCV_FNMADD_Q 180
+#define RISCV_MULW 181
+#define RISCV_REMW 182
+#define RISCV_DIVW 183
+#define RISCV_DIVUW 184
+#define RISCV_REMUW 185
 
 #endif
 

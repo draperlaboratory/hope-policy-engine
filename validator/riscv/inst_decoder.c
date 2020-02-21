@@ -870,6 +870,14 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
             return flags;
+        case 0x200003b:
+            *name = "mulw";
+            *op = RISCV_MULW;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
         case 0x2001033:
             *name = "mulh";
             *op = RISCV_MULH;
@@ -902,6 +910,14 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
             return flags;
+        case 0x200403b:
+            *name = "divw";
+            *op = RISCV_DIVW;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
         case 0x2005033:
             *name = "divu";
             *op = RISCV_DIVU;
@@ -910,9 +926,25 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
             return flags;
+        case 0x200503b:
+            *name = "divuw";
+            *op = RISCV_DIVUW;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
         case 0x2006033:
             *name = "rem";
             *op = RISCV_REM;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0x200603b:
+            *name = "remw";
+            *op = RISCV_REMW;
             flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
