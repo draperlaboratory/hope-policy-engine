@@ -360,7 +360,11 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
       if (flags & HAS_IMM)
         mem_addr += imm;
 
+#ifdef RV64_VALIDATOR
+      mem_addr &= ~((uintptr_t)0x7);
+#else
       mem_addr &= ~((uintptr_t)0x3);
+#endif
     }
     ctx->bad_addr = mem_addr;
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
