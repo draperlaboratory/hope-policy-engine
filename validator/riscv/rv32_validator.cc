@@ -350,7 +350,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     } else {
       ops->mem = t_to_m(mtag);
       if(!ops->mem) {
-        printf("Warning: Unintialized tag for memory (0x%x) at instruction 0x%x.\n  This may crash the policy.\n",mem_addr,pc);
+        printf("Error: TMT miss for memory (0x%x) at instruction 0x%x. TMT misses are fatal.\n",mem_addr,pc);
+        exit(1);
       }
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));
 //      printf("mr tag = 0x%p\n", ops->mem);
