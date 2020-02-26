@@ -3,6 +3,9 @@
 .PHONY: clean
 
 ISP_PREFIX ?= $(HOME)/.local/isp/
+POLICY_SOURCE_DIR := $(ISP_PREFIX)/sources/policies/
+POLICY_DIR := ./policy
+DUMMY_POLICY := rwx
 
 all: build/Makefile
 	$(MAKE) -C build
@@ -12,8 +15,10 @@ build/Makefile: policy
 	mkdir -p build
 	cd build; cmake ..
 
+# XXX: tagging tools should be refactored as to not depend on a dummy policy
 policy:
-	./build_policy
+	policy-tool -d -t $(POLICY_SOURCE_DIR)/entities -m $(POLICY_SOURCE_DIR) -o $(POLICY_DIR) \
+		osv.$(DUMMY_POLICY).$(DUMMY_POLICY)Pol
 
 install: all
 	install -d $(ISP_PREFIX)/lib
