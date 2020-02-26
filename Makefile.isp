@@ -49,15 +49,14 @@ install: all
 	install -p tagging_tools/SOCTagger.py $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv_gdb $(ISP_PREFIX)/bin/
-	install -p build/librv32-renode-validator.so $(ISP_PREFIX)/lib/
+	install -p build/librv32-sim-validator.so $(ISP_PREFIX)/lib/
 	install -p build/librv32_validator.a $(ISP_PREFIX)/lib/
 	install -p build/libtagging_tools.a $(ISP_PREFIX)/lib/
 	install -p build/libvalidator.a $(ISP_PREFIX)/lib/
-	install -p build/librv64-renode-validator.so $(ISP_PREFIX)/lib/
+	install -p build/librv64-sim-validator.so $(ISP_PREFIX)/lib/
 	install -p build/librv64_validator.a $(ISP_PREFIX)/lib/
 	install -p build/libtagging_tools64.a $(ISP_PREFIX)/lib/
 	install -p build/libvalidator64.a $(ISP_PREFIX)/lib/
-	install -m 644 validator/include/renode_interface.h $(ISP_PREFIX)/include/
 	install -m 644 validator/include/qemu_interface.h $(ISP_PREFIX)/include/
 	cp -r policy $(ISP_PREFIX)/
 
