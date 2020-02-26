@@ -59,6 +59,7 @@ install: all
 	install -p build/libvalidator64.a $(ISP_PREFIX)/lib/
 	install -m 644 validator/include/qemu_interface.h $(ISP_PREFIX)/include/
 	cp -r policy $(ISP_PREFIX)/
+	cp -r soc_cfg $(ISP_PREFIX)
 
 clean:
 	$(RM) -r build
