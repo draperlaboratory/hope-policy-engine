@@ -344,10 +344,15 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
       has_insn_mem_addr = false;
     }
     else {
-      mem_addr = reg_reader(rs1);
+      uint64_t reg_val = reg_reader(rs1);
+
+      /* mask off upper bits, just in case */
+      mem_addr = (address_t)(reg_val & READER_MASK);
+
       if (flags & HAS_IMM)
         mem_addr += imm;
 
+      /* mask off unaligned bits, just in case */
       mem_addr &= ~((address_t)(sizeof(address_t) - 1));
     }
     ctx->bad_addr = mem_addr;

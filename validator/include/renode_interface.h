@@ -33,18 +33,14 @@
 extern "C" {
 #endif
 
-#ifdef RV64_VALIDATOR
 typedef uint64_t (*RegisterReader_t)(uint32_t);
 typedef uint64_t (*MemoryReader_t)(uint64_t);
 
+#ifdef RV64_VALIDATOR
 uint32_t e_v_validate(uint64_t pc, uint32_t instr);
 #else
-typedef uint32_t (*RegisterReader_t)(uint32_t);
-typedef uint32_t (*MemoryReader_t)(uint32_t);
-
 uint32_t e_v_validate(uint32_t pc, uint32_t instr);
 #endif
-
 
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
 uint32_t e_v_commit();
