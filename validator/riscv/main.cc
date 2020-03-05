@@ -126,11 +126,20 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
   }
 }
 
-extern "C" uint32_t e_v_validate(address_t pc, uint32_t instr) {
+extern "C" uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
+  if (pc > ADDRESS_T_MAX)
+  {
+    printf("Validate PC (0x%lx) Out of Range.\n", pc);
+    DOA = true;
+    return 0;
+  }
+
+  address_t a = (address_t)pc;
+
 //  printf("uncached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      return rv_validator->validate(pc, instr);
+      return rv_validator->validate(a, instr);
     } catch (...) {
       printf("c++ exception while validating - policy code DOA\n");
       DOA = true;
@@ -139,11 +148,22 @@ extern "C" uint32_t e_v_validate(address_t pc, uint32_t instr) {
   return 0;
 }
 
-extern "C" uint32_t e_v_validate_cached(address_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
+extern "C" uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t mem_addr, bool* hit) {
+  if ((pc > ADDRESS_T_MAX) || (mem_addr > ADDRESS_T_MAX))
+  {
+    printf("Cached validate PC (0x%lx) or Mem Address (0x%lx) "
+           "Out of Range.\n", pc, mem_addr);
+    DOA = true;
+    return 0;
+  }
+
+  address_t ap = (address_t)pc;
+  address_t am = (address_t)mem_addr;
+
 //  printf("cached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      return rv_validator->validate(pc, instr, mem_addr, hit);
+      return rv_validator->validate(ap, instr, am, hit);
     } catch (...) {
       printf("c++ exception while validating - policy code DOA\n");
       DOA = true;
@@ -329,12 +349,30 @@ extern "C" void e_v_rule_eval_log(char* dest, int n) {
 extern "C" void e_v_set_pc_watch(bool watching){
   rv_validator->set_pc_watch(watching);
 }
-extern "C" void e_v_set_reg_watch(address_t addr){
-  rv_validator->set_reg_watch(addr);
+extern "C" void e_v_set_reg_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX)
+  {
+    address_t a = (address_t)addr;
+    rv_validator->set_reg_watch(a);
+  }
+  else
+    printf("Reg Watch Address Out of Range: 0x%lx\n", addr);
 }
-extern "C" void e_v_set_csr_watch(address_t addr){
-  rv_validator->set_csr_watch(addr);
+extern "C" void e_v_set_csr_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX)
+  {
+    address_t a = (address_t)addr;
+    rv_validator->set_csr_watch(a);
+  }
+  else
+    printf("CSR Watch Address Out of Range: 0x%lx\n", addr);
 }
-extern "C" void e_v_set_mem_watch(address_t addr){
-  rv_validator->set_mem_watch(addr);
+extern "C" void e_v_set_mem_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX)
+  {
+    address_t a = (address_t)addr;
+    rv_validator->set_mem_watch(a);
+  }
+  else
+    printf("Mem Watch Address Out of Range: 0x%lx\n", addr);
 }
