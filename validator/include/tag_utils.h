@@ -44,6 +44,7 @@ namespace policy_engine {
    required.
 */
 typedef uintptr_t tag_t;
+#define PRItag PRIuPTR
 
 struct tag_provider_t {
   virtual ~tag_provider_t() { }

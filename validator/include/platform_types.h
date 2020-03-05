@@ -41,9 +41,17 @@ namespace policy_engine {
 #ifdef RV64_VALIDATOR
 typedef uint64_t address_t;
 typedef uint64_t reg_t;
+
+#define PRIaddr_pad "016lx"
+#define PRIaddr "lx"
+#define PRIreg  "lx"
 #else
 typedef uint32_t address_t;
 typedef uint32_t reg_t;
+
+#define PRIaddr_pad "08x"
+#define PRIaddr "x"
+#define PRIreg  "x"
 #endif
 typedef uint32_t insn_bits_t;
 

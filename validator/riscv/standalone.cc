@@ -126,11 +126,8 @@ int main(int argc, char **argv) {
       
       // get the CI tag
       if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
-#ifdef RV64_VALIDATOR
-         printf("could not load tag for PC 0x%08lx\n", rv32.get_pc());
-#else
-         printf("could not load tag for PC 0x%08x\n", rv32.get_pc());
-#endif
+         printf("could not load tag for PC 0x%" PRIaddr_pad "\n",
+                rv32.get_pc());
       } else {
 	// we can print the tag here
       }
@@ -145,10 +142,10 @@ int main(int argc, char **argv) {
     // for debugging things
     metadata_t const *metadata = md_map->get_metadata(op.pc);
     if (!metadata) {
-      printf("could not load metadata for PC 0x%08x\n", op.pc);
+      printf("could not load metadata for PC 0x%" PRIaddr_pad "\n", op.pc);
     } else {
       std::string s = render_metadata(metadata);
-      printf("0x%08x: %s\n", op.pc, s.c_str());
+      printf("0x%" PRIaddr_pad ": %s\n", op.pc, s.c_str());
     }
 #endif
 }

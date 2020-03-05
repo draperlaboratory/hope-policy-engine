@@ -79,13 +79,9 @@ bool dump_tags(std::string file_name) {
       return false;
     }
 
-#ifdef RV64_VALIDATOR
-    printf("Entry %d, 0x%016lx - 0x%016lx (%d)\n", i++,
-           start, end, metadata_count);
-#else
-    printf("Entry %d, 0x%08x - 0x%08x (%d)\n", i++,
-           start, end, metadata_count);
-#endif
+    printf("Entry %d, 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad
+           " (%d)\n", i++, start, end, metadata_count);
+
     printf("\tMetadata List:  ");
 
     for (uint32_t i = 0; i < metadata_count; i++) {

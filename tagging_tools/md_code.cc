@@ -120,13 +120,9 @@ try {
         md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
 
       if (metadata == nullptr) {
-#ifdef RV64_VALIDATOR
-         fprintf(stderr, "0x%08lx: 0x%08x  %s - no group found for instruction\n",
-            code_address, insn, name);
-#else
-         fprintf(stderr, "0x%08x: 0x%08x  %s - no group found for instruction\n",
-            code_address, insn, name);
-#endif
+         fprintf(stderr, "0x%" PRIaddr_pad
+                 ": 0x%08x  %s - no group found for instruction\n",
+                 code_address, insn, name);
       } else {
         // std::string s = md_factory->render(metadata);
         // printf("0x%08x: %s\n", code_address, s.c_str());
