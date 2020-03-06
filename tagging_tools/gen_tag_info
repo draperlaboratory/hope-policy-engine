@@ -17,24 +17,17 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.sections import SymbolTableSection
 
-md_range = 'md_range'
-md_code = 'md_code'
-md_asm_ann = 'md_asm_ann'
-md_entity = 'md_entity'
-md_header = 'md_header'
-md_index = 'md_index'
-
-md_range64 = 'md_range64'
-md_code64 = 'md_code64'
-md_asm_ann64 = 'md_asm_ann64'
-md_entity64 = 'md_entity64'
-md_header64 = 'md_header64'
-md_index64 = 'md_index64'
-
 # List of SOC elements to exclude from TMT
 soc_exclude = ['SOC.Memory.DDR4_0', 'SOC.Memory.Ram_0']
 
 def main():
+    md_range = 'md_range'
+    md_code = 'md_code'
+    md_asm_ann = 'md_asm_ann'
+    md_entity = 'md_entity'
+    md_header = 'md_header'
+    md_index = 'md_index'
+
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-d", "--policy-dir", action="store", required=True,
@@ -103,11 +96,14 @@ def main():
         range_file.finish()
 
         if args.arch == 'rv64':
-            presult = subprocess.call([md_range64, args.policy_dir, range_file.name(),
-                                       args.tag_file])
-        else:
-            presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
-                                       args.tag_file])
+            md_range += '64'
+            md_code += '64'
+            md_asm_ann += '64'
+            md_entity += '64'
+            md_header += '64'
+            md_index += '64'
+
+        presult = subprocess.call([md_range, args.policy_dir, range_file.name(), args.tag_file])
         if presult != 0:
             print("md_range failed")
             sys.exit(presult)
@@ -115,18 +111,11 @@ def main():
         range_file.done()
 
         # Apply opcode tags
-        if args.arch == 'rv64':
-            OpCodeTagger.tag_op_codes(args.policy_dir, md_code64, ef, args.tag_file)
-        else:
-            OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
+        OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
 
         # Apply entities
-        if args.arch == 'rv64':
-            presult = subprocess.call([md_entity64, args.policy_dir, args.bin, args.tag_file] +
-                                      args.entities)
-        else:
-            presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
-                                      args.entities)
+        presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
+                                  args.entities)
 
         if presult != 0:
             print("md_entity failed")
@@ -146,12 +135,7 @@ def main():
                 sys.exit(presult)
 
         # annotate the asm file
-        if args.arch == 'rv64':
-            presult = subprocess.call([md_asm_ann64, args.policy_dir, args.tag_file,
-                                       asm_file_name])
-        else:
-            presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file,
-                                       asm_file_name])
+        presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file, asm_file_name])
 
         if presult != 0:
             print("md_asm_ann failed")
@@ -160,19 +144,14 @@ def main():
         # Save tags by index to optimize PEX startup
         # Prepend host address ranges for instructions/data
         if args.soc_file is not None:
-            if args.arch == 'rv64':
-                presult = subprocess.call([md_index64, args.tag_file, args.policy_dir])
-            else:
-                presult = subprocess.call([md_index, args.tag_file, args.policy_dir])
+            presult = subprocess.call([md_index, args.tag_file, args.policy_dir])
 
             if presult != 0:
                 print("md_index failed")
                 sys.exit(presult)
 
-            if args.arch == 'rv64':
-                presult = subprocess.call([md_header64, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude)
-            else:
-                presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude)
+            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file,
+                                       args.policy_dir] + soc_exclude)
 
             if presult != 0:
                 print("md_header failed")
