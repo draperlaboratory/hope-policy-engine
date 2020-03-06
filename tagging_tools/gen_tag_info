@@ -100,7 +100,7 @@ def main():
             SOCTagger.generate_soc_ranges(soc_file, range_file, policy_inits)
             soc_file.close()
 
-        range_file.finish();
+        range_file.finish()
 
         if args.arch == 'rv64':
             presult = subprocess.call([md_range64, args.policy_dir, range_file.name(),
