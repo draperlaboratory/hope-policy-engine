@@ -48,8 +48,8 @@ def main():
     parser.add_argument("-e", "--entities", nargs='+', default=[],
                         required=False,
                         help="Entities file for policy")
-    parser.add_argument("--rv64", action="store_true", required=False,
-                        help="Use 64-bit tools")
+    parser.add_argument("--arch", type=str, default="rv32", 
+                        help="Currently supported: rv32 (default), rv64")
     parser.add_argument("-s", "--soc-file", required=False,
                         help="SOC config file. If present, write TMT headers for PEX firmware")
 
@@ -102,7 +102,7 @@ def main():
 
         range_file.finish();
 
-        if args.rv64:
+        if args.arch == 'rv64':
             presult = subprocess.call([md_range64, args.policy_dir, range_file.name(),
                                        args.tag_file])
         else:
@@ -115,13 +115,13 @@ def main():
         range_file.done()
 
         # Apply opcode tags
-        if args.rv64:
+        if args.arch == 'rv64':
             OpCodeTagger.tag_op_codes(args.policy_dir, md_code64, ef, args.tag_file)
         else:
             OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
 
         # Apply entities
-        if args.rv64:
+        if args.arch == 'rv64':
             presult = subprocess.call([md_entity64, args.policy_dir, args.bin, args.tag_file] +
                                       args.entities)
         else:
@@ -134,7 +134,7 @@ def main():
 
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:
-            if args.rv64:
+            if args.arch == 'rv64':
                 presult = subprocess.call(["riscv64-unknown-elf-objdump", "-dS", args.bin],
                                           stdout=asm_file)
             else:
@@ -146,7 +146,7 @@ def main():
                 sys.exit(presult)
 
         # annotate the asm file
-        if args.rv64:
+        if args.arch == 'rv64':
             presult = subprocess.call([md_asm_ann64, args.policy_dir, args.tag_file,
                                        asm_file_name])
         else:
@@ -160,7 +160,7 @@ def main():
         # Save tags by index to optimize PEX startup
         # Prepend host address ranges for instructions/data
         if args.soc_file is not None:
-            if args.rv64:
+            if args.arch == 'rv64':
                 presult = subprocess.call([md_index64, args.tag_file, args.policy_dir])
             else:
                 presult = subprocess.call([md_index, args.tag_file, args.policy_dir])
@@ -169,7 +169,7 @@ def main():
                 print("md_index failed")
                 sys.exit(presult)
 
-            if args.rv64:
+            if args.arch == 'rv64':
                 presult = subprocess.call([md_header64, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude)
             else:
                 presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude)
