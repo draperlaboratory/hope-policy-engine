@@ -1,0 +1,4 @@
+#!/bin/bash
+ARG_ARRAY=($*)
+EXTRA_ARGS="${ARG_ARRAY[*]:2}"
+dump_tags $1 -f $2 $EXTRA_ARGS

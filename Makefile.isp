@@ -33,7 +33,7 @@ install: all
 	install -p build/md_asm_ann64 $(ISP_PREFIX)/bin/
 	install -p build/md_header64 $(ISP_PREFIX)/bin/
 	install -p build/md_index64 $(ISP_PREFIX)/bin/
-	install -p build/md_firmware_test $(ISP_PREFIX)/bin/
+	install -p scripts/md_firmware_test $(ISP_PREFIX)/bin/
 	install -p build/standalone $(ISP_PREFIX)/bin/
 	install -p build/standalone64 $(ISP_PREFIX)/bin/
 	install -p tagging_tools/gen_tag_info $(ISP_PREFIX)/bin/

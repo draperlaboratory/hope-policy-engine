@@ -160,11 +160,6 @@ add_executable(dump_tags64
 set_target_properties(dump_tags64 PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
 target_link_libraries(dump_tags64 tagging_tools64 validator64 yaml-cpp)
 
-add_executable(md_firmware_test
-	tagging_tools/md_firmware_test.cc
-	)
-target_link_libraries(md_firmware_test tagging_tools validator yaml-cpp)
-
 add_executable(md_range
 	tagging_tools/md_range.cc
 	)
