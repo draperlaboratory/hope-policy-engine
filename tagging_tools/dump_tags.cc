@@ -148,6 +148,22 @@ bool dump_tags(std::string file_name) {
       return false;
     }
 
+    if (end < start)
+    {
+       fprintf(stderr, "Entry %d, Start (0x%" PRIaddr_pad ")is after End (0x%"
+               PRIaddr_pad ")\n", i, start, end);
+       fprintf(stderr, "Are you sure this is a simulation tag file?\n");
+       fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
+       return false;
+    }
+    else if ((int32_t)metadata_count < 0)
+    {
+       fprintf(stderr, "Entry %d, has negative entries (%d)\n", i, metadata_count);
+       fprintf(stderr, "Are you sure this is a simulation tag file?\n");
+       fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
+       return false;
+    }
+
     printf("Entry %d, 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad
            " (%d)\n", i++, start, end, metadata_count);
 
