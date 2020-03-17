@@ -24,36 +24,21 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef QEMU_INTERFACE_H
-#define QEMU_INTERFACE_H
+#ifndef POLICY_ENGINE_READER_H
+#define POLICY_ENGINE_READER_H
 
 #include <stdint.h>
-#include "reader.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint32_t e_v_validate(uint64_t pc, uint32_t instr);
-
-void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
-uint32_t e_v_commit(void);
-void e_v_set_metadata(const char *validator_cfg_path);
-void e_v_violation_msg(char *dest, int n);
-void e_v_pc_tag(char *dest, int n);
-void e_v_csr_tag(char *dest, int n, uint64_t addr);
-void e_v_reg_tag(char *dest, int n, uint64_t addr);
-void e_v_mem_tag(char *dest, int n, uint64_t addr);
-void e_v_set_pc_watch(bool watching);
-void e_v_set_reg_watch(uint64_t addr);
-void e_v_set_csr_watch(uint64_t addr);
-void e_v_set_mem_watch(uint64_t addr);
-void e_v_rule_cache_stats(void);
-
+typedef uint64_t (*RegisterReader_t)(uint32_t);
+typedef uint64_t (*MemoryReader_t)(uint64_t);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif
+#endif // POLICY_ENGINE_READER_H

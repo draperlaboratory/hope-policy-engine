@@ -28,11 +28,9 @@
 #define SIM_VALIDATOR_H
 
 #include "validator.h"
+#include "reader.h"
 
 namespace policy_engine {
-
-typedef uint32_t (*RegisterReader_t)(uint32_t);
-typedef uint32_t (*MemoryReader_t)(uint32_t);
 
 /**
    The sim validator is a slightly more specific validator that expresses
