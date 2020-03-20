@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2018 Dover Microsystems, Inc.
+ * Copyright © 2017-2018 The Charles Stark Draper Laboratory, Inc. and/or Dover Microsystems, Inc.
  * All rights reserved. 
  *
  * Use and disclosure subject to the following license. 
@@ -24,8 +24,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef RENODE_INTERFACE_H
-#define RENODE_INTERFACE_H
+#ifndef POLICY_ENGINE_READER_H
+#define POLICY_ENGINE_READER_H
 
 #include <stdint.h>
 
@@ -36,15 +36,9 @@ extern "C" {
 typedef uint64_t (*RegisterReader_t)(uint32_t);
 typedef uint64_t (*MemoryReader_t)(uint64_t);
 
-uint32_t e_v_validate(uint64_t pc, uint32_t instr);
-
-void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
-uint32_t e_v_commit();
-void e_v_config_rule_cache(const char *rule_cache_name);
-
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif
+#endif // POLICY_ENGINE_READER_H

@@ -28,13 +28,11 @@
 #define QEMU_INTERFACE_H
 
 #include <stdint.h>
+#include "reader.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef uint64_t (*RegisterReader_t)(uint32_t);
-typedef uint64_t (*MemoryReader_t)(uint64_t);
 
 uint32_t e_v_validate(uint64_t pc, uint32_t instr);
 

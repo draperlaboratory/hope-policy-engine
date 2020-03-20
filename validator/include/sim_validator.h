@@ -24,30 +24,28 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef RENODE_VALIDATOR_H
-#define RENODE_VALIDATOR_H
+#ifndef SIM_VALIDATOR_H
+#define SIM_VALIDATOR_H
 
 #include "validator.h"
-#include "renode_interface.h"
+#include "reader.h"
 
 namespace policy_engine {
 
 /**
-   The Renode validator is a slightly more specific validator that expresses
-   some of the connection to Renode.  Specifically, when Renode calls an
+   The sim validator is a slightly more specific validator that expresses
+   some of the connection to the simulator.  Specifically, when the simulator calls an
    external validator, it provides APIs to read registers and memory
    on the assumption that the validator needs to inquire of some SOC
    state in order to evaluate an operation.
 */
-class abstract_renode_validator_t : abstract_validator_t {
+class abstract_sim_validator_t : abstract_validator_t {
   protected:
   RegisterReader_t reg_reader;
-//  MemoryReader_t mem_reader;
   public:
-//  abstract_renode_validator_t(RegisterReader_t rr, MemoryReader_t mr) : reg_reader(rr), mem_reader(mr) {
-  abstract_renode_validator_t(RegisterReader_t rr) : reg_reader(rr) {
+  abstract_sim_validator_t(RegisterReader_t rr) : reg_reader(rr) {
   }
-  virtual ~abstract_renode_validator_t() { }
+  virtual ~abstract_sim_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
   virtual bool commit() = 0;
 };
