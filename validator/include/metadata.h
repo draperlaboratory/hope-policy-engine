@@ -32,7 +32,7 @@
 
 #include <cstdlib>
 #include <iterator>
-#include <unordered_set>
+#include <set>
 
 #include "policy_types.h"
 
@@ -40,7 +40,7 @@ namespace policy_engine {
 
 class metadata_t {
   std::size_t hash;
-  std::unordered_set<meta_t> tags;
+  std::set<meta_t> tags;
 
   public:
   struct hasher_t {
@@ -75,8 +75,8 @@ class metadata_t {
     tags.insert(rhs->begin(), rhs->end());
   }
 
-  typedef std::unordered_set<meta_t>::iterator iterator;
-  typedef std::unordered_set<meta_t>::const_iterator const_iterator;
+  typedef std::set<meta_t>::iterator iterator;
+  typedef std::set<meta_t>::const_iterator const_iterator;
 
   const_iterator begin() const { return tags.begin(); }
   const_iterator end() const { return tags.end(); }
