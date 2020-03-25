@@ -61,6 +61,20 @@ void metadata_factory_t::init_entity_initializers(YAML::Node const &reqsAST, std
   }
 }
 
+void metadata_factory_t::update_entity_initializers(YAML::Node const &metaAST, std::string prefix) {
+  YAML::Node metadata = metaAST; //[0]; //["Metadata"];
+  // for each node in Metadata
+  for (YAML::const_iterator seq_it = metadata.begin(); seq_it != metadata.end(); ++seq_it) {
+          YAML::Node metadata_node = *seq_it;
+          std::string mname = metadata_node["name"].as<std::string>();
+          int mid = metadata_node["id"].as<int>();
+          entity_init_t init;
+          init.entity_name = mname;
+          init.meta_names.push_back(mname);
+          entity_initializers[mname] = init;
+  }
+}
+
 void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
   YAML::Node root = rawEnc["Metadata"];
   YAML::Node node;
@@ -104,13 +118,15 @@ metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
 
   auto const &entity_init_iter = entity_initializers.find(dotted_path);
   if (entity_init_iter != entity_initializers.end()) {
-    std::vector<std::string> const &meta_names = entity_init_iter->second.meta_names;
-    metadata = new metadata_t();
-    for (auto name: meta_names)
-      metadata->insert(encoding_map[name]);
-    path_map[dotted_path] = metadata;
+          std::vector<std::string> const &meta_names = entity_init_iter->second.meta_names;
+          metadata = new metadata_t();
+          for (auto name: meta_names) {
+                  metadata->insert(encoding_map[name]);
+          }
+          path_map[dotted_path] = metadata;
+          return metadata;
   }
-  return metadata;
+  return NULL;
 #if 0
   std::vector<std::string> path = split_dotted_name(dotted_path);
   
@@ -245,6 +261,7 @@ metadata_factory_t::metadata_factory_t(std::string policy_dir)
   YAML::Node metaAST = load_yaml("policy_meta.yml");
   // meta_tree.populate(reqsAST);
   init_entity_initializers(reqsAST["Require"], "");
+  update_entity_initializers(metaAST["Metadata"], "");
   init_encoding_map(metaAST);
   YAML::Node groupAST = load_yaml("policy_group.yml");
   init_group_map(groupAST);

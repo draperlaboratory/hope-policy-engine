@@ -584,7 +584,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
         case 0x1800202f:
             *name = "sc.w";
             *op = RISCV_SC_W;
-            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2 | HAS_STORE;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
@@ -594,7 +594,7 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
         case 0x1000202f:
             *name = "lr.w";
             *op = RISCV_LR_W;
-            flags = 0 | HAS_RD | HAS_RS1;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_LOAD;
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
             return flags;

@@ -42,8 +42,8 @@ static const char *tag_name(meta_set_t const *tag) {
 
 rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
 					     meta_set_factory_t *ms_factory,
-					     RegisterReader_t rr)
-  : tag_based_validator_t(ms_cache, ms_factory, rr) {
+					     RegisterReader_t rr, AddressFixer_t af)
+  : tag_based_validator_t(ms_cache, ms_factory, rr, af) {
   
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
@@ -107,8 +107,8 @@ void rv32_validator_base_t::setup_validation() {
 rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
-				   RegisterReader_t rr) :
-    rv32_validator_base_t(ms_cache, ms_factory, rr), watch_pc(false) {
+				   RegisterReader_t rr, AddressFixer_t af) :
+    rv32_validator_base_t(ms_cache, ms_factory, rr, af), watch_pc(false) {
   // true causes initial clear of results
   res->pcResult = true;
   res->rdResult = true;
@@ -222,14 +222,15 @@ bool rv32_validator_t::commit() {
   if (has_pending_mem && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
-    if (!tag_bus.load_tag(mem_addr, old_tag)) {
-      printf("failed to load MR tag @ 0x%" PRIaddr "\n", mem_addr);
+    address_t fixed_addr = addr_fixer(mem_addr);
+    if (!tag_bus.load_tag(fixed_addr, old_tag)) {
+        printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, fixed_addr);
 
       fflush(stdout);
       // might as well halt
       hit_watch = true;
     }
-//    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
+//    printf("  committing tag '%s' to 0x%" PRIaddr " (0x%" PRIaddr ")\n", tag_name(res->rd), mem_addr, fixed_addr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(mem_addr == *it && old_tag != new_tag){
         address_t epc_addr = ctx->epc;
@@ -240,8 +241,8 @@ bool rv32_validator_t::commit() {
         hit_watch = true;
       }
     }
-    if (!tag_bus.store_tag(mem_addr, new_tag)) {
-      printf("failed to store MR tag @ 0x%" PRIaddr "\n", mem_addr);
+    if (!tag_bus.store_tag(fixed_addr, new_tag)) {
+        printf("failed to store MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, fixed_addr);
 
       fflush(stdout);
       // might as well halt
@@ -324,7 +325,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
   if (flags < 0) {
-    printf("Couldn't decode instruction at PC 0x%" PRIaddr ": 0x%x\n", pc, insn);
+    printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, addr_fixer(pc), insn, name);
   }
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
@@ -358,14 +359,13 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     ctx->bad_addr = mem_addr;
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
-    if (!tag_bus.load_tag(mem_addr, mtag)) {
-        printf("failed to load MR tag -- pc: 0x%" PRIaddr
-               " addr: 0x%" PRIaddr "\n", pc, mem_addr);
+    if (!tag_bus.load_tag(addr_fixer(mem_addr), mtag)) {
+        printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, addr_fixer(pc), mem_addr, addr_fixer(mem_addr));
     } else {
       ops->mem = t_to_m(mtag);
       if(!ops->mem) {
-        printf("Error: TMT miss for memory (0x%" PRIaddr ") at instruction 0x%" PRIaddr
-               ". TMT misses are fatal.\n",mem_addr,pc);
+        printf("Error: TMT miss for memory (0x%" PRIaddr " (0x%" PRIaddr ")) at instruction 0x%" PRIaddr
+               ". TMT misses are fatal.\n",mem_addr, addr_fixer(mem_addr),pc);
         exit(1);
       }
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));
@@ -373,8 +373,9 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     }
   }
 
-  if (!tag_bus.load_tag(pc, ci_tag))
-    printf("failed to load CI tag\n");
+  if (!tag_bus.load_tag(addr_fixer(pc), ci_tag)) {
+    printf("failed to load CI tag for PC 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, addr_fixer(pc));
+  }
 //    printf("ci_tag: 0x%" PRIaddr "\n", ci_tag);
   ctx->epc = pc;
 //  ctx->bad_addr = 0;

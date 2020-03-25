@@ -50,14 +50,14 @@ int rule_cache_capacity;
 
 static bool DOA = false;
 
-extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader) {
+extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
   if (!DOA) {
     try {
       printf("setting callbacks\n");
       ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
       soc_tag_configuration_t *soc_config =
         new soc_tag_configuration_t(ms_factory, soc_cfg_path);
-      rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
+      rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader, addr_fixer);
       
       metadata_memory_map_t map;
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";

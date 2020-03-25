@@ -171,6 +171,17 @@ add_executable(md_range64
 set_target_properties(md_range64 PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
 target_link_libraries(md_range64 tagging_tools64 validator yaml-cpp)
 
+add_executable(md_embed
+	tagging_tools/md_embed.cc
+	)
+target_link_libraries(md_embed tagging_tools validator yaml-cpp)
+
+add_executable(md_embed64
+	tagging_tools/md_embed.cc
+	)
+set_target_properties(md_embed64 PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
+target_link_libraries(md_embed64 tagging_tools64 validator yaml-cpp)
+
 add_executable(md_code
 	tagging_tools/md_code.cc
 	validator/riscv/inst_decoder.c
