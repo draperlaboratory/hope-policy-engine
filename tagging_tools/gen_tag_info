@@ -123,7 +123,7 @@ def main():
 
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:
-            presult = subprocess.call(["riscv64-unknown-elf-objdump", "-dS", args.bin],
+            presult = subprocess.call(["llvm-objdump", "-dS", args.bin],
                                       stdout=asm_file)
             if presult != 0:
                 print("objdump failed")
