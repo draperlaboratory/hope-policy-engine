@@ -254,11 +254,11 @@ target_include_directories(standalone PRIVATE
   ./validator/rule_cache/dmhc_rule_cache
   )
 
-add_library(rv32-renode-validator SHARED
+add_library(rv32-sim-validator SHARED
 	validator/riscv/main.cc
 	)
-target_link_libraries(rv32-renode-validator rv32_validator tagging_tools validator yaml-cpp)
-target_include_directories(rv32-renode-validator PRIVATE
+target_link_libraries(rv32-sim-validator rv32_validator tagging_tools validator yaml-cpp)
+target_include_directories(rv32-sim-validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
@@ -268,12 +268,12 @@ target_include_directories(rv32-renode-validator PRIVATE
   ./validator/rule_cache/dmhc_rule_cache
   )
 
-add_library(rv64-renode-validator SHARED
+add_library(rv64-sim-validator SHARED
 	validator/riscv/main.cc
 	)
-set_target_properties (rv64-renode-validator PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
-target_link_libraries(rv64-renode-validator rv64_validator tagging_tools64 validator64 yaml-cpp)
-target_include_directories(rv64-renode-validator PRIVATE
+set_target_properties (rv64-sim-validator PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
+target_link_libraries(rv64-sim-validator rv64_validator tagging_tools64 validator64 yaml-cpp)
+target_include_directories(rv64-sim-validator PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
