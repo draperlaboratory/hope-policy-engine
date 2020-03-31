@@ -13,13 +13,15 @@ def generate_rwx_ranges(ef, range_file):
           flags = s['sh_flags']
           start = s['sh_addr']
           end = start + s['sh_size']
+          if (end % 4) != 0:
+              end += 4 - (end % 4)
           if flags & SH_FLAGS.SHF_EXECINSTR:
                range_file.write_range(start, end, RWX_X)
                range_file.write_range(start, end, RWX_R)
-               print('X {0}: 0x{1:X}'.format(s.name, start))
+               print('X {0}: 0x{1:X} - 0x{2:X}'.format(s.name, start, end))
           elif flags & SH_FLAGS.SHF_WRITE:
                range_file.write_range(start, end, RWX_W)
-               print('W {0}: 0x{1:X}'.format(s.name, start))
+               print('W {0}: 0x{1:X} - 0x{2:X}'.format(s.name, start, end))
           elif flags & SH_FLAGS.SHF_ALLOC:
                range_file.write_range(start, end, RWX_R)
-               print('R {0}: 0x{1:X}'.format(s.name, start))
+               print('R {0}: 0x{1:X} - 0x{2:X}'.format(s.name, start, end))
