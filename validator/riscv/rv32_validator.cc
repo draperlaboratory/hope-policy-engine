@@ -356,7 +356,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
         mem_addr += imm;
 
       /* mask off unaligned bits, just in case */
-      mem_addr &= ~((address_t)(sizeof(address_t) - 1));
     }
     mem_paddr = addr_fixer(mem_addr);
     ctx->bad_addr = mem_addr;

@@ -43,6 +43,7 @@ class soc_tag_configuration_t {
     address_t start;
     address_t end;
     bool heterogeneous;
+    size_t tag_granularity = 32;
     meta_set_t const *meta_set;
   };
 

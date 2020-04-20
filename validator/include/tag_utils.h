@@ -54,11 +54,12 @@ struct tag_provider_t {
 
 class uniform_tag_provider_t : public tag_provider_t {
   private:
+  size_t tag_granularity; // in bits
   address_t size;
   tag_t tag;
 
   public:
-  uniform_tag_provider_t(address_t size, tag_t tag) : size(size), tag(tag) { }
+  uniform_tag_provider_t(address_t size, tag_t tag, size_t tag_granularity) : size(size), tag(tag), tag_granularity(tag_granularity) { }
   bool get_tag(address_t addr, tag_t &t) {
     if (addr < size) {
       t = tag;
@@ -79,12 +80,13 @@ class uniform_tag_provider_t : public tag_provider_t {
 class platform_ram_tag_provider_t : public tag_provider_t {
   private:
   address_t size;
-  unsigned word_size;
+  size_t tag_granularity; // in bits
+  unsigned word_size; // number of bytes a tag applies to
   std::vector<tag_t> tags;
 
   public:
-  platform_ram_tag_provider_t(address_t size, unsigned word_size, tag_t tag) :
-  size(size), word_size(word_size), tags(size / word_size, tag) {  }
+  platform_ram_tag_provider_t(address_t size, tag_t tag, size_t tag_granularity) :
+  size(size), word_size(tag_granularity/8), tags(size / word_size, tag), tag_granularity(tag_granularity) {  }
   bool get_tag(address_t addr, tag_t &t) {
     if (addr < size) {
       t = tags[addr / word_size];
