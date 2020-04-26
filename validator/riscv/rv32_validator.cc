@@ -34,6 +34,7 @@
 #include "policy_utils.h"
 #include "policy_eval.h"
 #include "csr_list.h"
+#include "../rule_analysis/rule_analysis.cc"
 
 using namespace policy_engine;
 
@@ -62,6 +63,9 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->pcResult = true;
   res->rdResult = true;
   res->csrResult = true;
+
+  printf("About to init rule analysis...\n");
+  init_rule_analysis();
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
@@ -216,10 +220,15 @@ void rv32_validator_t::flush_rule_cache() {
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
+  
   int policy_result = POLICY_EXP_FAILURE;
-
+  
   setup_validation();
   prepare_eval(pc, insn);
+
+  // Send to analysis
+  rule_validated(ops);
+  
   if (rule_cache) {
     if (rule_cache->allow(ops, res)) {
       rule_cache_hits++;
@@ -246,6 +255,12 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   }
   return policy_result == POLICY_SUCCESS;
 }
+
+
+// A policy can call this to prefetch a rule into the cache
+//extern "C" void prefetch_install_rule(operands_t * ops, results_t * res){
+//  rule_cache->install_rule(ops, res);
+//}
 
 bool rv32_validator_t::commit() {
 
@@ -334,7 +349,6 @@ bool rv32_validator_t::commit() {
       
       double hit_rate = 100.0 * (double) rule_cache_hits_period /
 	(rule_cache_hits_period + rule_cache_misses_period);
-      
       printf("CACHE: %lu %3.3f %lu %lu\n", validated_instructions, hit_rate, rule_cache_misses_period, rule_cache_hits_period);
       rule_cache_hits_period = 0;
       rule_cache_misses_period = 0;
@@ -483,7 +497,7 @@ void rv32_validator_t::config_rule_cache(const std::string rule_cache_name, int 
 void rv32_validator_t::rule_cache_stats() {
   if (rule_cache) {
     fprintf(stderr, "rule cache: hits %ld misses %ld total %ld\n",
-	rule_cache_hits, rule_cache_misses, rule_cache_hits + rule_cache_misses);
+	    rule_cache_hits, rule_cache_misses, rule_cache_hits + rule_cache_misses);
     double hit_rate = (double)rule_cache_hits / (rule_cache_hits + rule_cache_misses);
     fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
   }

@@ -37,6 +37,8 @@
 #include "platform_types.h"
 #include <yaml-cpp/yaml.h>
 
+#include "../rule_analysis/rule_analysis.h"
+
 using namespace policy_engine;
 
 meta_set_cache_t ms_cache;
@@ -251,8 +253,6 @@ extern "C" const char* eval_status(int status) {
   }
 }
 
-
-
 extern "C" void e_v_violation_msg(char* dest, int n) {
   // Maybe this belongs inside the validator?
   const int s = 512;
@@ -389,4 +389,81 @@ extern "C" void e_v_set_mem_watch(address_t addr){
 
 extern "C" void e_v_terminate(void){
   rv_validator->terminate();
+}
+
+extern "C" void prefetch_rule(operands_t * ops, results_t * res){
+  // If there's a rule cache and we're prefetching, then do the install
+  if (rv_validator -> rule_cache){
+    //printf("Installing a prefetched rule...\n");
+    results_t lookup_res;
+    lookup_res.pc = (meta_set_t *) malloc(sizeof(meta_set_t));
+    lookup_res.rd = (meta_set_t *) malloc(sizeof(meta_set_t));
+    lookup_res.csr = (meta_set_t *) malloc(sizeof(meta_set_t));    
+    // If we don't have this rule, then install it
+    if (!rv_validator -> rule_cache -> allow(ops, &lookup_res)){
+      rv_validator -> rule_cache -> install_rule(ops, res);      
+    } else {
+    }
+    free(lookup_res.pc);
+    free(lookup_res.rd);
+    free(lookup_res.csr);
+  }
+  
+}
+
+// Take in pointers to meta_set_t, canonize them, and then form an operands_t
+extern "C" operands_t * canonize_and_make_operands(meta_set_t * pc, meta_set_t * ci, meta_set_t * op1, meta_set_t * op2, meta_set_t * op3, meta_set_t * mem){
+  operands_t * ops = (operands_t *) malloc (sizeof(operands_t));
+
+  ops -> pc = NULL;
+  ops -> ci = NULL;
+  ops -> op1 = NULL;
+  ops -> op2 = NULL;
+  ops -> op3 = NULL;
+  ops -> mem = NULL;
+  
+  if (pc != NULL)
+    ops->pc = ms_cache.canonize(*pc);
+
+  if (ci != NULL)
+    ops->ci = ms_cache.canonize(*ci);
+
+  if (op1 != NULL)
+    ops->op1 = ms_cache.canonize(*op1);
+
+  if (op2 != NULL)
+    ops->op2 = ms_cache.canonize(*op2);
+
+  if (op3 != NULL)
+    ops->op3 = ms_cache.canonize(*op3);
+
+  if (mem != NULL)
+    ops->mem = ms_cache.canonize(*mem);
+  
+  //printf("Done canonizing.\n");
+  return ops;
+}
+
+
+// Take in pointers to meta_set_t, canonize them, and then form an operands_t
+extern "C" results_t * canonize_and_make_results(meta_set_t * pc, meta_set_t * rd, meta_set_t * csr, bool pcResult, bool rdResult, bool csrResult){
+  results_t * res = (results_t *) malloc (sizeof(results_t));
+
+  res -> pc = NULL;
+  res -> rd = NULL;
+  res -> csr = NULL;
+  res -> pcResult = pcResult;
+  res -> rdResult = rdResult;
+  res -> csrResult = csrResult;
+  
+  if (pc != NULL)
+    res->pc = (meta_set_t *) ms_cache.canonize(*pc);
+
+  if (rd != NULL)
+    res->rd = (meta_set_t *) ms_cache.canonize(*rd);
+
+  if (csr != NULL)
+    res->csr = (meta_set_t *) ms_cache.canonize(*csr);
+
+  return res;
 }
