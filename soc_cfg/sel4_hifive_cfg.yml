@@ -39,6 +39,7 @@ SOC:
     name: SOC.Memory.Ram_0,
     start: 0x80000000,
     end:   0xffffffff,
+    tag_granularity: 4,
     heterogeneous: true
     }
   AON: {

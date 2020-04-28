@@ -68,7 +68,7 @@ void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
     for (address_t start = e.first.start; start < e.first.end; start += 4) {
 //      std::string s = render_metadata(e.second);
 //      printf("0x%08x: %s\n", start, s.c_str());
-      if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
+      if (!tag_bus.store_insn_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
 	throw configuration_exception_t("unable to apply metadata");
       }
     }
@@ -375,7 +375,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     }
   }
 
-  if (!tag_bus.load_tag(pc_paddr, ci_tag)) {
+  if (!tag_bus.load_insn_tag(pc_paddr, ci_tag)) {
     printf("failed to load CI tag for PC 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr);
   }
 //    printf("ci_tag: 0x%" PRIaddr "\n", ci_tag);

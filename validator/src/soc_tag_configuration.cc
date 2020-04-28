@@ -64,9 +64,11 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
     elt.tag_granularity = n["tag_granularity"].as<unsigned long>();
   } else {
 #ifdef RV64_VALIDATOR
-    elt.tag_granularity = 64;
+    elt.tag_granularity = 8;
+    elt.word_size = 8;
 #else
-    elt.tag_granularity = 32;
+    elt.tag_granularity = 4;
+    elt.word_size = 4;
 #endif
   }
 
@@ -109,7 +111,7 @@ void soc_tag_configuration_t::apply(tag_bus_t *tag_bus, tag_converter_t *convert
     if (e.heterogeneous) {
       tag_bus->add_provider(e.start, e.end,
 			    new platform_ram_tag_provider_t(e.end - e.start, 
-							    converter->m_to_t(e.meta_set), e.tag_granularity));
+							    converter->m_to_t(e.meta_set), e.word_size, e.tag_granularity));
     } else {
       tag_bus->add_provider(e.start, e.end,
 			    new uniform_tag_provider_t(e.end - e.start,
