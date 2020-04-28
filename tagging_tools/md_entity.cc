@@ -45,7 +45,7 @@ DEFINE_bool(update, true, "update existing tag info file");
 static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::string name, bool needs_size, bool optional) {
   symbol_t *sym = symtab->find_symbol(name);
   if (sym) {
-    if (!optional && needs_size && sym->get_size() == 0) {
+    if (needs_size && sym->get_size() == 0) {
       if(optional) {
           err->warning("symbol %s has zero size.\n", name.c_str());
       }

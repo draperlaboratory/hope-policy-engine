@@ -67,7 +67,6 @@ void metadata_factory_t::update_entity_initializers(YAML::Node const &metaAST, s
   for (YAML::const_iterator seq_it = metadata.begin(); seq_it != metadata.end(); ++seq_it) {
           YAML::Node metadata_node = *seq_it;
           std::string mname = metadata_node["name"].as<std::string>();
-          int mid = metadata_node["id"].as<int>();
           entity_init_t init;
           init.entity_name = mname;
           init.meta_names.push_back(mname);

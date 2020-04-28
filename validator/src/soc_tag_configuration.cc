@@ -61,21 +61,13 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   }
   
   if (n["start"]) {
-#ifdef RV64_VALIDATOR
-    elt.start = n["start"].as<unsigned long>();
-#else
-    elt.start = n["start"].as<unsigned>();
-#endif
+    elt.start = n["start"].as<address_t>();
   } else {
     throw configuration_exception_t("'start' field not present for element " + element_name);
   }
   
   if (n["end"]) {
-#ifdef RV64_VALIDATOR
-    elt.end = n["end"].as<unsigned long>();
-#else
-    elt.end = n["end"].as<unsigned>();
-#endif
+    elt.end = n["end"].as<address_t>();
   } else {
     throw configuration_exception_t("'end' field not present for element " + element_name);
   }

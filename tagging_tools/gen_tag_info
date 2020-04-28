@@ -103,12 +103,6 @@ def main():
             TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
         range_file.finish()
 
-        presult = subprocess.call(['sort', '-o', range_file.name(), range_file.name()])
-
-        if presult != 0:
-            print("sorting failed", flush=True)
-            sys.exit(presult)
-
         if args.arch == 'rv64':
             md_range += '64'
             md_code += '64'

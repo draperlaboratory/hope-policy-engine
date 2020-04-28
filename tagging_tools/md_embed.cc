@@ -38,6 +38,12 @@ using namespace policy_engine;
 #include <string>
 #include <cstring>
 
+#ifdef RV64_VALIDATOR
+        char* riscv_prefix = "riscv64-unknown-elf-";
+#else
+        char* riscv_prefix = "riscv32-unknown-elf-";
+#endif
+
 void usage(char** argv) {
     printf("usage: %s <tag_file> <policy_dir> <elf to embed tags>\n", argv[0]);
 }
@@ -94,19 +100,11 @@ bool embed_tags_in_elf(std::vector<const metadata_t *> &metadata_values,
     char command_string[512];
     char* base_command;
     if (update)
-#ifdef RV64_VALIDATOR
-        base_command = "riscv64-unknown-elf-objcopy --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1";
-#else
-        base_command = "riscv32-unknown-elf-objcopy --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1";
-#endif
+        base_command = "%sobjcopy --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1";
     else
-#ifdef RV64_VALIDATOR
-        base_command = "riscv64-unknown-elf-objcopy --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
-#else
-        base_command = "riscv32-unknown-elf-objcopy --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
-#endif
+        base_command = "%sobjcopy --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
 
-    sprintf(command_string, base_command, section_temp_file, old_elf_name.c_str(), new_elf_name.c_str());
+    sprintf(command_string, base_command, riscv_prefix,section_temp_file, old_elf_name.c_str(), new_elf_name.c_str());
 //     printf(command_string);
     int ret = system(command_string);
 
@@ -145,14 +143,10 @@ int main(int argc, char **argv) {
         metadata_index_map_t<metadata_memory_map_t, range_t>(&metadata_memory_map, &metadata_values);
 
     // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
-#ifdef RV64_VALIDATOR
-    char base_command[] = "riscv64-unknown-elf-objdump -d -j .initial_tag_map %s >/dev/null 2>&1";
-#else
-    char base_command[] = "riscv32-unknown-elf-objdump -d -j .initial_tag_map %s >/dev/null 2>&1";
-#endif
+    char base_command[] = "%sobjdump -d -j .initial_tag_map %s >/dev/null 2>&1";
 
     char command_string[256];
-    sprintf(command_string, base_command, elf_filename);
+    sprintf(command_string, base_command, riscv_prefix, elf_filename);
     int ret = system(command_string);
 
     if(!embed_tags_in_elf(metadata_values, memory_index_map, elf_filename, elf_filename, ret == 0)) {

@@ -47,6 +47,8 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
     start_addr = int(start_addr, 16)
 
     if start_addr:
+        # metadata ids are 0-indexed, so we offset by 1 to allow .tag_array[0] to be the size.
+        # iterate through addresses in .tag_array, tagging .tag_array[i+1] with the metadata with id i.
         for m in policy_meta_info.get('Metadata'):
             mid = int(m.get('id'))
             range_file.write_range(start_addr + (mid*bytes_per_address) + bytes_per_address,
