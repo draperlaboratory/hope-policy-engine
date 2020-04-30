@@ -75,9 +75,9 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
       } else {
 	address_t start;
 	address_t end;
-	start = strtol(tokens[0].c_str(), 0, 16);
-	end = strtol(tokens[1].c_str(), 0, 16);
-//	printf("applying tag to 0x%x, 0x%x ... ", start, end);
+	start = strtoul(tokens[0].c_str(), 0, 16);
+	end = strtoul(tokens[1].c_str(), 0, 16);
+// 	printf("applying tag to 0x%lx (%s), 0x%lx (%s) ... \n", start, tokens[0].c_str(), end, tokens[1].c_str());
 	if (!apply_tag(map, start, end, tokens[2].c_str())) {
 	  fprintf(stderr, "%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
 	  res = false;

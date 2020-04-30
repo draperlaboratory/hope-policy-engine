@@ -8,6 +8,7 @@ import argparse
 import logging
 import TaggingUtils
 import ELFSectionTagger
+import TagElfFile
 import OpCodeTagger
 import LLVMMetadataTagger
 import SOCTagger
@@ -24,6 +25,7 @@ def main():
     md_range = 'md_range'
     md_code = 'md_code'
     md_asm_ann = 'md_asm_ann'
+    md_embed = 'md_embed'
     md_entity = 'md_entity'
     md_header = 'md_header'
     md_index = 'md_index'
@@ -69,6 +71,9 @@ def main():
     with open(args.policy_dir + "/policy_init.yml", "r") as policy_modules_file:
         policy_inits = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
 
+    with open(args.policy_dir + "/policy_meta.yml", "r") as policy_modules_file:
+        policy_metas = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
+
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
 
@@ -93,12 +98,16 @@ def main():
             SOCTagger.generate_soc_ranges(soc_file, range_file, policy_inits)
             soc_file.close()
 
+        if policy_inits['Require']:
+            # save the inits stuff
+            TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
         range_file.finish()
 
         if args.arch == 'rv64':
             md_range += '64'
             md_code += '64'
             md_asm_ann += '64'
+            md_embed += '64'
             md_entity += '64'
             md_header += '64'
             md_index += '64'
@@ -120,6 +129,14 @@ def main():
         if presult != 0:
             print("md_entity failed")
             sys.exit(presult)
+
+        # embed tags in ELF
+        presult = subprocess.call([md_embed, args.tag_file, args.policy_dir, args.bin] +
+                                 args.entities)
+        if presult != 0:
+            print("md_embed failed")
+            sys.exit(presult)
+
 
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:

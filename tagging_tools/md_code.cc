@@ -91,7 +91,7 @@ try {
   }
 
   policy_dir = argv[1];
-  code_address = strtol(argv[2], 0, 16);
+  code_address = strtoul(argv[2], 0, 16);
   file_name = argv[3];
 
   init(policy_dir);

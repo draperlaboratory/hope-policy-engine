@@ -53,7 +53,7 @@ public:
 
   rv32_validator_base_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
-			RegisterReader_t rr);
+			RegisterReader_t rr, AddressFixer_t af);
 
   void apply_metadata(metadata_memory_map_t *md_map);
   
@@ -95,7 +95,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   rv32_validator_t(meta_set_cache_t *ms_cache,
 		   meta_set_factory_t *ms_factory,
 		   soc_tag_configuration_t *tag_config,
-		   RegisterReader_t rr);
+		   RegisterReader_t rr, AddressFixer_t af);
 
   virtual ~rv32_validator_t() {
     free(ctx);

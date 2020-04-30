@@ -35,6 +35,7 @@ extern "C" {
 
 typedef uint64_t (*RegisterReader_t)(uint32_t);
 typedef uint64_t (*MemoryReader_t)(uint64_t);
+typedef uint64_t (*AddressFixer_t)(uint64_t);
 
 #ifdef __cplusplus
 }

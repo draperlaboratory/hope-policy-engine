@@ -36,7 +36,7 @@ extern "C" {
 
 uint32_t e_v_validate(uint64_t pc, uint32_t instr);
 
-void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
+void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer);
 uint32_t e_v_commit(void);
 void e_v_set_metadata(const char *validator_cfg_path);
 void e_v_violation_msg(char *dest, int n);

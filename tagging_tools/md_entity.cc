@@ -46,8 +46,13 @@ static symbol_t *get_symbol(symbol_table_t const *symtab, reporter_t *err, std::
   symbol_t *sym = symtab->find_symbol(name);
   if (sym) {
     if (needs_size && sym->get_size() == 0) {
-      err->error("symbol %s has zero size.\n", name.c_str());
-      sym = nullptr;
+      if(optional) {
+          err->warning("symbol %s has zero size.\n", name.c_str());
+      }
+      else {
+          err->error("symbol %s has zero size.\n", name.c_str());
+          sym = nullptr;
+      }
     }
   } else {
     if (!optional)

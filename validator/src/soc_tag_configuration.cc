@@ -61,13 +61,13 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   }
   
   if (n["start"]) {
-    elt.start = n["start"].as<unsigned>();
+    elt.start = n["start"].as<address_t>();
   } else {
     throw configuration_exception_t("'start' field not present for element " + element_name);
   }
   
   if (n["end"]) {
-    elt.end = n["end"].as<unsigned>();
+    elt.end = n["end"].as<address_t>();
   } else {
     throw configuration_exception_t("'end' field not present for element " + element_name);
   }

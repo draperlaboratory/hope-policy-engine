@@ -27,6 +27,7 @@ install: all
 	install -p build/dump_tags $(ISP_PREFIX)/bin/
 	install -p build/md_code $(ISP_PREFIX)/bin/
 	install -p build/md_range $(ISP_PREFIX)/bin/
+	install -p build/md_embed $(ISP_PREFIX)/bin/
 	install -p build/md_entity $(ISP_PREFIX)/bin/
 	install -p build/md_asm_ann $(ISP_PREFIX)/bin/
 	install -p build/md_header $(ISP_PREFIX)/bin/
@@ -34,6 +35,7 @@ install: all
 	install -p build/dump_tags64 $(ISP_PREFIX)/bin/
 	install -p build/md_code64 $(ISP_PREFIX)/bin/
 	install -p build/md_range64 $(ISP_PREFIX)/bin/
+	install -p build/md_embed64 $(ISP_PREFIX)/bin/
 	install -p build/md_entity64 $(ISP_PREFIX)/bin/
 	install -p build/md_asm_ann64 $(ISP_PREFIX)/bin/
 	install -p build/md_header64 $(ISP_PREFIX)/bin/
@@ -47,6 +49,7 @@ install: all
 	install -p tagging_tools/ELFSectionTagger.py $(ISP_PREFIX)/bin/
 	install -p tagging_tools/LLVMMetadataTagger.py $(ISP_PREFIX)/bin/
 	install -p tagging_tools/SOCTagger.py $(ISP_PREFIX)/bin/
+	install -p tagging_tools/TagElfFile.py $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv_gdb $(ISP_PREFIX)/bin/
 	install -p build/librv32-sim-validator.so $(ISP_PREFIX)/lib/

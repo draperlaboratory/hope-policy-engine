@@ -42,8 +42,9 @@ namespace policy_engine {
 class abstract_sim_validator_t : abstract_validator_t {
   protected:
   RegisterReader_t reg_reader;
+  AddressFixer_t addr_fixer;
   public:
-  abstract_sim_validator_t(RegisterReader_t rr) : reg_reader(rr) {
+  abstract_sim_validator_t(RegisterReader_t rr, AddressFixer_t af) : reg_reader(rr), addr_fixer(af) {
   }
   virtual ~abstract_sim_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
