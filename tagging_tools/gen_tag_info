@@ -21,6 +21,16 @@ from elftools.elf.sections import SymbolTableSection
 # List of SOC elements to exclude from TMT
 soc_exclude = ['SOC.Memory.DDR4_0', 'SOC.Memory.Ram_0']
 
+def getIspPrefix():
+    isp_prefix = os.environ["HOME"] + "/.local/isp/"
+
+    try:
+        isp_prefix = os.environ["ISP_PREFIX"]
+    except KeyError:
+        pass
+
+    return isp_prefix
+
 def main():
     md_range = 'md_range'
     md_code = 'md_code'
@@ -140,7 +150,8 @@ def main():
 
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:
-            presult = subprocess.call(["llvm-objdump", "-dS", args.bin],
+            llvm_od = getIspPrefix() + "/bin/llvm-objdump"
+            presult = subprocess.call([llvm_od, "-dS", args.bin],
                                       stdout=asm_file)
             if presult != 0:
                 print("objdump failed")
