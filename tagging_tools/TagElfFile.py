@@ -13,10 +13,11 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
 
     if rv64:
         bytes_per_address = 8 # 64/8
-        tool_prefix = "riscv64-unknown-elf-"
+        bfd_target = "elf64-littleriscv"
     else:
         bytes_per_address = 4 # 32/8
-        tool_prefix = "riscv32-unknown-elf-"
+        bfd_target = "elf32-littleriscv"
+    tool_prefix = "riscv64-unknown-elf-"
     tag_array_bytes = [0]*bytes_per_address*(length+1)
 
     tag_array_file.write(int.to_bytes(length, byteorder='little', length=bytes_per_address))
@@ -26,9 +27,9 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
     pout = subprocess.check_output([tool_prefix + 'objdump', '-h', elfname])
 
     if ".tag_array" in str(pout): # section exists, update the elf
-        base_command = tool_prefix + "objcopy --update-section .tag_array=" + tag_array_filename + " " + elfname + " " + elfname
+        base_command = tool_prefix + "objcopy --target=" + bfd_target + " --update-section .tag_array=" + tag_array_filename + " " + elfname + " " + elfname
     else:
-        base_command = tool_prefix + "objcopy --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data " + elfname + " " + elfname
+        base_command = tool_prefix + "objcopy --target=" + bfd_target + " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data " + elfname + " " + elfname
 
     presult = subprocess.call(base_command.split(' '))
 
@@ -38,7 +39,7 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
     os.remove(tag_array_filename)
 
     start_addr = ""
-    pout = subprocess.check_output([tool_prefix + 'objdump', '-h', elfname])
+    pout = subprocess.check_output([tool_prefix + 'objdump', '--target', bdf_target ,'-h', elfname])
 
     for line in str(pout).split('\\n'):
         if '.tag_array' in line:
