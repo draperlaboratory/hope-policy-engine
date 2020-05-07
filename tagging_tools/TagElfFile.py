@@ -39,7 +39,7 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
     os.remove(tag_array_filename)
 
     start_addr = ""
-    pout = subprocess.check_output([tool_prefix + 'objdump', '--target', bdf_target ,'-h', elfname])
+    pout = subprocess.check_output([tool_prefix + 'objdump', '--target', bfd_target ,'-h', elfname])
 
     for line in str(pout).split('\\n'):
         if '.tag_array' in line:
