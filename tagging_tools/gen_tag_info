@@ -57,7 +57,7 @@ def main():
                         help="Currently supported: rv32 (default), rv64")
     parser.add_argument("-s", "--soc-file", required=False,
                         help="SOC config file. If present, write TMT headers for PEX firmware")
-    parser.add_argument("--duplicate_mode", required=False,
+    parser.add_argument("--duplicate-mode", required=False,
                         help="Duplicate TMT entries. Valid choices: code, data, full")
 
 
@@ -178,7 +178,7 @@ def main():
 
             md_header_args = [md_header, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude
             if args.duplicate_mode:
-                md_header_args.append("-duplicate_" + args.duplicate_mode_)
+                md_header_args.append("-duplicate_" + args.duplicate_mode)
 
             presult = subprocess.call(md_header_args)
 
