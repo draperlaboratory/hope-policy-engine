@@ -36,8 +36,15 @@ using namespace policy_engine;
 #include <string>
 #include <cstring>
 
+typedef enum _duplicate_mode_t {
+  DUPLICATE_NONE,
+  DUPLICATE_CODE,
+  DUPLICATE_DATA,
+  DUPLICATE_FULL,
+} duplicate_mode_t;
+
 void usage() {
-  printf("usage: md_header <elf_file> <soc_file> <tag_file>\n");
+  printf("usage: md_header <elf_file> <soc_file> <tag_file> <-duplicate_itmt/dtmt/full> <exclude_range_1> <exclude_range_2> ...\n");
 }
 
 bool exclude_unused_soc(YAML::Node soc, std::list<std::string> &exclude,
@@ -185,6 +192,7 @@ int main(int argc, char **argv) {
   std::list<std::string> soc_exclude;
   const char *policy_dir;
   YAML::Node soc_node;
+  duplicate_mode_t duplicate_mode = DUPLICATE_NONE;
 
   if (argc < 5) {
     usage();
@@ -199,6 +207,22 @@ int main(int argc, char **argv) {
   metadata_factory_t factory(policy_dir);
 
   for(size_t i = 5; i < argc; i++) {
+    if(strstr(argv[i], "-duplicate_") == argv[i]) {
+      if(strstr(argv[i], "-duplicate_code") == argv[i]) {
+        duplicate_mode = DUPLICATE_CODE;
+      }
+      else if(strstr(argv[i], "-duplicate_data") == argv[i]) {
+        duplicate_mode = DUPLICATE_DATA;
+      }
+      else if(strstr(argv[i], "-duplicate_full") == argv[i]) {
+        duplicate_mode = DUPLICATE_FULL;
+      }
+      else {
+        usage();
+        return 1;
+      }
+      continue;
+    }
     soc_exclude.push_back(std::string(argv[i]));
   }
 
@@ -236,6 +260,24 @@ int main(int argc, char **argv) {
 
   data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
   get_address_ranges(elf_image, code_ranges, data_ranges);
+
+  switch(duplicate_mode) {
+    case DUPLICATE_DATA:
+      code_ranges.insert(code_ranges.end(), data_ranges.begin(), data_ranges.end());
+      code_ranges.sort(compare_range);
+      break;
+    case DUPLICATE_CODE:
+      data_ranges.insert(data_ranges.end(), code_ranges.begin(), code_ranges.end());
+      data_ranges.sort(compare_range);
+      break;
+    case DUPLICATE_FULL:
+      data_ranges.insert(data_ranges.end(), code_ranges.begin(), code_ranges.end());
+      data_ranges.sort(compare_range);
+      code_ranges = data_ranges;
+      break;
+    default:
+      break;
+  }
 
   if(write_headers(code_ranges, data_ranges, is_64_bit, std::string(tag_filename)) == false) {
     err.error("Failed to write headers to tag file\n");
