@@ -589,6 +589,14 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
             return flags;
+        case 0x1800302f:
+            *name = "sc.d";
+            *op = RISCV_SC_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2 | HAS_STORE;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
     }
     switch(ibits & 0xf9f0707f){
         case 0x1000202f:
@@ -598,6 +606,13 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rd  = (ibits & 0x00000F80) >> 7;
             *rs1 = (ibits & 0x000F8000) >> 15;
             return flags;
+        case 0x1000302f:
+           *name = "lr.d";
+           *op = RISCV_LR_D;
+           flags = 0 | HAS_RD | HAS_RS1 | HAS_LOAD;
+           *rd  = (ibits & 0x00000F80) >> 7;
+           *rs1 = (ibits & 0x000F8000) >> 15;
+       return flags;
     }
     switch(ibits & 0xfc00707f){
         case 0x1013:

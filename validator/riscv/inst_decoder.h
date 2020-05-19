@@ -213,5 +213,8 @@
 #define RISCV_DIVUW 184
 #define RISCV_REMUW 185
 
+#define RISCV_LR_D 186
+#define RISCV_SC_D 187
+
 #endif
 
