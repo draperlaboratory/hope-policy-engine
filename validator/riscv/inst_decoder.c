@@ -1045,6 +1045,14 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
             return flags;
+        case 0x200703b:
+            *name = "remuw";
+            *op = RISCV_REMUW;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
         case 0x20000053:
             *name = "fsgnj.s";
             *op = RISCV_FSGNJ_S;
