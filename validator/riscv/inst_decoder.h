@@ -213,8 +213,17 @@
 #define RISCV_DIVUW 184
 #define RISCV_REMUW 185
 
-#define RISCV_LR_D 186
-#define RISCV_SC_D 187
+#define RISCV_AMOADD_D 186
+#define RISCV_AMOXOR_D 187
+#define RISCV_AMOOR_D 188
+#define RISCV_AMOAND_D 189
+#define RISCV_AMOMIN_D 190
+#define RISCV_AMOMAX_D 191
+#define RISCV_AMOMINU_D 192
+#define RISCV_AMOMAXU_D 193
+#define RISCV_AMOSWAP_D 194
+#define RISCV_LR_D 195
+#define RISCV_SC_D 196
 
 #endif
 

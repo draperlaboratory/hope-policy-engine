@@ -589,6 +589,78 @@ int32_t  decode(uint32_t ibits, uint32_t *rs1, uint32_t *rs2, uint32_t *rs3, uin
             *rs1 = (ibits & 0x000F8000) >> 15;
             *rs2 = (ibits & 0x01F00000) >> 20;
             return flags;
+        case 0x302f:
+            *name = "amoadd.d";
+            *op = RISCV_AMOADD_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0x2000302f:
+            *name = "amoxor.d";
+            *op = RISCV_AMOXOR_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0x4000302f:
+            *name = "amoor.d";
+            *op = RISCV_AMOOR_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0x6000302f:
+            *name = "amoand.d";
+            *op = RISCV_AMOAND_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0x8000302f:
+            *name = "amomin.d";
+            *op = RISCV_AMOMIN_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0xa000302f:
+            *name = "amomax.d";
+            *op = RISCV_AMOMAX_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0xc000302f:
+            *name = "amominu.d";
+            *op = RISCV_AMOMINU_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0xe000302f:
+            *name = "amomaxu.d";
+            *op = RISCV_AMOMAXU_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
+        case 0x800302f:
+            *name = "amoswap.d";
+            *op = RISCV_AMOSWAP_D;
+            flags = 0 | HAS_RD | HAS_RS1 | HAS_RS2;
+            *rd  = (ibits & 0x00000F80) >> 7;
+            *rs1 = (ibits & 0x000F8000) >> 15;
+            *rs2 = (ibits & 0x01F00000) >> 20;
+            return flags;
         case 0x1800302f:
             *name = "sc.d";
             *op = RISCV_SC_D;
