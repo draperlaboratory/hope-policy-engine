@@ -1,6 +1,6 @@
 SOC:
-  ALT_UART0: {
-    name: SOC.IO.ALT_UART_0,
+  MROM: {
+    name: SOC.IO.MROM,
     start: 0x00001000,
     end:   0x00001fff,
     heterogeneous: true
