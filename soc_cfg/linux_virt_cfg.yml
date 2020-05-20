@@ -1,0 +1,61 @@
+SOC:
+  DEBUG: {
+    name: SOC.IO.DEBUG,
+    start: 0x00000000,
+    end:   0x00000100,
+    heterogeneous: true
+    }
+  MROM: {
+    name: SOC.IO.MROM,
+    start: 0x00001000,
+    end:   0x00011fff,
+    heterogeneous: true
+    }
+  TEST: {
+    name: SOC.IO.TEST,
+    start: 0x00100000,
+    end:   0x00100fff,
+    heterogeneous: true
+    }
+  RTC: {
+    name: SOC.IO.RTC,
+    start: 0x00101000,
+    end:   0x00101FFF,
+    heterogeneous: true
+    }
+  CLINT: {
+    name: SOC.IO.CLINT,
+    start: 0x02000000,
+    end:   0x0200ffff,
+    heterogeneous: true
+    }
+  PLIC: {
+    name: SOC.IO.PLIC,
+    start: 0x0c000000,
+    end:   0x0fffffff,
+    heterogeneous: true
+    }
+  UART0: {
+    name: SOC.IO.UART_0,
+    start: 0x10000000,
+    end:   0x100000FF,
+    heterogeneous: true
+    }
+  VIRTIO: {
+    name: SOC.IO.VIRTIO,
+    start: 0x10001000,
+    end:   0x10001FFF,
+    heterogeneous: true
+    }
+  FLASH: {
+    name: SOC.Memory.Flash_0,
+    start: 0x20000000,
+    end:   0x23FFFFFF,
+    heterogeneous: true
+    }
+  RAM: {
+    name: SOC.Memory.Ram_0,
+    start: 0x80000000,
+    end:   0xffffffff,
+    heterogeneous: true
+    }
