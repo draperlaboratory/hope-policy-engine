@@ -237,7 +237,7 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
 }
 
 bool policy_engine::write_headers(std::list<range_t> &code_ranges,
-                                  std::list<range_t> &data_ranges,
+                                  std::list<std::pair<range_t, uint8_t>> &data_ranges,
                                   bool is_64_bit, std::string tag_filename) {
   FILE *in_fp, *out_fp;
   size_t in_size;
@@ -298,11 +298,15 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
     return false;
   }
   for(const auto &it : data_ranges) {
-    if(!write_uleb<file_writer_t, address_t>(&writer, it.start)) {
+    if(!write_uleb<file_writer_t, address_t>(&writer, it.first.start)) {
       fclose(out_fp);
       return false;
     }
-    if(!write_uleb<file_writer_t, address_t>(&writer, it.end)) {
+    if(!write_uleb<file_writer_t, address_t>(&writer, it.first.end)) {
+      fclose(out_fp);
+      return false;
+    }
+    if(!write_uleb<file_writer_t, address_t>(&writer, (uint32_t)it.second)) {
       fclose(out_fp);
       return false;
     }
@@ -384,6 +388,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
       return false;
     }
     data_ranges.push_back(range);
+    size_t tag_granularity;
+    if(!read_uleb<file_reader_t, size_t>(&reader, tag_granularity)) {
+      fclose(fp);
+      return false;
+    }
   }
 
   if(!read_uleb<file_reader_t, uint32_t>(&reader, metadata_value_count)) {

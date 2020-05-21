@@ -95,39 +95,37 @@ class platform_ram_tag_provider_t : public tag_provider_t {
 
   public:
   platform_ram_tag_provider_t(address_t size, tag_t tag, size_t word_size, size_t tag_granularity) :
-  size(size), word_size(word_size), tags(size / 4, tag), tag_granularity(tag_granularity) {  }
+  size(size), word_size(word_size), tags((size / MIN_TAG_GRANULARITY)+1, tag), tag_granularity(tag_granularity) {  }
 
   bool get_insn_tag(address_t addr, tag_t &t) {
     if (addr < size) {
-      t = tags[addr / 4];
+      t = tags[addr / MIN_TAG_GRANULARITY];
       return true;
     }
     return false;
   }
 
   bool get_tag(address_t addr, tag_t &t) {
-      if (addr < size) {
-          if(tag_granularity == 4)
-              t = tags[addr / 4];
-          else if(tag_granularity == 8)
-              t = tags[(addr / 8*2)];
+    if (addr < size) {
+      addr  &= -tag_granularity;
+      t = tags[addr / MIN_TAG_GRANULARITY];
       return true;
     }
     return false;
   }
+
   bool set_insn_tag(address_t addr, tag_t t) {
     if (addr < size) {
-      tags[addr / 4] = t;
+      tags[addr / MIN_TAG_GRANULARITY] = t;
       return true;
     }
     return false;
   }
+
   bool set_tag(address_t addr, tag_t t) {
     if (addr < size) {
-          if(tag_granularity == 4)
-              tags[addr / 4] = t;
-          else if(tag_granularity == 8)
-              tags[(addr / 8)*2] = t;
+      addr  &= -tag_granularity;
+      tags[addr / MIN_TAG_GRANULARITY] = t;
       return true;
     }
     return false;

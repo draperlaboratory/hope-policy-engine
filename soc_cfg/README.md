@@ -25,3 +25,8 @@ specifies to the validator that for the address range specified, there may end u
 multiple different tags over time.  Initially they will be all set to the one initial tag.
 Elements that have a `false` for the `heterogeneous` field will be assumed to have one and
 only one tag for the entire address range.
+
+On 32-bit platforms, everything is tagged at 32-bit granularity. On 64-bit
+systems, instructions are tagged at 32-bit and data is tagged, by default, at
+64-bit. This can be overridden by setting the `tag_granularity` field for a
+region to the correct number of bytes.

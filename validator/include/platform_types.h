@@ -47,6 +47,7 @@ typedef uint64_t reg_t;
 #define PRIreg  "lx"
 
 #define READER_MASK 0xFFFFFFFFFFFFFFFFull
+#define PLATFORM_WORD_SIZE 8
 #else
 typedef uint32_t address_t;
 typedef uint32_t reg_t;
@@ -56,10 +57,11 @@ typedef uint32_t reg_t;
 #define PRIreg  "x"
 
 #define READER_MASK 0x00000000FFFFFFFFull
+#define PLATFORM_WORD_SIZE 4
 #endif
 typedef uint32_t insn_bits_t;
 
-#define PLATFORM_WORD_SIZE 4
+#define MIN_TAG_GRANULARITY 4
 
 }
 

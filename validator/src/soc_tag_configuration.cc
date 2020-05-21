@@ -61,16 +61,11 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   }
   
   if (n["tag_granularity"]) {
-    elt.tag_granularity = n["tag_granularity"].as<unsigned long>();
+    elt.tag_granularity = n["tag_granularity"].as<size_t>();
   } else {
-#ifdef RV64_VALIDATOR
-    elt.tag_granularity = 8;
-    elt.word_size = 8;
-#else
-    elt.tag_granularity = 4;
-    elt.word_size = 4;
-#endif
+    elt.tag_granularity = sizeof(address_t);
   }
+  elt.word_size = sizeof(address_t);
 
   if (n["start"]) {
     elt.start = n["start"].as<address_t>();
