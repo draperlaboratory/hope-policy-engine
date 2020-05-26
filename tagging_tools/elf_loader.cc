@@ -130,14 +130,17 @@ bool elf_image_t::load() { //(bool load_symbols, bool load_phdrs) {
 
   str_sh = find_section(".strtab");
   if (!str_sh) {
-    err->error("cound't find strtab\n");
-    return false;
+      printf("Coulnd't find strtab\n");
   }
-  if (!load_bits((void **)&str_tab, str_sh->sh_size, str_sh->sh_offset, "string table"))
-    return false;
+  else {
+      if (!load_bits((void **)&str_tab, str_sh->sh_size, str_sh->sh_offset, "string table"))
+          return false;
+  }
+
   Elf_Shdr const *sym_sh = find_section(".symtab");
-  if (!sym_sh)
-    return false;
+  if (!sym_sh) {
+      printf("Couldn't find symtab\n");
+    return false;}
   if (!load_bits((void **)&sym_tab, sym_sh->sh_size, sym_sh->sh_offset, "symbol table"))
     return false;
   symbol_count = sym_sh->sh_size / sizeof(Elf_Sym);
@@ -146,7 +149,7 @@ bool elf_image_t::load() { //(bool load_symbols, bool load_phdrs) {
     return false;
   }
 
-//  err->info("  done\n");
+  err->info("  done\n");
   return true;
 }
 
