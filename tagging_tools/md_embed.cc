@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "tag_file.h"
 #include "elf_utils.h"
 #include "basic_elf_io.h"
