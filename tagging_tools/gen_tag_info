@@ -110,7 +110,10 @@ def main():
 
         if policy_inits['Require']:
             # save the inits stuff
-            TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
+            rc = TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
+            if not rc:
+                # We don't normally use this right now, so it's not fatal
+                print("Couldn't add .tag_array to binary")
         range_file.finish()
 
         if args.arch == 'rv64':
@@ -145,7 +148,8 @@ def main():
                                  args.entities)
         if presult != 0:
             print("md_embed failed")
-            sys.exit(presult)
+            # We don't normally use this right now, so it's not fatal
+#             sys.exit(presult)
 
 
         # generate the asm file
