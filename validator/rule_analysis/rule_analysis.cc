@@ -8,6 +8,9 @@
  * Rule tracing (working sets and coresident graph) are enabled by creating a TRACE_ENABLED file.
  * Prefetching logic (create prefetching policy file) is enabled by creating a PREFETCH_ENABLED file.
  *
+ * Due to the latency induced from calculating the full coresident graph, this now just periodically
+ * dumps the cache for later sampling. Leaving code intact for possible future analysis.
+ *
  * Both should not run simulatenously, as the prefetching insertions currently trigger the same
  * hooks that the tracing monitors, so it would pollute results.
  */
@@ -18,8 +21,7 @@
 using namespace policy_engine;
 
 #define EPOCH_LENGTH 20000000
-
-#define MIN_CORES_THRESHOLD 0
+#define CACHE_DUMP_FREQ 1000000
 
 const char * working_set_filename = "working_sets_latest.txt";
 const char * coresidency_graph_filename = "coresidency_latest.txt";
@@ -34,6 +36,9 @@ std::unordered_map<operands_t, long, std::hash<operands_t>, compare_ops> * cycle
 unsigned long current_instr = 0;
 unsigned long evicted_rules = 0;
 FILE * working_set_file;
+FILE * coresidency_graph_file;
+operands_t * rule_cache_ptr;
+int rule_cache_size;
 
 // Prefetching data structures:
 std::unordered_map<std::pair<Rule, Rule>, long, pair_rule_hash, compare_rule_pair> * next_rule_graph;
@@ -70,14 +75,23 @@ void init_rule_analysis(){
     
     // Initialize data structures
     rules_in_period = new std::unordered_set<operands_t, std::hash<operands_t>, compare_ops>();
-    coresident_graph = new std::unordered_map<std::pair<operands_t, operands_t>, long, pair_ops_hash, compare_ops_pair>();
+    //coresident_graph = new std::unordered_map<std::pair<operands_t, operands_t>, long, pair_ops_hash, compare_ops_pair>();
     cycle_inserted = new std::unordered_map<operands_t, long, std::hash<operands_t>, compare_ops>();
     working_set_file = fopen(working_set_filename, "w");
+    coresidency_graph_file = fopen(coresidency_graph_filename, "w");    
     
   } else {
     printf("No tracing!\n");
   }
   
+}
+
+// Called from the finite rule cache initialization, gives us a pointer
+// to the entries of the current cache so that we can access them.
+void init_rule_cache_ptr(operands_t * entries, int size){
+  printf("Setting rule_cache_ptr to %p\n", entries);
+  rule_cache_ptr = entries;
+  rule_cache_size = size;
 }
 
 // This function hooks rule *validation*, so it runs each instruction.
@@ -97,6 +111,11 @@ void rule_validated(operands_t * ops){
   // TODO: does anything in the map need to be freed?...
   // I think everything is passed by value currently, so I don't think it's holding heap mem
   current_instr += 1;
+  if (current_instr % CACHE_DUMP_FREQ == 0){
+    printf("Dumping cache contents...\n");
+    dump_cache_contents();
+  }
+  
   if (current_instr % EPOCH_LENGTH == 0){
     printf("Epoch boundary! Had %lu rules. Total evicts: %lu.\n", rules_in_period -> size(), evicted_rules);
     output_working_set();
@@ -193,6 +212,10 @@ bool rule_compare(operands_t * r1, operands_t * r2){
 //       This code is currently in a hacky state: cores graph too big
 void rule_evicted(operands_t * evicted_rule, operands_t * cores_rule){
 
+  // Now that we are using cache sampling instead of coresidency graph
+  // calculation, don't need this logic.
+  return;
+  
   if (!tracing_enabled)
     return;
   
@@ -200,10 +223,6 @@ void rule_evicted(operands_t * evicted_rule, operands_t * cores_rule){
   long old_cycle = cycle_inserted -> find(*evicted_rule) -> second;
   //long resident_cycle = cycle_inserted -> find(*cores_rule) -> second;
   //long weight_increase = current_instr - std::max(old_cycle, resident_cycle);
-
-  // Only count if above some threshold...
-  //if (weight_increase < MIN_CORES_THRESHOLD)
-  //  return;
 
   /*  
   // Put the pair into a canonical ordering before storing to save space
@@ -247,7 +266,34 @@ void output_working_set(){
   }
 }
 
+static unsigned int sample_no = 1;
+void dump_cache_contents(){
+  printf("Dumping cache to fd %d\n", coresidency_graph_file);
+  char rule[2048];
+  fprintf(coresidency_graph_file, "%d\n", sample_no);
+  for (int i = 0; i < rule_cache_size; i++){
+    operands_t * ops = &rule_cache_ptr[i];
+
+    // If this entry is all zeroes, it's unset so skip
+    char * p = (char *) ops;
+    bool all_zeroes = true;
+    for (int j = 0; j < sizeof(operands_t); j++)
+      if (p[j] != '\0')
+	all_zeroes = false;
+
+    if (all_zeroes)
+      continue;
+	
+    pretty_print_rule(rule, ops->ci, ops->op1, ops->op2, ops->mem, ops->pc);
+    fprintf(coresidency_graph_file, "%s\n", rule);
+  }
+  fflush(coresidency_graph_file);
+  printf("Wrote out cache sample %d\n", sample_no);  
+  sample_no++;
+}
+
 // Write out the working set data for this epoch into output file
+/*
 void output_coresidency_graph(){
 
   printf("Writing out coresidency graph...\n");
@@ -268,17 +314,17 @@ void output_coresidency_graph(){
     num_pairs++;
   }
   printf("Number of pairs in coresidency graph: %d\n", num_pairs);
-}
+  } */
 
 // At the end of a run, create a prefetching policy file if prefetch enabled.
 extern "C" void rule_analysis_end(){
 
   printf("Rule analysis detected termination.\n");
 
-  if (tracing_enabled){
-    printf("Tracing enabled, creating coresidency graph.\n");
-    output_coresidency_graph();
-  }
+  //if (tracing_enabled){
+  //printf("Tracing enabled, creating coresidency graph.\n");
+  //output_coresidency_graph();
+  //}
   
   if (prefetch_enabled){
     printf("Prefetching enabled, creating prefetching policy file.\n");

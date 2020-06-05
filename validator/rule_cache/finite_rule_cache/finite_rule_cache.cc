@@ -7,6 +7,7 @@ finite_rule_cache_t::finite_rule_cache_t(int capacity) : ideal_rule_cache_t() {
   entries = (operands_t*) calloc(capacity, sizeof(operands_t));
   next_entry = 0;
   cache_full = false;
+  init_rule_cache_ptr(entries, capacity);
 }
 
 finite_rule_cache_t::~finite_rule_cache_t() {

@@ -93,5 +93,6 @@ void rule_evicted(operands_t * old_rule, operands_t * new_rule);
 void rule_inserted(Rule rule);
 void output_working_set();
 void output_coresidency_graph();
-
+void dump_cache_contents();
+void init_rule_cache_ptr(operands_t * ptr, int size);
 #endif

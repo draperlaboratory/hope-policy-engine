@@ -78,7 +78,8 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
         # Code tagging pass 1:
         # Iterate through each compilation unit, take each function that has
         # a DW_TAG_subprogram entry, and give proper label.
-        # Some code below taken from decode_funcname() in the ELFtools examples.        
+        # Some code below taken from decode_funcname() in the ELFtools examples.
+        print("Beginning pass 1")
         for CU in dwarfinfo.iter_CUs():
             for DIE in CU.iter_DIEs():
                 try:
@@ -112,34 +113,33 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                                 #print("\tGot cluster="+str(subject_id))
                             
                         
-                        lowpc = DIE.attributes['DW_AT_low_pc'].value
+                        low_pc = DIE.attributes['DW_AT_low_pc'].value
 
                         # DWARF v4 in section 2.17 describes how to interpret the
                         # DW_AT_high_pc attribute based on the class of its form.
                         # For class 'address' it's taken as an absolute address
                         # (similarly to DW_AT_low_pc); for class 'constant', it's
                         # an offset from DW_AT_low_pc.
-                        highpc_attr = DIE.attributes['DW_AT_high_pc']
-                        highpc_attr_class = describe_form_class(highpc_attr.form)
-                        if highpc_attr_class == 'address':
-                            highpc = highpc_attr.value
-                        elif highpc_attr_class == 'constant':
-                            highpc = lowpc + highpc_attr.value
+                        high_pc_attr = DIE.attributes['DW_AT_high_pc']
+                        high_pc_attr_class = describe_form_class(high_pc_attr.form)
+                        if high_pc_attr_class == 'address':
+                            high_pc = high_pc_attr.value
+                        elif high_pc_attr_class == 'constant':
+                            high_pc = low_pc + high_pc_attr.value
                         else:
                             print('Error: invalid DW_AT_high_pc class:',
-                                  highpc_attr_class)
+                                  high_pc_attr_class)
                             continue
 
+                        # The high address given here is first address *not* part of the func
                         # We now have the low addr, high addr, and name.
+                        print("Tagging from " + hex(low_pc) + " " + hex(high_pc))
                         
                         # Add Comp.funcID to taginfo file
-                        range_file.write_range(lowpc, highpc, "Comp.funcID")
-
-                        # Set the effective high_pc to 4 more because tagging func does not include last addr?
-                        #highpc += 4;
+                        range_file.write_range(low_pc, high_pc, "Comp.funcID")
 
                         # Add each of these addresses into our set of known instructions
-                        for addr in range(lowpc, highpc, 4):
+                        for addr in range(low_pc, high_pc, 4):
                             tagged_instructions.add(addr)
 
                         # Set subject ID. Depends on if we having a mapping or are doing default function-subjects
@@ -151,14 +151,14 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                             subject_id = function_number
                             
                         # Then make another pass, add entries for any malloc() call sites within that range
-                        for addr in range(lowpc, highpc, 4):
+                        for addr in range(low_pc, high_pc, 4):
                             if addr in mallocs:
                                 alloc_num = mallocs[addr]
                                 #print("There was an allocation call site within this func: " + str(addr))
                                 taginfo_args_file.write('%x %x %s\n' % (addr, addr + 4, str(subject_id) + " 0 " + str(alloc_num)))
 
                         # Set the field for these instruction words in the taginfo_args file.
-                        taginfo_args_file.write('%x %x %s\n' % (lowpc, highpc, str(subject_id) + " 0 0"))
+                        taginfo_args_file.write('%x %x %s\n' % (low_pc, high_pc, str(subject_id) + " 0 0"))
                                                 
                 except KeyError:
                     print("KeyError: " + str(KeyError))
@@ -170,6 +170,7 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
         # and give it a label based on the compilation unit it came from.
         # If that code belongs to a function that is in our mapping, we'll give it that tag instead
         # of the general CU tag.
+        print("Beginning pass 2")        
         for CU in dwarfinfo.iter_CUs():
             for DIE in CU.iter_DIEs():
                 if str(DIE.tag) == "DW_TAG_compile_unit":
@@ -197,10 +198,10 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                             if not addr in tagged_instructions:
                                 skip = False
                         if skip:
-                            #print("CU that was fully tagged! Skipping " + cu_src)
+                            print("CU that was fully tagged! Skipping " + cu_src)
                             continue
                         else:
-                            #print("CU had some gaps. Now applying to " + cu_src)
+                            print("CU had some gaps. Now applying to " + cu_src)
                             pass
 
                         # Add function to range, mark ID in arg file
@@ -240,12 +241,12 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                                 # Detect beginning of new untagged block we need to hit
                                 if not current_pc in tagged_instructions and untagged_start == None:
                                     untagged_start = current_pc
-                                    #print("New untagged starting " + hex(untagged_start))
+                                    print("New untagged starting " + hex(untagged_start))
 
                                 # Detect end of current untagged block, tag it
                                 if untagged_start != None and current_pc in tagged_instructions:
-                                    taginfo_args_file.write('%x %x %s\n' % (untagged_start, current_pc + 4, str(subject_id) + " 0 0"))
-                                    #print("Cut a range of untagged: " + hex(untagged_start) + " " + hex(current_pc))
+                                    taginfo_args_file.write('%x %x %s\n' % (untagged_start, current_pc, str(subject_id) + " 0 0"))
+                                    print("Cut a range of untagged: " + hex(untagged_start) + " " + hex(current_pc))
                                     untagged_start = None
                                     
                                 current_pc += 4
@@ -255,7 +256,7 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                                 taginfo_args_file.write('%x %x %s\n' % (untagged_start, high_pc, str(subject_id) + " 0 0"))
 
                         # Track that these instructions are now labeled
-                        for addr in range(low_pc, high_pc + 4, 4):
+                        for addr in range(low_pc, high_pc, 4):
                             if not addr in tagged_instructions:
                                 tagged_instructions.add(addr)
                         
