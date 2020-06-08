@@ -60,6 +60,13 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
     throw configuration_exception_t("'name' field not present for element " + element_name);
   }
   
+  if (n["tag_granularity"]) {
+    elt.tag_granularity = n["tag_granularity"].as<size_t>();
+  } else {
+    elt.tag_granularity = sizeof(address_t);
+  }
+  elt.word_size = sizeof(address_t);
+
   if (n["start"]) {
     elt.start = n["start"].as<address_t>();
   } else {
@@ -98,12 +105,12 @@ void soc_tag_configuration_t::apply(tag_bus_t *tag_bus, tag_converter_t *convert
   for (auto &e: elements) {
     if (e.heterogeneous) {
       tag_bus->add_provider(e.start, e.end,
-			    new platform_ram_tag_provider_t(e.end - e.start, 4,
-							    converter->m_to_t(e.meta_set)));
+			    new platform_ram_tag_provider_t(e.end - e.start, 
+							    converter->m_to_t(e.meta_set), e.word_size, e.tag_granularity));
     } else {
       tag_bus->add_provider(e.start, e.end,
 			    new uniform_tag_provider_t(e.end - e.start,
-						       converter->m_to_t(e.meta_set)));
+						       converter->m_to_t(e.meta_set), e.tag_granularity));
     }
   }
 }

@@ -1,0 +1,120 @@
+SOC:
+  TEST: {
+    name: SOC.IO.TEST,
+    start: 0x50000000,
+    end:   0x5000000f,
+    heterogeneous: true
+    }
+  CLINT: {
+    name: SOC.IO.CLINT,
+    start: 0x10000000,
+    end:   0x1000ffff,
+    heterogeneous: true
+    }
+  PLIC: {
+    name: SOC.IO.PLIC,
+    start: 0x0c000000,
+    end:   0x0c3fffff,
+    heterogeneous: true
+    }
+  DRAM: {
+    name: SOC.Memory.DDR4_0,
+    start: 0xc0000000,
+    end:   0xffffffff,
+    tag_granularity: 4,
+    heterogeneous: true
+    }
+  RAM: {
+    name: SOC.Memory.Code_1,
+    start: 0x0c0008680,
+    end:   0x0c00094ff,
+    tag_granularity: 4,
+    heterogeneous: true
+    }
+  RAM: {
+    name: SOC.Memory.Code_2,
+    start: 0x0c0200000,
+    end:   0x0c0800097,
+    tag_granularity: 4,
+    heterogeneous: true
+    }
+  RAM: {
+    name: SOC.Memory.Code_3,
+    start: 0x0c4000000,
+    end:   0x0c43fffff,
+    tag_granularity: 4,
+    heterogeneous: true
+    }
+  RAM: {
+    name: SOC.Memory.Code_4,
+    start: 0x0d0000000,
+    end:   0x0dfffffff,
+    tag_granularity: 4,
+    heterogeneous: true
+    }
+  BOOTROM: {
+    name: SOC.Memory.BRAM_CTRL_0,
+    start: 0x70000000,
+    end:   0x70000fff,
+    heterogeneous: true
+  }
+  DMA: {
+    name: SOC.Memory.DMA_0,
+    start: 0x62200000,
+    end:   0x6220ffff,
+    heterogeneous: false
+  }
+  ETHERNET: {
+    name: SOC.IO.Ethernet_0,
+    start: 0x62100000,
+    end:   0x6213ffff,
+    heterogeneous: false
+  }
+  FLASH0: {
+    name: SOC.Memory.QSPI_0,
+    start: 0x40000000,
+    end:   0x4fffffff,
+    heterogeneous: false
+  }
+  FLASH1: {
+    name: SOC.Memory.QSPI_0,
+    start: 0x62400000,
+    end:   0x62400fff,
+    heterogeneous: false
+  }
+  SRESET: {
+    name: SOC.IO.GPIO_0,
+    start: 0x6fff0000,
+    end:   0x6fffffff,
+    heterogeneous: false
+    }
+  UART0: {
+    name: SOC.IO.UART_0,
+    start: 0x62300000,
+    end:   0x62300fff,
+    heterogeneous: false
+    }
+  UART1: {
+    name: SOC.IO.UART_1,
+    start: 0x62340000,
+    end:   0x62340fff,
+    heterogeneous: false
+    }
+  I2C0: {
+    name: SOC.IO.I2C_0,
+    start: 0x62310000,
+    end:   0x62310fff,
+    heterogeneous: false
+    }
+  SPI: {
+    name: SOC.Memory.QSPI_1,
+    start: 0x62320000,
+    end:   0x62320fff,
+    heterogeneous: false
+    }
+  GPIO1: {
+    name: SOC.IO.GPIO_1,
+    start: 0x62330000,
+    end:   0x62330fff,
+    heterogeneous: false
+    }

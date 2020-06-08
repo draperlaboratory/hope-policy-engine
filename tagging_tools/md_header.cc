@@ -99,6 +99,22 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t> &ranges,
   return true;
 }
 
+size_t get_soc_granularity(YAML::Node soc, range_t range, bool is_64_bit) {
+  size_t default_granularity = is_64_bit ? 8 : 4;
+  for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
+    address_t start = it->second["start"].as<address_t>();
+    address_t end = it->second["end"].as<address_t>();
+    if (start ==  range.start && end == range.end) {
+        if(it->second["tag_granularity"] != NULL) {
+            return it->second["tag_granularity"].as<size_t>();
+        }
+        return default_granularity;
+    }
+  }
+
+  return default_granularity;
+}
+
 void elf_sections_to_ranges(std::list<Elf_Shdr const *> &sections,
                             std::list<range_t> &ranges) {
   for(const auto &it : sections) {
@@ -180,6 +196,7 @@ int main(int argc, char **argv) {
   std::list<range_t> soc_ranges;
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;
+  std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
   const char *tag_filename;
   bool is_64_bit = false;
   std::list<std::string> soc_exclude;
@@ -237,7 +254,11 @@ int main(int argc, char **argv) {
   data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
   get_address_ranges(elf_image, code_ranges, data_ranges);
 
-  if(write_headers(code_ranges, data_ranges, is_64_bit, std::string(tag_filename)) == false) {
+  for(const auto &it : data_ranges) {
+    data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, is_64_bit)));
+  }
+
+  if(!write_headers(code_ranges, data_ranges_granularity, is_64_bit, std::string(tag_filename))) {
     err.error("Failed to write headers to tag file\n");
     return 1;
   }

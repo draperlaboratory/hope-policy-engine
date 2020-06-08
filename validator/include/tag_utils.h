@@ -48,17 +48,24 @@ typedef uintptr_t tag_t;
 
 struct tag_provider_t {
   virtual ~tag_provider_t() { }
+  virtual bool get_insn_tag(address_t addr, tag_t &tag) = 0;
   virtual bool get_tag(address_t addr, tag_t &tag) = 0;
   virtual bool set_tag(address_t addr, tag_t tag) = 0;
+  virtual bool set_insn_tag(address_t addr, tag_t tag) = 0;
 };
 
 class uniform_tag_provider_t : public tag_provider_t {
   private:
+  size_t tag_granularity; // number of bytes a tag applies to
   address_t size;
   tag_t tag;
 
   public:
-  uniform_tag_provider_t(address_t size, tag_t tag) : size(size), tag(tag) { }
+  uniform_tag_provider_t(address_t size, tag_t tag, size_t tag_granularity) : size(size), tag(tag), tag_granularity(tag_granularity) { }
+  bool get_insn_tag(address_t addr, tag_t &t) {
+      return get_tag(addr, t);
+  }
+
   bool get_tag(address_t addr, tag_t &t) {
     if (addr < size) {
       t = tag;
@@ -67,6 +74,9 @@ class uniform_tag_provider_t : public tag_provider_t {
     return false;
   }
 
+  bool set_insn_tag(address_t addr, tag_t t) {
+      return set_tag(addr, t);
+  }
   bool set_tag(address_t addr, tag_t t) {
     if (addr < size) {
       tag = t;
@@ -79,22 +89,43 @@ class uniform_tag_provider_t : public tag_provider_t {
 class platform_ram_tag_provider_t : public tag_provider_t {
   private:
   address_t size;
+  size_t tag_granularity; // number of bytes a tag applies to
   unsigned word_size;
   std::vector<tag_t> tags;
 
   public:
-  platform_ram_tag_provider_t(address_t size, unsigned word_size, tag_t tag) :
-  size(size), word_size(word_size), tags(size / word_size, tag) {  }
-  bool get_tag(address_t addr, tag_t &t) {
+  platform_ram_tag_provider_t(address_t size, tag_t tag, size_t word_size, size_t tag_granularity) :
+  size(size), word_size(word_size), tags((size / MIN_TAG_GRANULARITY)+1, tag), tag_granularity(tag_granularity) {  }
+
+  bool get_insn_tag(address_t addr, tag_t &t) {
     if (addr < size) {
-      t = tags[addr / word_size];
+      t = tags[addr / MIN_TAG_GRANULARITY];
       return true;
     }
     return false;
   }
+
+  bool get_tag(address_t addr, tag_t &t) {
+    if (addr < size) {
+      addr  &= -tag_granularity;
+      t = tags[addr / MIN_TAG_GRANULARITY];
+      return true;
+    }
+    return false;
+  }
+
+  bool set_insn_tag(address_t addr, tag_t t) {
+    if (addr < size) {
+      tags[addr / MIN_TAG_GRANULARITY] = t;
+      return true;
+    }
+    return false;
+  }
+
   bool set_tag(address_t addr, tag_t t) {
     if (addr < size) {
-      tags[addr / word_size] = t;
+      addr  &= -tag_granularity;
+      tags[addr / MIN_TAG_GRANULARITY] = t;
       return true;
     }
     return false;
@@ -127,12 +158,30 @@ class tag_bus_t {
   void add_provider(address_t start_addr, address_t end_addr, tag_provider_t *provider) {
     provider_map.add_provider(start_addr, end_addr, provider);
   }
+
+  bool load_insn_tag(address_t addr, tag_t &tag) {
+    tag_provider_t *tp;
+    address_t offset;
+    tp = provider_map.get_provider(addr, offset);
+    if (tp)
+      return tp->get_insn_tag(offset, tag);
+    return false;
+  }
+
   bool load_tag(address_t addr, tag_t &tag) {
     tag_provider_t *tp;
     address_t offset;
     tp = provider_map.get_provider(addr, offset);
     if (tp)
       return tp->get_tag(offset, tag);
+    return false;
+  }
+  bool store_insn_tag(address_t addr, tag_t tag) {
+    tag_provider_t *tp;
+    address_t offset;
+    tp = provider_map.get_provider(addr, offset);
+    if (tp)
+      return tp->set_insn_tag(offset, tag);
     return false;
   }
   bool store_tag(address_t addr, tag_t tag) {
