@@ -17,6 +17,7 @@
 
 #include "rule_analysis.h"
 #include "prefetching.cc"
+#include <unordered_set>
 
 using namespace policy_engine;
 
