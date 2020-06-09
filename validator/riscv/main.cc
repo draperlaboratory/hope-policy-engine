@@ -53,14 +53,14 @@ int rule_cache_capacity;
 
 static bool DOA = false;
 
-extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader) {
+extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
   if (!DOA) {
     try {
       printf("setting callbacks\n");
       ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
       soc_tag_configuration_t *soc_config =
         new soc_tag_configuration_t(ms_factory, soc_cfg_path);
-      rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
+      rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader, addr_fixer);
       
       metadata_memory_map_t map;
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
@@ -145,11 +145,20 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
   }
 }
 
-extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
+extern "C" uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
+  if (pc > ADDRESS_T_MAX)
+  {
+    printf("Validate PC (0x%lx) Out of Range.\n", pc);
+    DOA = true;
+    return 0;
+  }
+
+  address_t a = (address_t)pc;
+
 //  printf("uncached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      return rv_validator->validate(pc, instr);
+      return rv_validator->validate(a, instr);
     } catch (...) {
       printf("c++ exception while validating - policy code DOA\n");
       DOA = true;
@@ -158,11 +167,22 @@ extern "C" uint32_t e_v_validate(uint32_t pc, uint32_t instr) {
   return 0;
 }
 
-extern "C" uint32_t e_v_validate_cached(uint32_t pc, uint32_t instr, uint32_t mem_addr, bool* hit) {
+extern "C" uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t mem_addr, bool* hit) {
+  if ((pc > ADDRESS_T_MAX) || (mem_addr > ADDRESS_T_MAX))
+  {
+    printf("Cached validate PC (0x%lx) or Mem Address (0x%lx) "
+           "Out of Range.\n", pc, mem_addr);
+    DOA = true;
+    return 0;
+  }
+
+  address_t ap = (address_t)pc;
+  address_t am = (address_t)mem_addr;
+
 //  printf("cached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      return rv_validator->validate(pc, instr, mem_addr, hit);
+      return rv_validator->validate(ap, instr, am, hit);
     } catch (...) {
       printf("c++ exception while validating - policy code DOA\n");
       DOA = true;
@@ -226,7 +246,7 @@ extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
     }
     else {
       char tmp[128];
-      snprintf(&tmp[0], 128, "Bad Address: %x\n", a);
+      snprintf(&tmp[0], 128, "Bad Address: %lx\n", addr);
       strncpy(dest, &tmp[0], n);
     }
   }
@@ -307,30 +327,6 @@ extern "C" void e_v_meta_log_short(char* dest, int n) {
     
     strncpy(dest, msg.c_str(), n);
 }
-extern "C" void e_v_meta_log_long(char* dest, int n) {
-    const int s = 512;
-    char tmp[s];
-    std::string msg = "";
-    const char* rule;
-
-    rule = rv_validator->get_first_rule_descr();
-    while(rule){
-        msg = msg + "    " + rule + "\n";
-        rule = rv_validator->get_next_rule_descr();
-    }
-
-    if(rv_validator->res->rdResult){
-        meta_set_to_string(rv_validator->res->rd, tmp, s);
-        msg = msg + "    RD    : " + tmp + "\n";
-    }
-    if(rv_validator->res->csrResult){
-        meta_set_to_string(rv_validator->res->csr, tmp, s);
-        msg = msg + "    CSR   : " + tmp + "\n";
-    }
-    
-    strncpy(dest, msg.c_str(), n);
-}
-
 
 extern "C" void e_v_rule_eval_log(char* dest, int n) {
     const int s = 512;
@@ -352,13 +348,6 @@ extern "C" void e_v_rule_eval_log(char* dest, int n) {
     meta_set_to_string(rv_validator->ops->mem, tmp, s);
     msg = msg + "    Mem   : " + tmp + "\n";
 
-    msg = msg + "\n" + "Rules:\n";
-    rule = rv_validator->get_first_rule_descr();
-    while(rule){
-        msg = msg + rule + "\n";
-        rule = rv_validator->get_next_rule_descr();
-    }
-    
     msg = msg + "\n" + "Results:\n";
     meta_set_to_string(rv_validator->res->pc, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
@@ -377,14 +366,32 @@ extern "C" void e_v_rule_eval_log(char* dest, int n) {
 extern "C" void e_v_set_pc_watch(bool watching){
   rv_validator->set_pc_watch(watching);
 }
-extern "C" void e_v_set_reg_watch(address_t addr){
-  rv_validator->set_reg_watch(addr);
+extern "C" void e_v_set_reg_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX)
+  {
+    address_t a = (address_t)addr;
+    rv_validator->set_reg_watch(a);
+  }
+  else
+    printf("Reg Watch Address Out of Range: 0x%lx\n", addr);
 }
-extern "C" void e_v_set_csr_watch(address_t addr){
-  rv_validator->set_csr_watch(addr);
+extern "C" void e_v_set_csr_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX)
+  {
+    address_t a = (address_t)addr;
+    rv_validator->set_csr_watch(a);
+  }
+  else
+    printf("CSR Watch Address Out of Range: 0x%lx\n", addr);
 }
-extern "C" void e_v_set_mem_watch(address_t addr){
-  rv_validator->set_mem_watch(addr);
+extern "C" void e_v_set_mem_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX)
+  {
+    address_t a = (address_t)addr;
+    rv_validator->set_mem_watch(a);
+  }
+  else
+    printf("Mem Watch Address Out of Range: 0x%lx\n", addr);
 }
 
 extern "C" void e_v_terminate(void){

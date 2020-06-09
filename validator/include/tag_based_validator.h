@@ -29,14 +29,14 @@
 
 #include <string>
 
-#include "renode_validator.h"
+#include "sim_validator.h"
 #include "tag_utils.h"
 #include "tag_converter.h"
 #include "meta_set_factory.h"
 
 namespace policy_engine {
 
-class tag_based_validator_t : public abstract_renode_validator_t, virtual public tag_converter_t {
+class tag_based_validator_t : public abstract_sim_validator_t, virtual public tag_converter_t {
   protected:
 
   meta_set_cache_t *ms_cache;
@@ -45,7 +45,7 @@ class tag_based_validator_t : public abstract_renode_validator_t, virtual public
   public:
   tag_based_validator_t(meta_set_cache_t *ms_cache,
 			meta_set_factory_t *ms_factory,
-			RegisterReader_t rr);
+			RegisterReader_t rr, AddressFixer_t af);
   virtual ~tag_based_validator_t() { }
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
   virtual bool commit() = 0;

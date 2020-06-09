@@ -46,8 +46,8 @@ static const char *tag_name(meta_set_t const *tag) {
 
 rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
 					     meta_set_factory_t *ms_factory,
-					     RegisterReader_t rr)
-  : tag_based_validator_t(ms_cache, ms_factory, rr) {
+					     RegisterReader_t rr, AddressFixer_t af)
+  : tag_based_validator_t(ms_cache, ms_factory, rr, af) {
   
   ctx = (context_t *)malloc(sizeof(context_t));
   ops = (operands_t *)malloc(sizeof(operands_t));
@@ -163,8 +163,8 @@ void rv32_validator_base_t::setup_validation() {
 rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
-				   RegisterReader_t rr) :
-    rv32_validator_base_t(ms_cache, ms_factory, rr), watch_pc(false) {
+				   RegisterReader_t rr, AddressFixer_t af) :
+    rv32_validator_base_t(ms_cache, ms_factory, rr, af), watch_pc(false) {
   // true causes initial clear of results
   res->pcResult = true;
   res->rdResult = true;
@@ -250,7 +250,8 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   } else {
-    printf("violation address: 0x%x\n",pc);
+    printf("violation address: 0x%" PRIaddr "\n",pc);
+
     handle_violation(ctx, ops);
   }
   return policy_result == POLICY_SUCCESS;
@@ -298,22 +299,28 @@ bool rv32_validator_t::commit() {
   if (has_pending_mem && res->rdResult) {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
-    if (!tag_bus.load_tag(mem_addr, old_tag)) {
-        printf("failed to load MR tag @ 0x%x\n", mem_addr);
+    address_t mem_paddr = addr_fixer(mem_addr);
+    if (!tag_bus.load_tag(mem_paddr, old_tag)) {
+        printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
+
       fflush(stdout);
       // might as well halt
       hit_watch = true;
     }
-//    printf("  committing tag '%s' to 0x%08x\n", tag_name(res->rd), mem_addr);
+//    printf("  committing tag '%s' to 0x%" PRIaddr " (0x%" PRIaddr ")\n", tag_name(res->rd), mem_addr, mem_paddr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(mem_addr == *it && old_tag != new_tag){
-        printf("Watch tag mem at PC 0x%x\n", ctx->epc);
+        address_t epc_addr = ctx->epc;
+
+        printf("Watch tag mem at PC 0x%" PRIaddr "\n", epc_addr);
+
         fflush(stdout);
         hit_watch = true;
       }
     }
-    if (!tag_bus.store_tag(mem_addr, new_tag)) {
-        printf("failed to store MR tag @ 0x%x\n", mem_addr);
+    if (!tag_bus.store_tag(mem_paddr, new_tag)) {
+        printf("failed to store MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
+
       fflush(stdout);
       // might as well halt
       hit_watch = true;
@@ -371,15 +378,6 @@ void rv32_validator_t::set_mem_watch(address_t addr){
   watch_addrs.push_back(addr);
 }
 
-const char* rv32_validator_t::get_first_rule_descr(){
-    logIdx = 0;
-    return nextLogRule(&logIdx);
-}
-
-const char* rv32_validator_t::get_next_rule_descr(){
-    return nextLogRule(&logIdx);
-}
-
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   uint32_t rs1, rs2, rs3;
   int32_t imm;
@@ -388,6 +386,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   address_t offset;
   tag_t ci_tag;
 //  char tag_name[1024];
+  address_t pc_paddr = addr_fixer(pc);;
+  address_t mem_paddr;
 
   int32_t flags;
 
@@ -413,7 +413,9 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   }
 
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
-//  printf("0x%x: 0x%08x   %s\n", pc, insn, name);
+  if (flags < 0) {
+    printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, name);
+  }
 
   if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
   if ((flags & HAS_CSR_LOAD) || (flags & HAS_CSR_STORE)) ops->op2 = t_to_m(csr_tags[imm]);
@@ -432,30 +434,39 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
       has_insn_mem_addr = false;
     }
     else {
-      mem_addr = reg_reader(rs1);
+      uint64_t reg_val = reg_reader(rs1);
+
+      /* mask off upper bits, just in case */
+      mem_addr = (address_t)(reg_val & READER_MASK);
+
       if (flags & HAS_IMM)
         mem_addr += imm;
 
-      mem_addr &= ~((uintptr_t)0x3);
+      /* mask off unaligned bits, just in case */
+      mem_addr &= ~((address_t)(sizeof(address_t) - 1));
     }
+    mem_paddr = addr_fixer(mem_addr);
     ctx->bad_addr = mem_addr;
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
-    if (!tag_bus.load_tag(mem_addr, mtag)) {
-        printf("failed to load MR tag -- pc: 0x%x addr: 0x%x\n", pc, mem_addr);
+    if (!tag_bus.load_tag(mem_paddr, mtag)) {
+        printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr, mem_addr, mem_paddr);
     } else {
       ops->mem = t_to_m(mtag);
       if(!ops->mem) {
-        printf("Warning: Unintialized tag for memory (0x%x) at instruction 0x%x.\n  This may crash the policy.\n",mem_addr,pc);
+        printf("Error: TMT miss for memory (0x%" PRIaddr " (0x%" PRIaddr ")) at instruction 0x%" PRIaddr
+               ". TMT misses are fatal.\n",mem_addr, mem_paddr, pc);
+        exit(1);
       }
 //      printf("  mr tag = '%s'\n", tag_name(ops->mem));
 //      printf("mr tag = 0x%p\n", ops->mem);
     }
   }
 
-  if (!tag_bus.load_tag(pc, ci_tag))
-    printf("failed to load CI tag\n");
-//    printf("ci_tag: 0x%lx\n", ci_tag);
+  if (!tag_bus.load_tag(pc_paddr, ci_tag)) {
+    printf("failed to load CI tag for PC 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr);
+  }
+//    printf("ci_tag: 0x%" PRIaddr "\n", ci_tag);
   ctx->epc = pc;
 //  ctx->bad_addr = 0;
 //  ctx->cached = false;
@@ -467,9 +478,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
 
-  // prepare the eval logging structure
-  logRuleInit();
-  
 }
 
 void rv32_validator_t::complete_eval() {

@@ -29,11 +29,34 @@
 
 #include <cstdint>
 
+#ifdef RV64_VALIDATOR
+#define ADDRESS_T_MAX UINT64_MAX
+#else
 #define ADDRESS_T_MAX UINT32_MAX
+#endif
+
 
 namespace policy_engine {
 
+#ifdef RV64_VALIDATOR
+typedef uint64_t address_t;
+typedef uint64_t reg_t;
+
+#define PRIaddr_pad "016lx"
+#define PRIaddr "lx"
+#define PRIreg  "lx"
+
+#define READER_MASK 0xFFFFFFFFFFFFFFFFull
+#else
 typedef uint32_t address_t;
+typedef uint32_t reg_t;
+
+#define PRIaddr_pad "08x"
+#define PRIaddr "x"
+#define PRIreg  "x"
+
+#define READER_MASK 0x00000000FFFFFFFFull
+#endif
 typedef uint32_t insn_bits_t;
 
 #define PLATFORM_WORD_SIZE 4

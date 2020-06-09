@@ -5,7 +5,7 @@ class RangeFile:
      def __init__(self):
           self.file = tempfile.NamedTemporaryFile(mode='a', delete = False, prefix='ranges_');
      def write_range(self, start, end, tag):
-          self.file.write('0x%x 0x%x %s\n' % (start, end, tag))
+          self.file.write('0x%016x 0x%016x %s\n' % (start, end, tag))
      def finish(self):
           self.file.close();
      def name(self):

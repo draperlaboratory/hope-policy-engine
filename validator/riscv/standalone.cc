@@ -53,7 +53,7 @@ extern std::string render_metadata(metadata_t const *metadata);
 // so we can do debugging output with string representations of tags
 extern void init_metadata_renderer(metadata_factory_t *md_factory);
 
-static uint32_t reg_reader(uint32_t regno) { return rv32.read_register(regno); }
+static uint64_t reg_reader(uint32_t regno) { return (uint64_t)rv32.read_register(regno); }
 
 static void init(const char *policy_dir, const char *soc_cfg) {
   try {
@@ -62,7 +62,7 @@ static void init(const char *policy_dir, const char *soc_cfg) {
     init_metadata_renderer(md_factory);
     soc_tag_configuration_t *soc_config =
       new soc_tag_configuration_t(ms_factory, soc_cfg);
-    rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader);
+    rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader, NULL);
   } catch (exception_t &e) {
     printf("exception: %s\n", e.what());
   }
@@ -126,7 +126,8 @@ int main(int argc, char **argv) {
       
       // get the CI tag
       if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
-	printf("could not load tag for PC 0x%08x\n", rv32.get_pc());
+         printf("could not load tag for PC 0x%" PRIaddr_pad "\n",
+                rv32.get_pc());
       } else {
 	// we can print the tag here
       }
@@ -141,10 +142,10 @@ int main(int argc, char **argv) {
     // for debugging things
     metadata_t const *metadata = md_map->get_metadata(op.pc);
     if (!metadata) {
-      printf("could not load metadata for PC 0x%08x\n", op.pc);
+      printf("could not load metadata for PC 0x%" PRIaddr_pad "\n", op.pc);
     } else {
       std::string s = render_metadata(metadata);
-      printf("0x%08x: %s\n", op.pc, s.c_str());
+      printf("0x%" PRIaddr_pad ": %s\n", op.pc, s.c_str());
     }
 #endif
 }

@@ -57,6 +57,7 @@ class metadata_factory_t {
   std::string abbreviate(std::string const &dotted_string);
 
   void init_entity_initializers(YAML::Node const &reqsAST, std::string prefix);
+  void update_entity_initializers(YAML::Node const &metaAST, std::string prefix);
   void init_encoding_map(YAML::Node &rawEnc);
   void init_group_map(YAML::Node &groupAST);
   YAML::Node load_yaml(const char *yml_file);

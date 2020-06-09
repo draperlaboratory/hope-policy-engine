@@ -52,13 +52,13 @@ public:
   // we say that instruction should have.  Let's us hand code up a completely fake
   // simulator.
   struct op_t {
-    uint32_t pc;
+    address_t pc;
     uint32_t insn;
     std::vector<register_change_t> changes;
   };
 
 private:
-  uint32_t regs[32];
+  reg_t regs[32];
   int current_op;
   std::vector<op_t> ops;
 
@@ -73,13 +73,13 @@ public:
     memset(regs, 0, sizeof(regs));
   }
   
-  uint32_t read_register(uint32_t regno) {
+  reg_t read_register(uint32_t regno) {
     return regs[regno];
   }
   
   bool step();
   
-  uint32_t get_pc() const {
+  address_t get_pc() const {
     if (current_op == ops.size())
       return -1;
     return ops[current_op].pc;

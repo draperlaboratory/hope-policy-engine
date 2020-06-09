@@ -8,6 +8,7 @@ import argparse
 import logging
 import TaggingUtils
 import ELFSectionTagger
+import TagElfFile
 import OpCodeTagger
 import LLVMMetadataTagger
 import SOCTagger
@@ -18,17 +19,28 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.sections import SymbolTableSection
 
-md_range = 'md_range'
-md_code = 'md_code'
-md_asm_ann = 'md_asm_ann'
-md_entity = 'md_entity'
-md_header = 'md_header'
-md_index = 'md_index'
-
 # List of SOC elements to exclude from TMT
 soc_exclude = ['SOC.Memory.DDR4_0', 'SOC.Memory.Ram_0']
 
+def getIspPrefix():
+    isp_prefix = os.environ["HOME"] + "/.local/isp/"
+
+    try:
+        isp_prefix = os.environ["ISP_PREFIX"]
+    except KeyError:
+        pass
+
+    return isp_prefix
+
 def main():
+    md_range = 'md_range'
+    md_code = 'md_code'
+    md_asm_ann = 'md_asm_ann'
+    md_embed = 'md_embed'
+    md_entity = 'md_entity'
+    md_header = 'md_header'
+    md_index = 'md_index'
+
     parser = argparse.ArgumentParser(description='Generate tag ranges file from ELF binary',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-d", "--policy-dir", action="store", required=True,
@@ -42,6 +54,8 @@ def main():
     parser.add_argument("-e", "--entities", nargs='+', default=[],
                         required=False,
                         help="Entities file for policy")
+    parser.add_argument("--arch", type=str, default="rv32", 
+                        help="Currently supported: rv32 (default), rv64")
     parser.add_argument("-s", "--soc-file", required=False,
                         help="SOC config file. If present, write TMT headers for PEX firmware")
 
@@ -67,6 +81,9 @@ def main():
 
     with open(args.policy_dir + "/policy_init.yml", "r") as policy_modules_file:
         policy_inits = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
+
+    with open(args.policy_dir + "/policy_meta.yml", "r") as policy_modules_file:
+        policy_metas = yaml.load(policy_modules_file.read(), Loader=yaml.FullLoader)
 
     with open(args.bin, 'rb') as f:
         ef = ELFFile(f)
@@ -101,10 +118,21 @@ def main():
             SOCTagger.generate_soc_ranges(soc_file, range_file, policy_inits)
             soc_file.close()
 
-        range_file.finish();
+        if policy_inits['Require']:
+            # save the inits stuff
+            TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
+        range_file.finish()
 
-        presult = subprocess.call([md_range, args.policy_dir, range_file.name(),
-                                   args.tag_file])
+        if args.arch == 'rv64':
+            md_range += '64'
+            md_code += '64'
+            md_asm_ann += '64'
+            md_embed += '64'
+            md_entity += '64'
+            md_header += '64'
+            md_index += '64'
+
+        presult = subprocess.call([md_range, args.policy_dir, range_file.name(), args.tag_file])
 
         if presult != 0:
             print("md_range failed")
@@ -117,23 +145,32 @@ def main():
 
         # Apply entities
         presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
-                                 args.entities)
+                                  args.entities)
+
         if presult != 0:
             print("md_entity failed")
             sys.exit(presult)
 
+        # embed tags in ELF
+        presult = subprocess.call([md_embed, args.tag_file, args.policy_dir, args.bin] +
+                                 args.entities)
+        if presult != 0:
+            print("md_embed failed")
+            sys.exit(presult)
+
+
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:
-            presult = subprocess.call(["riscv32-unknown-elf-objdump", "-dS", args.bin],
-                                     stdout=asm_file)
+            llvm_od = getIspPrefix() + "/bin/llvm-objdump"
+            presult = subprocess.call([llvm_od, "-dS", args.bin],
+                                      stdout=asm_file)
             if presult != 0:
                 print("objdump failed")
                 sys.exit(presult)
 
         # annotate the asm file
-        presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file,
-                                  asm_file_name])
-        
+        presult = subprocess.call([md_asm_ann, args.policy_dir, args.tag_file, asm_file_name])
+
         if presult != 0:
             print("md_asm_ann failed")
             sys.exit(presult)
@@ -142,11 +179,14 @@ def main():
         # Prepend host address ranges for instructions/data
         if args.soc_file is not None:
             presult = subprocess.call([md_index, args.tag_file, args.policy_dir])
+
             if presult != 0:
                 print("md_index failed")
                 sys.exit(presult)
 
-            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file, args.policy_dir] + soc_exclude)
+            presult = subprocess.call([md_header, args.bin, args.soc_file, args.tag_file,
+                                       args.policy_dir] + soc_exclude)
+
             if presult != 0:
                 print("md_header failed")
                 sys.exit(presult)

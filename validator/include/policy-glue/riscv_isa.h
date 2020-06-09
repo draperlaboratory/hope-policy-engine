@@ -69,6 +69,7 @@ typedef struct context {
   uintptr_t bad_addr;
   int policy_result;
   const char *fail_msg;
+  const char *rule_str;
   bool cached;
 } context_t;
 

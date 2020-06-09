@@ -50,7 +50,7 @@ elf_image_t::~elf_image_t() {
 #define IS_ELF64(hdr) (IS_ELF(hdr) && (hdr).e_ident[4] == 2)
 
 bool elf_image_t::check_header_signature() {
-#ifdef __riscv64
+#ifdef RV64_VALIDATOR
   if (IS_ELF64(eh))
     return true;
 #else

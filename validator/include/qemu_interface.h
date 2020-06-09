@@ -28,16 +28,15 @@
 #define QEMU_INTERFACE_H
 
 #include <stdint.h>
+#include "reader.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef uint32_t (*RegisterReader_t)(uint32_t);
-typedef uint32_t (*MemoryReader_t)(uint32_t);
+uint32_t e_v_validate(uint64_t pc, uint32_t instr);
 
-void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader);
-uint32_t e_v_validate(uint32_t pc, uint32_t instr);
+void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer);
 uint32_t e_v_commit(void);
 void e_v_set_metadata(const char *validator_cfg_path);
 void e_v_violation_msg(char *dest, int n);

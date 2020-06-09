@@ -68,11 +68,11 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
     address_t end;
     uint32_t metadata_count;
 
-    if (!read_uleb<file_reader_t, uint32_t>(&reader, start)) {
+    if (!read_uleb<file_reader_t, address_t>(&reader, start)) {
       fclose(fp);
       return false;
     }
-    if (!read_uleb<file_reader_t, uint32_t>(&reader, end)) {
+    if (!read_uleb<file_reader_t, address_t>(&reader, end)) {
       fclose(fp);
       return false;
     }
@@ -162,11 +162,11 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
     return false;
   file_writer_t writer(fp);
   for (auto &e: *map) {
-    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.start)) {
+    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;
     }
-    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.end)) {
+    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.end)) {
       fclose(fp);
       return false;
     }
@@ -281,11 +281,11 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
   }
 
   for (auto &e: memory_index_map) {
-    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.start)) {
+    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;
     }
-    if (!write_uleb<file_writer_t, uint32_t>(&writer, e.first.end)) {
+    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.end)) {
       fclose(fp);
       return false;
     }
@@ -560,12 +560,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     range_t range;
     uint32_t metadata_index;
 
-    if (!read_uleb<file_reader_t, uint32_t>(&reader, range.start)) {
+    if (!read_uleb<file_reader_t, address_t>(&reader, range.start)) {
       fclose(fp);
       return false;
     }
 
-    if (!read_uleb<file_reader_t, uint32_t>(&reader, range.end)) {
+    if (!read_uleb<file_reader_t, address_t>(&reader, range.end)) {
       fclose(fp);
       return false;
     }
