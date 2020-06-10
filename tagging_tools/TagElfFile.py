@@ -33,10 +33,10 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
 
     presult = subprocess.call(base_command.split(' '))
 
-    if presult != 0:
-        sys.exit(presult)
-
     os.remove(tag_array_filename)
+
+    if presult != 0:
+        return presult
 
     start_addr = ""
     pout = subprocess.check_output([tool_prefix + 'objdump', '--target', bfd_target ,'-h', elfname])
@@ -55,3 +55,5 @@ def generate_tag_array(elfname, range_file, policy_meta_info, rv64):
             range_file.write_range(start_addr + (mid*bytes_per_address) + bytes_per_address,
                                    start_addr + (mid*bytes_per_address) + (2*bytes_per_address),
                                    m.get('name'))
+
+    return presult
