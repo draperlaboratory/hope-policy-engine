@@ -279,7 +279,7 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
     # Finish off definition file, then copy into policy include folder
     defs_file.write("\"\"\n};\n")
     defs_file.close()
-    shutil.copy("func_defs.h", os.path.join(policy_dir, "engine", "policy", "include"))
+    shutil.copy("func_defs.h", os.path.join(policy_dir, "include"))
     print("Done tagging functions.")
 
 
@@ -526,7 +526,52 @@ def extract_malloc_sites(elf_filename, policy_dir, heap_id_start):
     # Finish off definition file, then copy into policy include folder
     defs_file.write("\"\"};\n")
     defs_file.close()
-    shutil.copy("object_defs.h", os.path.join(policy_dir, "engine", "policy", "include"))    
+    print("policy_dir: " + policy_dir)
+    shutil.copy("object_defs.h", os.path.join(policy_dir, "include"))    
 
     # Return dictionary of found mallocs
     return mallocs
+
+
+def rebuildCompPolicy(arch):
+
+    # 1) Copy fresh policy into isp/validator/policy
+    print("Rebuilding the comp policy with new subjs/objs...")
+    isp_prefix = os.environ['ISP_PREFIX']
+    policy_dir = os.path.join(isp_prefix, "policies", "compartmentalization")
+    validator_dir = os.path.join(isp_prefix, "validator")
+    engine_dir = os.path.join(validator_dir, "isp-install-compartmentalization", "engine")
+    validator_policy_dir = os.path.join(engine_dir, "policy")
+
+    if not os.path.exists(policy_dir):
+        print("ERROR: could not find policy dir: " + policy_dir)
+    if not os.path.exists(validator_dir):
+        print("ERROR: could not find validator dir: " + validator_policy_dir)
+
+    shutil.rmtree(validator_policy_dir)
+    shutil.copytree(policy_dir, validator_policy_dir)
+
+
+    # 2) Rebuild policy
+    #cur_dir = os.getcwd()
+    #os.chdir(validator_dir)
+    build_log = open("rebuild.out", "w+")
+    build_log.write("Rebuilding...\n");
+    print("Rebuilding...")
+    result = subprocess.call(["make", "-f", "Makefile.isp"], stdout=build_log, stderr=subprocess.STDOUT, cwd=engine_dir)
+
+    # 3) Move validator
+    validator_path = os.path.join(engine_dir, "build", "lib{}-sim-validator.so".format(arch))
+
+    try:
+        validator_out_name = arch + "-" + "compartmentalization" + "-validator.so"
+        validator_out_path = os.path.join(validator_dir, validator_out_name)
+        print("Trying to move " + validator_path + " to " + validator_out_path)
+        shutil.move(validator_path, validator_out_path)
+        #shutil.rmtree(output_dir)
+        
+    except Exception as e:
+        logger.error("Moving validator to output dir failed with error: {}".format(e))
+        return False
+    
+    print("Done rebuilding comp validator!")

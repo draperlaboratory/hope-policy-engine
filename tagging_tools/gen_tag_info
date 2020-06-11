@@ -110,6 +110,8 @@ def main():
             taginfo_arg_file = open(args.tag_file + ".args", "w")
             num_globals = comp_tagger.add_object_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir)
             comp_tagger.add_function_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir, num_globals)
+            print("Done adding comp info, rebuilding policy now.")
+            comp_tagger.rebuildCompPolicy(args.arch)
 
         # SOC element tagging
         # XXX: make SOC a required parameter once the tag file format is consolidated
@@ -161,9 +163,14 @@ def main():
 
         # generate the asm file
         with open(asm_file_name, "w") as asm_file:
-            llvm_od = getIspPrefix() + "/bin/llvm-objdump"
-            presult = subprocess.call([llvm_od, "-dS", args.bin],
+            #llvm_od = getIspPrefix() + "/bin/llvm-objdump"
+            #presult = subprocess.call([llvm_od, "-dS", args.bin],
+            #                          stdout=asm_file)
+
+            rv32_od = getIspPrefix() + "/bin/riscv32-unknown-elf-objdump"
+            presult = subprocess.call([rv32_od, "-dS", args.bin],
                                       stdout=asm_file)
+            
             if presult != 0:
                 print("objdump failed")
                 sys.exit(presult)
