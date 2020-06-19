@@ -111,7 +111,7 @@ def main():
         if policy_inits['Require']:
             # save the inits stuff
             rc = TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
-            if not rc:
+            if rc:
                 # We don't normally use this right now, so it's not fatal
                 print("Couldn't add .tag_array to binary")
         range_file.finish()

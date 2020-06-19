@@ -12,10 +12,10 @@ def bytes_to_uint(it, size):
     return int.from_bytes(data, byteorder='little', signed=False)
 
 def round_up(x, align):
-    return ~((~x) & ~align)
+    return -((-x) & -align)
 
 class LLVMMetadataTagger:
-    PTR_SIZE = 4
+    PTR_SIZE = 4 # For instructions, not data
 
     metadata_ops = {
         "DMD_SET_BASE_ADDRESS_OP": 0x01,
