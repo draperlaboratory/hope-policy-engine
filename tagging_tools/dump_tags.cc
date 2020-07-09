@@ -205,9 +205,11 @@ int main(int argc, char **argv) {
       case 'f':
         firmware = true;
 
-        entries_arg = optind + 1;
-        if(entries_arg < argc) {
-           num_entries = strtoul(argv[entries_arg], NULL, 0);
+        if(optind < argc) {
+           num_entries = strtoul(argv[optind], NULL, 0);
+        } else {
+          usage();
+          return 1;
         }
         break;
       case '?':
