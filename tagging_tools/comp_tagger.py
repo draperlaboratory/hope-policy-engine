@@ -198,10 +198,10 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                             if not addr in tagged_instructions:
                                 skip = False
                         if skip:
-                            print("CU that was fully tagged! Skipping " + cu_src)
+                            print("CU that was fully tagged! " + hex(low_pc) + "->" + hex(high_pc) + " Skipping " + cu_src)
                             continue
                         else:
-                            print("CU had some gaps. Now applying to " + cu_src)
+                            print("CU had some gaps. Now applying to " + cu_src + " over range" + hex(low_pc) + "->" + hex(high_pc))
                             pass
 
                         # Add function to range, mark ID in arg file
@@ -259,8 +259,12 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                         for addr in range(low_pc, high_pc, 4):
                             if not addr in tagged_instructions:
                                 tagged_instructions.add(addr)
+
+                    elif "DW_AT_low_pc" in DIE.attributes:
+                        low_pc = DIE.attributes["DW_AT_low_pc"].value
                         
-                    continue
+                else:
+                    pass
                 
         # Lastly, just print out any executable memory that didn't get a tag.
         # I've seen some padding bytes at end of .text section flagged by this.
@@ -504,7 +508,7 @@ def extract_malloc_sites(elf_filename, policy_dir, heap_id_start):
         parts = line.split()
 
         # Track current function and how many allocs in this function
-        if ">:" in line:
+        if ">:" in line and not ".LB" in line:
             current_func = parts[1][1:-2]
             mallocs_in_func = 0
 

@@ -210,7 +210,9 @@ extern "C" void e_v_flush_rule_cache() {
 }
 
 extern "C" void e_v_rule_cache_stats() {
-  rv_validator->rule_cache_stats();
+  printf("Called rule cache stats, also calling policy_terminate().\n");
+  rv_validator->rule_cache_stats();  
+  rv_validator->terminate();    
 }
 
 extern "C" void e_v_pc_tag(char* dest, int n) {
@@ -394,9 +396,11 @@ extern "C" void e_v_set_mem_watch(uint64_t addr){
     printf("Mem Watch Address Out of Range: 0x%lx\n", addr);
 }
 
+
+/*
 extern "C" void e_v_terminate(void){
   rv_validator->terminate();
-}
+  }*/
 
 extern "C" void prefetch_rule(operands_t * ops, results_t * res){
   // If there's a rule cache and we're prefetching, then do the install

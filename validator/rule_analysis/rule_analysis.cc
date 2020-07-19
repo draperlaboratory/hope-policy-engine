@@ -21,7 +21,7 @@
 
 using namespace policy_engine;
 
-#define EPOCH_LENGTH 20000000
+#define EPOCH_LENGTH 1000000
 #define CACHE_DUMP_FREQ 1000000
 
 const char * working_set_filename = "working_sets_latest.txt";
