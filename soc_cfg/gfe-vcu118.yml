@@ -89,3 +89,9 @@ SOC:
     end:   0x62330fff,
     heterogeneous: false
     }
+  MAILBOX: {
+    name: SOC.MAILBOX,
+    start: 0x10000,
+    end: 0x100ff,
+    heterogeneous: false
+    }
