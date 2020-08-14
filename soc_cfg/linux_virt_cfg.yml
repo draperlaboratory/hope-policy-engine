@@ -44,7 +44,7 @@ SOC:
   VIRTIO: {
     name: SOC.IO.VIRTIO,
     start: 0x10001000,
-    end:   0x10001FFF,
+    end:   0x10008FFF,
     heterogeneous: true
     }
   FLASH: {
