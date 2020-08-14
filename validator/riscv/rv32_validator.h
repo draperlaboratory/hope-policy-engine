@@ -36,6 +36,7 @@
 #include "tag_converter.h"
 #include "policy_eval.h"
 #include "metadata_memory_map.h"
+#include "metadata_factory.h"
 #include "ideal_rule_cache.h"
 #include "finite_rule_cache.h"
 #include "dmhc_rule_cache.h"
@@ -85,6 +86,8 @@ class rv32_validator_t : public rv32_validator_base_t {
   tag_file_t<32> ireg_tags;
   tag_file_t<0x1000> csr_tags;
 
+  metadata_factory_t *md_factory;
+
   void handle_violation(context_t *ctx, operands_t *ops);
   
   bool watch_pc;
@@ -93,6 +96,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   std::vector<address_t> watch_addrs;
 
   rv32_validator_t(meta_set_cache_t *ms_cache,
+       metadata_factory_t *md_factory,
 		   meta_set_factory_t *ms_factory,
 		   soc_tag_configuration_t *tag_config,
 		   RegisterReader_t rr, AddressFixer_t af);

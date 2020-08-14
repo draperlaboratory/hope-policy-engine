@@ -105,6 +105,7 @@ void rv32_validator_base_t::setup_validation() {
 }
 
 rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
+				   metadata_factory_t *md_factory,
 				   meta_set_factory_t *ms_factory,
 				   soc_tag_configuration_t *config,
 				   RegisterReader_t rr, AddressFixer_t af) :
@@ -115,6 +116,8 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   res->csrResult = true;
 
   meta_set_t const *ms;
+
+  this->md_factory = md_factory;
 
   ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
@@ -223,12 +226,15 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = m_to_t(ms_cache->canonize(*res->rd));
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
+    meta_set_t empty_mem_tag;
     if (!tag_bus.load_tag(mem_paddr, old_tag)) {
         printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
+        memset(&empty_mem_tag, 0, sizeof(meta_set_t));
+        old_tag = m_to_t(ms_cache->canonize(empty_mem_tag));
 
-      fflush(stdout);
+      // fflush(stdout);
       // might as well halt
-      hit_watch = true;
+      // hit_watch = true;
     }
 //    printf("  committing tag '%s' to 0x%" PRIaddr " (0x%" PRIaddr ")\n", tag_name(res->rd), mem_addr, mem_paddr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
@@ -244,9 +250,9 @@ bool rv32_validator_t::commit() {
     if (!tag_bus.store_tag(mem_paddr, new_tag)) {
         printf("failed to store MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
 
-      fflush(stdout);
+      // fflush(stdout);
       // might as well halt
-      hit_watch = true;
+      // hit_watch = true;
     }
   }
   if (has_pending_CSR && res->csrResult) {
@@ -303,6 +309,10 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   address_t mem_paddr;
 
   int32_t flags;
+
+  const metadata_t *opgroup_metadata;
+  meta_set_t opgroup_ms;
+  meta_set_t ci_ms;
 
   failed = false;
   
@@ -362,8 +372,11 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     ctx->bad_addr = mem_addr;
 //    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
+    meta_set_t empty_mem_tag;
     if (!tag_bus.load_tag(mem_paddr, mtag)) {
         printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr, mem_addr, mem_paddr);
+        memset(&empty_mem_tag, 0, sizeof(meta_set_t));
+        ops->mem = ms_cache->canonize(empty_mem_tag);
     } else {
       ops->mem = t_to_m(mtag);
       if(!ops->mem) {
@@ -386,7 +399,22 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
 //  temp_ci_tag = *t_to_m(ci_tag);
 //  ops->ci = &temp_ci_tag;
+
+  opgroup_metadata = md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, pending_RD, imm);
+  memset(&opgroup_ms, 0, sizeof(opgroup_ms));
+  
+  if (opgroup_metadata) {
+    for (auto it = opgroup_metadata->begin(); it != opgroup_metadata->end(); ++it) {
+      ms_bit_add(&opgroup_ms, *it);
+    }
+  }
+
   ops->ci = t_to_m(ci_tag);
+  memcpy(&ci_ms, ops->ci, sizeof(meta_set_t));
+  ms_union(&ci_ms, &opgroup_ms);
+
+  ops->ci = ms_cache->canonize(ci_ms);
+
 //  meta_set_to_string(ops->ci, tag_name, sizeof(tag_name));
 //  printf("ci tag name before merge: %s\n", tag_name);
   ops->pc = t_to_m(pc_tag);
