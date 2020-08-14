@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017-2018 The Charles Stark Draper Laboratory, Inc. and/or Dover Microsystems, Inc.
+ * Copyright © 2017-2018 Dover Microsystems, Inc.
  * All rights reserved. 
  *
  * Use and disclosure subject to the following license. 
@@ -24,40 +24,20 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef QEMU_INTERFACE_H
-#define QEMU_INTERFACE_H
+#ifndef POLICY_HOOK_H
+#define POLICY_HOOK_H
 
-#include <stdint.h>
-#include "reader.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint32_t e_v_validate(uint64_t pc, uint32_t instr);
-
-void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer);
-uint32_t e_v_commit(void);
-void e_v_set_metadata(const char *validator_cfg_path);
-void e_v_violation_msg(char *dest, int n);
-void e_v_pc_tag(char *dest, int n);
-void e_v_csr_tag(char *dest, int n, uint64_t addr);
-void e_v_reg_tag(char *dest, int n, uint64_t addr);
-void e_v_mem_tag(char *dest, int n, uint64_t addr);
-void e_v_set_pc_watch(bool watching);
-void e_v_set_reg_watch(uint64_t addr);
-void e_v_set_csr_watch(uint64_t addr);
-void e_v_set_mem_watch(uint64_t addr);
-void e_v_rule_cache_stats(void);
-void e_v_load_tag_range(uint64_t start, uint64_t end, uint64_t tag);
-bool e_v_set_hook(const char *optarg);
-uint64_t e_v_get_hook_address(const char *name);
-uint64_t e_v_get_entity_tag_count(uint64_t id);
-uint64_t e_v_get_entity_tag(uint64_t id, size_t index);
+void policy_hook_insert(const char *name, uint64_t address);
+uint64_t policy_hook_get_address(const char *name);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif
+#endif // POLICY_HOOK_H

@@ -20,6 +20,7 @@ include_directories("./tagging_tools")
 
 add_library(validator
   validator/src/metadata_factory.cc
+  validator/src/policy_hook.cc
   validator/src/opgroup_rule.cc
   validator/src/tag_based_validator.cc
   validator/src/soc_tag_configuration.cc
@@ -33,6 +34,7 @@ target_include_directories(validator PRIVATE
 
 add_library(validator64
   validator/src/metadata_factory.cc
+  validator/src/policy_hook.cc
   validator/src/opgroup_rule.cc
   validator/src/tag_based_validator.cc
   validator/src/soc_tag_configuration.cc

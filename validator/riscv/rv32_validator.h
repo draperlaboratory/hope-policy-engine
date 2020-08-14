@@ -57,6 +57,7 @@ public:
 			RegisterReader_t rr, AddressFixer_t af);
 
   void apply_metadata(metadata_memory_map_t *md_map);
+  void apply_meta_set_to_range(address_t start, address_t end, meta_set_t *ms);
   
   // called before we call the policy code - initializes ground state of input/output structures
   void setup_validation();

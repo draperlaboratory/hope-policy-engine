@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <map>
 
 #include "meta_cache.h"
 #include "meta_set_factory.h"
@@ -35,6 +36,7 @@
 #include "tag_file.h"
 #include "validator_exception.h"
 #include "policy_utils.h"
+#include "policy_hook.h"
 #include "platform_types.h"
 #include <yaml-cpp/yaml.h>
 
@@ -49,6 +51,7 @@ std::string tags_file;
 std::string soc_cfg_path;
 std::string rule_cache_name;
 int rule_cache_capacity;
+std::map<uint64_t, std::string> ap_entities;
 
 static bool DOA = false;
 
@@ -117,6 +120,14 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
           rule_cache_capacity = element.second.as<int>();
       }
     }
+    if (cfg["ap_entities"]) {
+      for (auto element: cfg["ap_entities"]) {
+        std::string entity_string = element.first.as<std::string>();
+        uint64_t id = element.second.as<int>();
+        printf("AP entity: %lu: %s\n", id, entity_string.c_str());
+        ap_entities.insert({ id, entity_string });
+      }
+    }
     printf("set policy dir: %s\n", policy_dir.c_str());
     printf("set taginfo file: %s\n", tags_file.c_str());
     printf("set soc cfg file: %s\n", soc_cfg_path.c_str());
@@ -149,6 +160,21 @@ extern "C" uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
     }
   }
   return 0;
+}
+
+extern "C" void e_v_load_tag_range(uint64_t start, uint64_t end, uint64_t tag) {
+  meta_set_t ms = {0};
+  char buffer[0x100];
+  tag_t old_tag;
+
+  if(rv_validator->get_tag(start, old_tag)) {
+    meta_set_t *old_ms = (meta_set_t *)old_tag;
+    memcpy(&ms, old_ms, sizeof(meta_set_t));
+  }
+  ms_bit_add(&ms, tag);
+
+  meta_set_to_string(&ms, buffer, sizeof(buffer));
+  rv_validator->apply_meta_set_to_range(start, end, &ms);
 }
 
 extern "C" uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t mem_addr, bool* hit) {
@@ -378,4 +404,64 @@ extern "C" void e_v_set_mem_watch(uint64_t addr){
   }
   else
     printf("Mem Watch Address Out of Range: 0x%lx\n", addr);
+}
+
+extern "C" bool e_v_set_hook(const char *optarg) {
+  char *optarg_copy;
+  char *name;
+  char *address_str;
+  uint64_t address;
+
+  optarg_copy = strdup(optarg);
+  name = optarg_copy;
+
+  address_str = strchr(optarg_copy, '=');
+  if (!address_str) {
+    return false;
+  }
+  *address_str = '\0';
+  address_str++;
+
+  address = strtoull(address_str, NULL, 16);
+  if (!address) {
+    return false;
+  }
+
+  policy_hook_insert(name, address);
+  free(optarg_copy);
+  return true;
+}
+
+extern "C" uint64_t e_v_get_hook_address(const char *name) {
+  return policy_hook_get_address(name);
+}
+
+static uint64_t get_entity_tag_count_by_id(uint64_t id) {
+  const metadata_t *metadata = md_factory->lookup_metadata(ap_entities[id]);
+  uint64_t result = metadata->size();
+  printf("Tag Count Metadata: %s\n", md_factory->render(metadata).c_str());
+  printf("Returning entity tag count: %lu\n", result);
+  return result;
+}
+
+static uint64_t get_entity_tag_by_id(uint64_t id, size_t index) {
+  size_t i;
+  metadata_t const *metadata = md_factory->lookup_metadata(ap_entities[id]);
+  for (auto &it : *metadata) {
+    if (i == index) {
+      printf("Returning entity tag: %lu\n", it);
+      return it;
+    }
+    i++;
+  }
+}
+
+extern "C" uint64_t e_v_get_entity_tag_count(uint64_t id) {
+  printf("Getting tag count for id %lu\n", id);
+  return get_entity_tag_count_by_id(id);
+}
+
+extern "C" uint64_t e_v_get_entity_tag(uint64_t id, size_t index) {
+  printf("Getting tag for id %lu\n", id);
+  return get_entity_tag_by_id(id, index);
 }

@@ -69,9 +69,20 @@ void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
 //      std::string s = render_metadata(e.second);
 //      printf("0x%08x: %s\n", start, s.c_str());
       if (!tag_bus.store_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
+        printf("Unable to apply metadata to %lx\n", start);
 	throw configuration_exception_t("unable to apply metadata");
       }
     }
+  }
+}
+
+void rv32_validator_base_t::apply_meta_set_to_range(address_t start, address_t end, meta_set_t *ms) {
+  tag_t tag = m_to_t(ms_cache->canonize(*ms));
+  for (address_t addr = start; addr < end; addr += 4) {
+      if (!tag_bus.store_tag(addr, tag)) {
+        printf("Unable to apply metadata to %lx\n", addr);
+        // throw configuration_exception_t("unable to apply meta set");
+      }
   }
 }
 
