@@ -196,7 +196,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   } else {
-    printf("violation address: 0x%" PRIaddr "\n",pc);
+    printf("violation address: 0x%" PRIaddr " (0x%" PRIaddr ")\n",pc, addr_fixer(pc));
 
     handle_violation(ctx, ops);
   }
