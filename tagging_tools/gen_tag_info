@@ -130,7 +130,7 @@ def main():
         range_file.done()
 
         # Apply opcode tags
-        OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
+        # OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
 
         # Apply entities
         presult = subprocess.call([md_entity, args.policy_dir, args.bin, args.tag_file] +
