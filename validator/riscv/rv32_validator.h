@@ -140,6 +140,7 @@ class rv32_validator_t : public rv32_validator_base_t {
   uint64_t rule_cache_hits, rule_cache_misses_period;
   uint64_t rule_cache_misses, rule_cache_hits_period;
   uint64_t validated_instructions, next_print_instruction;
+  int rw, is_mem_instr;
 };
 
 } // namespace policy_engine

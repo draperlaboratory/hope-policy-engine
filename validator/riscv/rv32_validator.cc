@@ -34,7 +34,10 @@
 #include "policy_utils.h"
 #include "policy_eval.h"
 #include "csr_list.h"
+
+// 
 #include "../rule_analysis/rule_analysis.cc"
+#include "../datacache_sim/cache_sim.c"
 
 using namespace policy_engine;
 
@@ -64,8 +67,8 @@ rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t *ms_cache,
   res->rdResult = true;
   res->csrResult = true;
 
-  printf("About to init rule analysis...\n");
   init_rule_analysis();
+  init_data_caches(65536, 524288);
 }
 
 extern std::string render_metadata(metadata_t const *metadata);
@@ -191,8 +194,11 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   config->apply(&tag_bus, this);
   failed = false;
   has_insn_mem_addr = false;
+  
   rule_cache_hits = 0;
   rule_cache_misses = 0;
+  is_mem_instr = 0;
+  rw = 0;
 
   rule_cache_hits_period = 0;
   rule_cache_misses_period = 0;
@@ -211,6 +217,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
     if (rule_cache_hit) rule_cache_hits++;
     else rule_cache_misses++;
   }
+  
   return result;
 }
 
@@ -225,6 +232,16 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   
   setup_validation();
   prepare_eval(pc, insn);
+
+  // Simulate data caches
+  
+  icache_access((unsigned long) pc);
+  if (is_mem_instr){
+    if (rw)
+      dcache_access((unsigned long) mem_addr, 1);
+    else
+      dcache_access((unsigned long) mem_addr, 0);
+  }
 
   // Send to analysis
   rule_validated(ops);
@@ -352,13 +369,24 @@ bool rv32_validator_t::commit() {
       rule_cache->install_rule(ops, &res_copy);
     }
 
+    // Print out both rule cache stats and data cache stats
     if (validated_instructions == next_print_instruction){
       
-      double hit_rate = 100.0 * (double) rule_cache_hits_period /
+      double hit_rate = 100.0 *
+	(double) rule_cache_hits_period /
 	(rule_cache_hits_period + rule_cache_misses_period);
-      printf("CACHE: %lu %3.3f %lu %lu\n", validated_instructions, hit_rate, rule_cache_misses_period, rule_cache_hits_period);
+      
+      printf("CACHE: %lu %3.3f %lu %d %d %d\n", validated_instructions, hit_rate, rule_cache_misses_period, get_misses(l1icache), get_read_misses(l1dcache), get_read_misses(l2cache));
+
+      // Reset rule cache stats
       rule_cache_hits_period = 0;
       rule_cache_misses_period = 0;
+
+      // Reset data cache stats
+      clear_misses(l1icache);
+      clear_misses(l1dcache);
+      clear_misses(l2cache);
+      
       next_print_instruction += CACHE_PRINT_FREQ;
     }
   }
@@ -413,6 +441,19 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   }
 
   flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
+
+  // Detect whether mem instr and whether it is load/store
+  if (flags & (HAS_LOAD | HAS_STORE))
+    is_mem_instr = 1;
+  else
+    is_mem_instr = 0;
+  
+  if (flags & HAS_STORE)
+    rw = 1;
+  else
+    rw = 0;
+
+  
   if (flags < 0) {
     printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, name);
   }
@@ -508,9 +549,12 @@ void rv32_validator_t::rule_cache_stats() {
 	    rule_cache_hits, rule_cache_misses, rule_cache_hits + rule_cache_misses);
     double hit_rate = (double)rule_cache_hits / (rule_cache_hits + rule_cache_misses);
     fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
+    print_data_cache_stats();
+    fprintf(stderr, "Number of DRAM accesses: %lu\n", dram_accesses);
   }
 };
 
 void rv32_validator_t::terminate() {
+  printf("Validator calling policy_terminate()\n");
   policy_terminate();
 }
