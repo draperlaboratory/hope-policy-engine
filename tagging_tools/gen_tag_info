@@ -108,8 +108,10 @@ def main():
         if 'Comp' in policy_inits['Require']:
             print("Compartmentalization policy selected, running compartment tagger...")
             taginfo_arg_file = open(args.tag_file + ".args", "w")
-            num_globals = comp_tagger.add_object_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir)
-            comp_tagger.add_function_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir, num_globals)
+            # Find and load domains; if none specified with COMP_DOMAINS, then use default
+            (subj_map, obj_map) = comp_tagger.find_domains(args.policy_dir, args.bin)
+            num_globals = comp_tagger.add_object_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir, obj_map)
+            comp_tagger.add_function_ranges(args.bin, range_file, taginfo_arg_file, args.policy_dir, num_globals, obj_map, subj_map)
             print("Done adding comp info, rebuilding policy now.")
             comp_tagger.rebuildCompPolicy(args.arch)
 

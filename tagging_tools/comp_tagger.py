@@ -32,28 +32,35 @@ from elftools.dwarf.descriptions import describe_form_class
 # Puts the Comp.funcID tag on each instruction in the program, then writes
 # a unique identifier for that function in the taginfo.args file.
 # Also generates a func_defs.h header with labels for the identifiers.
-def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir, heap_id_start):
+def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir, heap_id_start, obj_map, subject_map):
 
     # Create new defs file for function labels
     defs_file = open("func_defs.h", "w")
     defs_file.write("const char * func_defs[] = {\"<none>\",\n")
-    
-    # Locate a subject domains file. If none, then each func will be a domain
-    subject_map = find_subject_domains(policy_dir, elf_filename)
-    
+
+    # If we have a subject map, load it in and print it out into defs file
     if subject_map != None:
         has_subject_map = True
-        #print("subject map loaded correctly!")
-        for s in range(1, len(set(subject_map.values())) + 1):
-            # Add this function name to the header file defs if we're making one
-            defs_file.write("\"cluster-" + str(s) + "\",\n")
+        print("Subject map loaded!")
+        subj_map_inverted = {}
+        for subj in subject_map:
+            if subj[-8:] != "_cluster":
+                num = subject_map[subj]
+                subj_map_inverted[num] = subject_map[subj + "_cluster"]
+        min_subj = min(subj_map_inverted.keys())
+        max_subj = max(subj_map_inverted.keys())
+        print("Subjects in map range from " + str(min_subj) + " to " + str(max_subj))
+        for i in range(min_subj, max_subj + 1):
+            defs_file.write("\"" + subj_map_inverted[i] + "\",\n")
+        last_function_number = max_subj
     else:
+        last_function_number = 0
         has_subject_map = False
         print("NOTE: no subject definition file found, using per-function subjects.")
 
     # Get all the malloc() sites, we also put a unique label on each malloc site
     # in this function. TODO could be separate pass.
-    mallocs = extract_malloc_sites(elf_filename, policy_dir, heap_id_start)
+    mallocs = extract_malloc_sites(elf_filename, policy_dir, heap_id_start, obj_map)
 
     # Keep a set of all code locations that we tag.
     # This is used to clean up some edge cases later and to make sure
@@ -72,7 +79,6 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
 
         dwarfinfo = ef.get_dwarf_info()
 
-        last_function_number = 0
         function_numbers = {}
 
         # Code tagging pass 1:
@@ -95,23 +101,22 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                         func_display_name = str(func_name)
                         print("Compartment tagger: tagging function " + func_display_name)
 
-                        # Assign new ID for this function if it's new.
-                        # Currently two functions with the same name get the same number,
-                        # which is not ideal but a result of how CAPMAP files are saved/loaded.
-                        if func_name in function_numbers:
-                            function_number = function_numbers[func_name]
+                        # Get subject_id for this function. If we have a provided domain map, look it up there.
+                        # Otherwise, create a fresh one.
+                        if has_subject_map:                            
+                            if not func_display_name in subject_map:
+                                raise Exception("Provided subject domain mapping did not include function " + func_display_name)
+                            subject_id = subject_map[func_display_name]
                         else:
-                            last_function_number += 1
-                            function_number = last_function_number
-                            function_numbers[func_name] = function_number
-
-                            # Create new line in defs file for this function
-                            if not has_subject_map:
-                                defs_file.write("\"" + func_display_name + "\",\n")
+                            if func_name in function_numbers:
+                                function_number = function_numbers[func_name]
                             else:
-                                subject_id = subject_map[func_display_name]                                
-                                #print("\tGot cluster="+str(subject_id))
-                            
+                                last_function_number += 1
+                                function_number = last_function_number
+                                function_numbers[func_name] = function_number
+                                subject_id = function_number
+                                # Create new line in defs file for this function
+                                defs_file.write("\"" + func_display_name + "\",\n")
                         
                         low_pc = DIE.attributes['DW_AT_low_pc'].value
 
@@ -142,18 +147,12 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                         for addr in range(low_pc, high_pc, 4):
                             tagged_instructions.add(addr)
 
-                        # Set subject ID. Depends on if we having a mapping or are doing default function-subjects
-                        if has_subject_map:
-                            if not func_display_name in subject_map:
-                                raise Exception("Provided subject domain mapping did not include function " + func_display_name)
-                            subject_id = subject_map[func_display_name]
-                        else:
-                            subject_id = function_number
                             
                         # Then make another pass, add entries for any malloc() call sites within that range
                         for addr in range(low_pc, high_pc, 4):
                             if addr in mallocs:
                                 alloc_num = mallocs[addr]
+                                print("Tagging instr " + hex(addr) + " with alloc-num " + str(alloc_num))
                                 #print("There was an allocation call site within this func: " + str(addr))
                                 taginfo_args_file.write('%x %x %s\n' % (addr, addr + 4, str(subject_id) + " 0 " + str(alloc_num)))
 
@@ -206,7 +205,6 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
 
                         # Add function to range, mark ID in arg file
                         range_file.write_range(low_pc, high_pc, "Comp.funcID")
-                        function_number += 1
                         
                         # Create a new function name and def entry for this subject
                         function_name = "CU_" + os.path.basename(cu_src)
@@ -217,43 +215,46 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
                         # If it's from portASM, add special 'context-switch' tag over it too
                         # TODO: currently leaving out the context-switching logic, maybe add back
                         # and do more debugging
-                        '''
+                        
                         if "portASM" in function_name:
                             print("Adding context-switch from " + hex(low_pc) + " to " + str(high_pc))
                             range_file.write_range(low_pc, high_pc, "Comp.context-switch")
-                        '''
+                        
 
                         # If we have a subject map, use that. Otherwise, use a per-CU tag.
-                        # TODO: fix the subject map side, getting untagged things
-                        if not has_subject_map:
-                            defs_file.write("\"" + function_name + "\",\n")
-                            taginfo_args_file.write('%x %x %s\n' % (low_pc, high_pc, str(function_number) + " 0 0"))
-                        else:
+                        # This means subject map may need to include regions of assembly (CU_start.S) to pass.
+                        if has_subject_map:
                             if not function_name in subject_map:
                                 raise Exception("Provided subject domain mapping did not include function " + function_name)
-                            subject_id = subject_map[function_name]
-                            #print("\tGot cluster for this func="+str(subject_id))
-                            #print("Writing CU over gaps between %x and %x\n" % (low_pc, high_pc))
-                            current_pc = low_pc
-                            untagged_start = None
-                            while current_pc < high_pc:
+                            subject_id = subject_map[function_name]                            
+                        else:
+                            function_number += 1                            
+                            defs_file.write("\"" + function_name + "\",\n")
+                            subject_id = function_number
+                            #taginfo_args_file.write('%x %x %s\n' % (low_pc, high_pc, str(function_number) + " 0 0"))
 
-                                # Detect beginning of new untagged block we need to hit
-                                if not current_pc in tagged_instructions and untagged_start == None:
-                                    untagged_start = current_pc
-                                    print("New untagged starting " + hex(untagged_start))
+                        #print("\tGot cluster for this func="+str(subject_id))
+                        #print("Writing CU over gaps between %x and %x\n" % (low_pc, high_pc))
+                        current_pc = low_pc
+                        untagged_start = None
+                        while current_pc < high_pc:
 
-                                # Detect end of current untagged block, tag it
-                                if untagged_start != None and current_pc in tagged_instructions:
-                                    taginfo_args_file.write('%x %x %s\n' % (untagged_start, current_pc, str(subject_id) + " 0 0"))
-                                    print("Cut a range of untagged: " + hex(untagged_start) + " " + hex(current_pc))
-                                    untagged_start = None
-                                    
-                                current_pc += 4
+                            # Detect beginning of new untagged block we need to hit
+                            if not current_pc in tagged_instructions and untagged_start == None:
+                                untagged_start = current_pc
+                                print("New untagged starting " + hex(untagged_start))
 
-                            # Lastly, if we exit loop without cleaning up last block, then tag it
-                            if untagged_start != None:
-                                taginfo_args_file.write('%x %x %s\n' % (untagged_start, high_pc, str(subject_id) + " 0 0"))
+                            # Detect end of current untagged block, tag it
+                            if untagged_start != None and current_pc in tagged_instructions:
+                                taginfo_args_file.write('%x %x %s\n' % (untagged_start, current_pc, str(subject_id) + " 0 0"))
+                                print("Cut a range of untagged: " + hex(untagged_start) + " " + hex(current_pc))
+                                untagged_start = None
+
+                            current_pc += 4
+
+                        # Lastly, if we exit loop without cleaning up last block, then tag it
+                        if untagged_start != None:
+                            taginfo_args_file.write('%x %x %s\n' % (untagged_start, high_pc, str(subject_id) + " 0 0"))
 
                         # Track that these instructions are now labeled
                         for addr in range(low_pc, high_pc, 4):
@@ -290,58 +291,70 @@ def add_function_ranges(elf_filename, range_file, taginfo_args_file, policy_dir,
 # Using the environment variable COMP_DOMAINS look into the domains
 # subdirectory of policy kernel to see if we have a match for the selected
 # domains and binary name. This allows us to easily run various subject domains.
-def find_subject_domains(policy_dir, elf_filename):
+def find_domains(policy_dir, elf_filename):
 
     if "COMP_DOMAINS" in os.environ:
         domains = os.environ['COMP_DOMAINS']
 
         # Default is functions, but there is no file for this reflexive case.
         # So we just interpret the string "func" as same as being unset
-        if domains == "func" or domains == "":
-            print("domains set as 'func', returning None")
-            return None
+        if domains == "":
+            print("Empty domains! Using default (funcs)")
+            return (None, None)
     else:
-        print("No domain variable set!")
-        return None
+        print("Empty domains! Using default (funcs)")
+        return (None, None)
     
     print("Compartmentalization policy, selected domains: " + domains)
 
     domain_dir = os.path.join(policy_dir, "domains")
     binary_name = os.path.basename(elf_filename)
     domain_filename = os.path.join(domain_dir, binary_name + "." + domains + ".domains")
-    subject_map = load_subject_domains(domain_filename)
-    return subject_map
-    
+    (subject_map, object_map) = load_domains(domain_filename)
+    return (subject_map, object_map)
 
 # Load in a subject definition file, return as a dict.
-# Definition file is a simple mapping of function name to
-# subject IDs. For example:
-# Foo1 1
-# Foo2 1
-# Foo3 2
+# Definition file is a simple mapping of function name
+# or object name to an ID. 
+# Subj Foo1 1
+# Subj Foo2 1
+# Subj Foo3 2
+# Obj Obj1 1
 # Means Foo1 and Foo2 are grouped together, Foo3 is alone.
-def load_subject_domains(filename):
+def load_domains(filename):
     
     fh = open(filename, "r")
     subject_map = {}
+    object_map = {}
     
     for line in fh:
         parts = line.split()
-        if len(parts) < 2 or len(parts) > 3:
-            raise Exception("Format error of subject defs file. Expected two tokens.")
-        func_name = parts[0]
-        cluster_id = int(parts[1])
-        #print("Adding mapping " + func_name + " -> " + str(cluster_id))
-        subject_map[func_name] = cluster_id
+        if len(parts) != 4:
+            raise Exception("Format error of subject defs file. Expected four tokens.")
+        entry_type = parts[0]
+        name = parts[1]
+        cluster_id = int(parts[2])
+        cluster_name = parts[3]
+        if entry_type == "Subj":
+            subject_map[name] = cluster_id
+            subject_map[name + "_cluster"] = cluster_name
+        elif entry_type == "Obj":
+            object_map[name] = cluster_id
+            object_map[name + "_cluster"] = cluster_name
+        else:
+            raise Exception("Error reading domain file, invalid entry type.")
 
-    return subject_map
+    print("Read " + str(len(subject_map)) + " subj mapping and " +
+          str(len(object_map)) + " object mappings.")
+    
+    return (subject_map, object_map)
         
 # Analog to add_function_ranges() for extracting objects.  I tried to
 # get globals via pyelftools, but it doesn't look like the size/type
 # DIEs are parsed for some reason. I spent a few hours and couldn't
 # figure it out. Temp solution is to just dump from nm.
 # TODO: this is currently just dumping global info from nm, should get from compiler metadata
-def add_object_ranges(elf_filename, range_file, taginfo_args_file, policy_dir):
+def add_object_ranges(elf_filename, range_file, taginfo_args_file, policy_dir, object_map):
     
     # Check to make sure we have the tools we need for object extraction
     isp_prefix = os.environ['ISP_PREFIX']
@@ -357,14 +370,31 @@ def add_object_ranges(elf_filename, range_file, taginfo_args_file, policy_dir):
     # 3 = Special-FLASH, a special tag for Flash mem that didn't get labeled as something else
     # 4 = Special-UART, a special tag for UART mem
     # 5 = Special-PLIC, a special tag for PLIC mem
-    # 6 = Special-ETHERNET, a special tag for ETHERNET 
-
-    # Start incrementing from 3, the end of the special objects
-    object_number = 6
+    # 6 = Special-ETHERNET, a special tag for ETHERNET
 
     # Create file for object definition labels
     defs_file = open("object_defs.h", "w")
-    defs_file.write("const char * object_defs[] = {\n\"<none>\",\n\"special-IO\",\n\"special-RAM\",\n\"special-FLASH\",\n\"special-UART\",\n\"special-PLIC\",\n\"special-ETHERNET\",\n")
+    defs_file.write("const char * object_defs[] = {\"<none>\",\"special-IO\",\n\"special-RAM\",\n\"special-FLASH\",\n\"special-UART\",\n\"special-PLIC\",\n\"special-ETHERNET\",\n")    
+
+    # Start object_number from 6 or 7 depending on how we loaded (TODO think through)
+
+    # If we have an object map, print them out now in order. Invert then go numerically.
+    if object_map != None:
+        object_number = 7        
+        # Invert the map
+        object_map_inverted = {}
+        for obj in object_map:
+            if obj[-8:] != "_cluster":
+                num = object_map[obj]
+                object_map_inverted[num] = object_map[obj + "_cluster"]
+        min_obj = min(object_map_inverted.keys())
+        max_obj = max(object_map_inverted.keys())
+        print("Objects in map range from " + str(min_obj) + " to " + str(max_obj))
+        for i in range(min_obj, max_obj + 1):
+            defs_file.write("\"" + object_map_inverted[i] + "\",\n")
+            object_number += 1
+    else:
+        object_number = 6
 
     # Keep track of which addresses we've labeled
     tagged_addrs = {}    
@@ -385,14 +415,26 @@ def add_object_ranges(elf_filename, range_file, taginfo_args_file, policy_dir):
             size = parts[1]
             code = parts[2]
             name = parts[3]
+            obj_name = "global_" + name
 
             # Grab globals. Assuming come from .bss, .data, .ro...
             if code in ["b", "B", "d", "D", "r", "R", "g", "G"]:
 
                 # Create identifier for this object
-                object_number += 1
+                if object_map != None:
+                    if obj_name in object_map:
+                        object_id = object_map[obj_name]
+                    else:
+                        object_number += 1
+                        object_id = object_number
+                        print("Could not find object mapping for " + obj_name + ", assigned to " + str(object_id))
+                        defs_file.write("\"" + "global_" + name + "\",\n")                        
+                else:
+                    defs_file.write("\"" + "global_" + name + "\",\n")
+                    object_number += 1
+                    object_id = object_number
                 
-                print("Compartment tagger: tagging global " + name + " at address " + addr + " size=" + size + " with ID " + str(object_number))
+                print("Compartment tagger: tagging global " + name + " at address " + addr + " size=" + size + " with ID " + str(object_id))
                 sorted_globals.append((addr, size, name))
 
                 # Compute highpc, needed for range file format
@@ -430,8 +472,7 @@ def add_object_ranges(elf_filename, range_file, taginfo_args_file, policy_dir):
                     continue
                 
                 range_file.write_range(lowpc, highpc, "Comp.globalID")
-                taginfo_args_file.write('%x %x %s\n' % (lowpc, highpc, str(object_number) + " 0 0"))
-                defs_file.write("\"" + "global_" + name + "\",\n")
+                taginfo_args_file.write('%x %x %s\n' % (lowpc, highpc, str(object_id) + " 0 0"))
                 
         # Exit when no more output from nm
         if not line:
@@ -475,16 +516,17 @@ def add_object_ranges(elf_filename, range_file, taginfo_args_file, policy_dir):
                         taginfo_args_file.write('%x %x %s\n' % (addr, addr + 4, str(object_number) + " 0 0"))
 
             print("Section " + s.name + " from " + hex(start) + " to " + hex(end))
-            
-    return object_number
 
+    print("Added " + str(object_number) + " globals + special objects.")
+    
+    return object_number
 
 # This function extracts all the allocation sites from a program and
 # gives each one a unique identifier.
 # Current implementation is quite cheesy, it just uses objdump and
 # the keyword "pvPortMalloc", which is only suitable for FreeRTOS.
 # TODO generalize, get from LLVM, etc
-def extract_malloc_sites(elf_filename, policy_dir, heap_id_start):
+def extract_malloc_sites(elf_filename, policy_dir, heap_id_start, obj_map):
     
     # Check for objdump:
     isp_prefix = os.environ['ISP_PREFIX']
@@ -503,37 +545,55 @@ def extract_malloc_sites(elf_filename, policy_dir, heap_id_start):
     current_func = ""
     object_id = heap_id_start
     mallocs_in_func = 0
+    heap_obj_basename = ""
     for line in p.stdout:
         line = line.decode("utf-8").strip()
         parts = line.split()
+
 
         # Track current function and how many allocs in this function
         if ">:" in line and not ".LB" in line:
             current_func = parts[1][1:-2]
             mallocs_in_func = 0
+            heap_obj_basename = "heap_" + current_func
+            #print("Set heap_obj_basename to " + heap_obj_basename)
 
         # Each static call to pvPortMalloc() is a unique allocation
         if "<pvPortMalloc>" in line and "jal" in line:
             call_addr_string = parts[0][:-1]
             call_addr = int(call_addr_string, 16)
-            object_id += 1
             mallocs_in_func += 1
-            mallocs[call_addr] = object_id
-            #print("Heap obj " + str(object_id) + " came from line " + line)
+
             if mallocs_in_func > 1:
+                heap_lookup = heap_obj_basename + str(mallocs_in_func)
                 heap_label = "heap_" + current_func + str(mallocs_in_func)
             else:
+                heap_lookup = heap_obj_basename
                 heap_label = "heap_" + current_func
                 
-            defs_file.write("\"" + heap_label + "\",\n")            
+            if obj_map != None and heap_lookup in obj_map:
+                object_id = obj_map[heap_lookup]
+                print("Found heap obj in lookup! Assigned to " + str(object_id))
+                mallocs[call_addr] = object_id
+            else:
+                print("Could not find heap obj in lookup. Using fallback ID.")
+                object_id += 1
+                mallocs[call_addr] = object_id
+                defs_file.write("\"" + heap_label + "\",\n")
+                
+            print("Heap obj " + str(object_id) + " going on line " + line)                
+            
+                
 
     # Finish off definition file, then copy into policy include folder
+    #defs_file.write("\"TESTOBJ\",\n")
     defs_file.write("\"\"};\n")
     defs_file.close()
     print("policy_dir: " + policy_dir)
     shutil.copy("object_defs.h", os.path.join(policy_dir, "include"))    
 
     # Return dictionary of found mallocs
+    print("Got a total of " + str(len(mallocs)) + " allocation site objects.")
     return mallocs
 
 
@@ -554,7 +614,6 @@ def rebuildCompPolicy(arch):
 
     shutil.rmtree(validator_policy_dir)
     shutil.copytree(policy_dir, validator_policy_dir)
-
 
     # 2) Rebuild policy
     #cur_dir = os.getcwd()
