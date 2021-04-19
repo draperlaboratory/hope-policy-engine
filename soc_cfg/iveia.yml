@@ -1,0 +1,37 @@
+SOC:
+  CLINT: {
+    name: SOC.IO.CLINT,
+    start: 0x80000,
+    end:   0x8ffff,
+    heterogeneous: true
+    }
+  PLIC: {
+    name: SOC.IO.PLIC,
+    start: 0x0c000000,
+    end:   0x0c3fffff,
+    heterogeneous: true
+    }
+  DRAM: {
+    name: SOC.Memory.DDR4_0,
+    start: 0x00000000,
+    end:   0x3fffffff,
+    heterogeneous: true
+    }
+  BOOTROM: {
+    name: SOC.Memory.BRAM_CTRL_0,
+    start: 0x70000000,
+    end:   0x70000fff,
+    heterogeneous: true
+  }
+  UART0: {
+    name: SOC.IO.UART_0,
+    start: 0xA0000000,
+    end:   0xA000ffff,
+    heterogeneous: false
+    }
+  MAILBOX: {
+    name: SOC.MAILBOX,
+    start: 0x10000,
+    end: 0x100ff,
+    heterogeneous: false
+    }
