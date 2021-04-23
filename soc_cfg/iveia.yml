@@ -17,12 +17,6 @@ SOC:
     end:   0x3fffffff,
     heterogeneous: true
     }
-  BOOTROM: {
-    name: SOC.Memory.BRAM_CTRL_0,
-    start: 0x70000000,
-    end:   0x70000fff,
-    heterogeneous: true
-  }
   UART0: {
     name: SOC.IO.UART_0,
     start: 0xA0000000,
