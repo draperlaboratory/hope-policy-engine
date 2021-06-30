@@ -127,7 +127,7 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
                                      metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
                                      metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                                      metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                                     int32_t register_default, int32_t csr_default,
+                                     int32_t register_default, int32_t csr_default, int32_t env_default,
                                      std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "wb");
 
@@ -211,6 +211,11 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
       fclose(fp);
       return false;
     }
+  }
+
+  if(!write_uleb<file_writer_t, int32_t>(&writer, env_default)) {
+    fclose(fp);
+    return false;
   }
 
   if(!write_uleb<file_writer_t, uint32_t>(&writer, memory_index_map.size())) {
@@ -330,7 +335,7 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
                                            metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
                                            metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                                            metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                                           int32_t &register_default, int32_t &csr_default,
+                                           int32_t &register_default, int32_t &csr_default, int32_t &env_default,
                                            std::string file_name) {
   uint8_t is_64_bit;
   uint32_t code_range_count;
@@ -496,6 +501,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
 
     std::pair<std::string, uint32_t> p(csr_name, csr_meta);
     csr_index_map.insert(p);
+  }
+
+  if(!read_uleb<file_reader_t, int32_t>(&reader, env_default)) {
+    fclose(fp);
+    return false;
   }
 
   if(!read_uleb<file_reader_t, uint32_t>(&reader, memory_index_count)) {

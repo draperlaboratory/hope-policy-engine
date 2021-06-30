@@ -41,7 +41,7 @@ bool save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
                       metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
                       metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                       metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                      int32_t register_default, int32_t csr_default,
+                      int32_t register_default, int32_t csr_default, int32_t env_default,
                       std::string file_name);
 bool write_headers(std::list<range_t> &code_ranges,
                    std::list<std::pair<range_t, uint8_t>> &data_ranges,
@@ -52,7 +52,7 @@ bool load_firmware_tag_file(std::list<range_t> &code_ranges,
                             metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
                             metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                             metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                            int32_t &register_default, int32_t &csr_default,
+                            int32_t &register_default, int32_t &csr_default, int32_t &env_default,
                             std::string file_name);
 
 } // namespace policy_engine
