@@ -94,6 +94,8 @@ int main(int argc, char **argv) {
     csr_index_map.erase("ISA.RISCV.CSR.Default");
   } catch(const std::out_of_range& oor) { }
 
+  env_default = register_index_map.at("ISA.RISCV.Reg.Env");
+
   printf("Metadata entries:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {
     printf("%lu: { ", i);
@@ -102,7 +104,6 @@ int main(int argc, char **argv) {
     }
     printf("}\n");
   }
-  env_default = csr_index_map.at("ISA.RISCV.Reg.Env");
 
   if(save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map,
                       register_default, csr_default, env_default, tag_filename) == false) {
