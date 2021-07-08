@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
   } catch(const std::out_of_range& oor) { }
 
   env_default = register_index_map.at("ISA.RISCV.Reg.Env");
+  register_index_map.erase("ISA.RISCV.Reg.Env");
 
   printf("Metadata entries:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {

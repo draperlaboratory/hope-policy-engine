@@ -69,8 +69,7 @@ std::map<std::string, uint32_t> register_name_map = {
   { "FT9", 0x3d },
   { "FT10", 0x3e },
   { "FT11", 0x3f },
-  { "PC", 0x40 },
-  { "Env", 0x41 }
+  { "PC", 0x40 }
 };
 
 // DPL CSR names to hardware tag address
