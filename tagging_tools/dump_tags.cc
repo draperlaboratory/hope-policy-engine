@@ -58,6 +58,7 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
   std::vector<const metadata_t *> metadata_values;
   int32_t register_default;
   int32_t csr_default;
+  int32_t env_default;
 
   auto memory_index_map = metadata_index_map_t<metadata_memory_map_t, range_t>();
   auto register_index_map = metadata_index_map_t<metadata_register_map_t, std::string>();
@@ -65,7 +66,7 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
 
   if(load_firmware_tag_file(code_ranges, data_ranges, metadata_values,
                             memory_index_map, register_index_map, csr_index_map,
-                            register_default, csr_default, std::string(tag_filename)) == false) {
+                            register_default, csr_default, env_default, std::string(tag_filename)) == false) {
     err.error("Failed to load firmware tag file\n");
     return false;
   }
@@ -100,6 +101,8 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
   for(auto &it : csr_index_map) {
     printf("%s: %x\n", it.first.c_str(), it.second);
   }
+
+  printf("\nEnv tag default: %x\n", env_default);
 
   printf("\nMemory tag entries (showing %lu of %lu):\n",
       num_entries, memory_index_map.size());

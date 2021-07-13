@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
   std::vector<const metadata_t *> metadata_values;
   ssize_t register_default = -1;
   ssize_t csr_default = -1;
+  ssize_t env_default = -1;
 
   if(argc < 3) {
     usage();
@@ -93,6 +94,9 @@ int main(int argc, char **argv) {
     csr_index_map.erase("ISA.RISCV.CSR.Default");
   } catch(const std::out_of_range& oor) { }
 
+  env_default = register_index_map.at("ISA.RISCV.Reg.Env");
+  register_index_map.erase("ISA.RISCV.Reg.Env");
+
   printf("Metadata entries:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {
     printf("%lu: { ", i);
@@ -103,7 +107,7 @@ int main(int argc, char **argv) {
   }
 
   if(save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map,
-                      register_default, csr_default, tag_filename) == false) {
+                      register_default, csr_default, env_default, tag_filename) == false) {
     err.error("Failed to save indexes to tag file\n");
     return 1;
   }
