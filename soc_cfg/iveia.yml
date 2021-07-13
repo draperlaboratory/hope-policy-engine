@@ -29,6 +29,12 @@ SOC:
     end:   0xA000ffff,
     heterogeneous: false
     }
+  UART2: {
+    name: SOC.IO.UART_2,
+    start: 0xA0020000,
+    end:   0xA002ffff,
+    heterogeneous: false
+    }
   MAILBOX: {
     name: SOC.MAILBOX,
     start: 0x10000,
