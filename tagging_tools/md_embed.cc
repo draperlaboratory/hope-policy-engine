@@ -37,6 +37,7 @@ using namespace policy_engine;
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <unistd.h>
 
 #ifdef RV64_VALIDATOR
         char* bfd_target = "elf64-littleriscv";
