@@ -110,6 +110,7 @@ def main():
 
         if policy_inits['Require']:
             # save the inits stuff
+            # IMPOTANT - the elf file is modified by the below.
             rc = TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
             if rc:
                 # We don't normally use this right now, so it's not fatal
@@ -132,6 +133,11 @@ def main():
 
         range_file.done()
 
+    # need to open again the elf file as it was modified above and we could not
+    # use the previous ef object (the stream pointer in that object is getting corrupted when
+    # the elf file is modified
+    with open(args.bin, 'rb') as f:
+        ef = ELFFile(f)
         # Apply opcode tags
         OpCodeTagger.tag_op_codes(args.policy_dir, md_code, ef, args.tag_file)
 
