@@ -111,7 +111,7 @@ def main():
         if policy_inits['Require']:
             # save the inits stuff
             # IMPOTANT - the elf file is modified by the below.
-            rc = TagElfFile.generate_tag_array(args.bin, range_file, policy_metas, args.arch == 'rv64');
+            rc = TagElfFile.generate_tag_array(args.bin, range_file, os.path.basename(os.path.normpath(args.policy_dir)), policy_metas, args.arch == 'rv64');
             if rc:
                 # We don't normally use this right now, so it's not fatal
                 print("Couldn't add .tag_array to binary")
@@ -150,7 +150,7 @@ def main():
             sys.exit(presult)
 
         # embed tags in ELF
-        presult = subprocess.call([md_embed, args.tag_file, args.policy_dir, args.bin] +
+        presult = subprocess.call([md_embed, args.tag_file, args.policy_dir, args.bin + "-" + os.path.basename(os.path.normpath(args.policy_dir))] +
                                  args.entities)
         if presult != 0:
             print("md_embed failed")
