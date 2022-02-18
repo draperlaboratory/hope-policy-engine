@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <vector>
 #include <map>
+#include <cstdlib>
 
 #include "platform_types.h"
 

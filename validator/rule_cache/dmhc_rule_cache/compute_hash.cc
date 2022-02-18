@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <cstdlib>
 #include "compute_hash.h"
 
 #define UNASSIGNED -1
