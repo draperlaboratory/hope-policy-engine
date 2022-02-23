@@ -27,7 +27,7 @@ def generate_tag_array(elfname, range_file, policy_name, policy_meta_info, rv64)
     pout = subprocess.check_output([tool_prefix + 'objdump', '-h', elfname])
 
     if ".tag_array" in str(pout): # section exists, update the elf
-        base_command = tool_prefix + "objcopy --target=" + bfd_target + " --update-section .tag_array=" + tag_array_filename + " " + elfname + " " + elfname
+        base_command = tool_prefix + "objcopy --target=" + bfd_target + " --update-section .tag_array=" + tag_array_filename + " " + elfname + " " + elfname + "-" + policy_name
     else:
         base_command = tool_prefix + "objcopy --target=" + bfd_target + " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data " + elfname + " " + elfname + "-" + policy_name
 
