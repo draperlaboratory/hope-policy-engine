@@ -5,3 +5,4 @@ policy/*
 *.taginfo
 *.swp
 *.swo
+/make_*.log
