@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 
@@ -15,4 +16,7 @@ def tag_op_codes(policy_dir, md_code, ef, taginfo_file_name):
                                        stdin=subprocess.PIPE,
                )
                proc.communicate(s.data())
-               proc.wait()
+               retcode = proc.wait()
+               if retcode != 0:
+                    print("md_code failed")
+                    sys.exit(-1)
