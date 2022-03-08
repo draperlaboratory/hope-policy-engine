@@ -115,6 +115,13 @@ try {
       const char *name;
       uint32_t opdef;
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
+      if(flags == -1) {
+          printf("Failed to decode instruction 0x%x\n", insn);
+          code_address += 4;
+          continue;
+      }
+      cnt++;
+
 
       metadata_t const *metadata =
         md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
