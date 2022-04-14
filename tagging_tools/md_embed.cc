@@ -60,6 +60,13 @@ bool save_tags_to_temp(std::vector<const metadata_t *> &metadata_values,
     FILE_reader_t reader(elf_in);
     elf_image_t img(&reader, &err);
     img.load();
+#ifdef RV64_VALIDATOR
+    if (!img.is_64bit()) {
+#else
+    if (img.is_64bit()) {
+#endif
+        err.error("bad ELF width");
+    }
     int fd = mkstemp(tempfile);
     FILE *section_file = fdopen(fd, "wb");
 
