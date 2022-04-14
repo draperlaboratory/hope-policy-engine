@@ -24,39 +24,37 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <elf.h>
-
+#include <gelf.h>
 #include "elf_utils.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
-void policy_engine::populate_symbol_table(symbol_table_t *symtab, elf_image_t *img) {
-  Elf_Sym const *syms = img->get_symbols();
+void populate_symbol_table(symbol_table_t *symtab, elf_image_t *img) {
+  GElf_Sym const *syms = img->get_symbols();
   for (int i = 0; i < img->get_symbol_count(); i++) {
-    Elf_Sym const *esym = &syms[i];
+    GElf_Sym const *esym = &syms[i];
     if (esym->st_shndx != SHN_UNDEF && esym->st_shndx != SHN_ABS) {
       symbol_t::visibility_t visibility;
       symbol_t::kind_t kind;
-      switch (ELF_ST_BIND(esym->st_info)) {
+      switch (GELF_ST_BIND(esym->st_info)) {
         case STB_LOCAL: visibility = symbol_t::PRIVATE; break;
         case STB_GLOBAL: visibility = symbol_t::PUBLIC; break;
         default: visibility = symbol_t::PRIVATE; break;
       }
-      switch (ELF_ST_TYPE(esym->st_info)) {
+      switch (GELF_ST_TYPE(esym->st_info)) {
         case STT_FUNC: kind = symbol_t::CODE; break;
         default: kind = symbol_t::DATA; break;
       }
       symbol_t *sym = new symbol_t(img->get_string(esym->st_name), esym->st_value & ~1, esym->st_size, visibility, kind);
-//    printf("%s\n", sym->name.c_str());
       symtab->add_symbol(sym);
     }
   }
 }
 
-void policy_engine::get_elf_sections(elf_image_t *img,
-                                     std::list<Elf_Shdr const *>&code_sections,
-                                     std::list<Elf_Shdr const *>&data_sections) {
-  Elf_Shdr const *shdrs = img->get_shdrs();
+void get_elf_sections(elf_image_t *img,
+     std::list<GElf_Shdr const *>&code_sections,
+     std::list<GElf_Shdr const *>&data_sections) {
+  GElf_Shdr const *shdrs = img->get_shdrs();
   size_t i;
   unsigned int flags;
 
@@ -71,3 +69,5 @@ void policy_engine::get_elf_sections(elf_image_t *img,
     }
   }
 }
+
+} // namespace policy_engine

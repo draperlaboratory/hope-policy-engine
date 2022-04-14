@@ -22,12 +22,13 @@
 /* OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION */
 /* WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include <stdio.h>
+#include <cstdio>
+#include <gelf.h>
 #include <yaml-cpp/yaml.h>
-#include "tag_file.h"
-#include "elf_utils.h"
 #include "basic_elf_io.h"
+#include "elf_utils.h"
 #include "metadata_factory.h"
+#include "tag_file.h"
 
 using namespace policy_engine;
 
@@ -115,7 +116,7 @@ size_t get_soc_granularity(YAML::Node soc, range_t range, bool is_64_bit) {
   return default_granularity;
 }
 
-void elf_sections_to_ranges(std::list<Elf_Shdr const *> &sections,
+void elf_sections_to_ranges(std::list<GElf_Shdr const *> &sections,
                             std::list<range_t> &ranges) {
   for(const auto &it : sections) {
     range_t range;
@@ -161,8 +162,8 @@ void coalesce_ranges(std::list<range_t> &ranges) {
 void get_address_ranges(elf_image_t &elf_image,
                         std::list<range_t> &code_ranges,
                         std::list<range_t> &data_ranges) {
-  std::list<Elf_Shdr const *> code_sections;
-  std::list<Elf_Shdr const *> data_sections;
+  std::list<GElf_Shdr const *> code_sections;
+  std::list<GElf_Shdr const *> data_sections;
 
   get_elf_sections(&elf_image, code_sections, data_sections);
 
