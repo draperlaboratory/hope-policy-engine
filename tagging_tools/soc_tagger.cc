@@ -1,0 +1,30 @@
+#include <cstdint>
+#include <iostream>
+#include <map>
+#include <string>
+#include <utility>
+#include <yaml-cpp/yaml.h>
+#include "tagging_utils.h"
+
+namespace policy_engine {
+
+void generate_soc_range(std::string soc_file, RangeFile& range_file, YAML::Node policy_inits) {
+  YAML::Node soc_cfg = YAML::LoadFile(soc_file);
+
+  std::map<std::string, std::pair<uint64_t, uint64_t>> soc_ranges;
+  for (const auto& elem : soc_cfg["SOC"]) {
+    soc_ranges[elem.second["name"].as<std::string>()] = std::make_pair(elem.second["start"].as<uint64_t>(), elem.second["end"].as<uint64_t>() + 1);
+  }
+  
+  for (const auto& device : policy_inits["Require"]["SOC"]) {
+    for (const auto& elem : device.second) {
+      std::string name = "SOC." + device.first.as<std::string>() + "." + elem.as<std::string>();
+      if (soc_ranges.find(name) != soc_ranges.end()) {
+        std::printf("%s: %#lx - %#lx\n", name.c_str(), soc_ranges[name].first, soc_ranges[name].second);
+        range_file.write_range(soc_ranges[name].first, soc_ranges[name].second, name);
+      }
+    }
+  }
+}
+    
+} // namespace policy_engine
