@@ -1,8 +1,10 @@
 #include <array>
+#include <cstdio>
 #include <cstdlib>
 #include <gflags/gflags.h>
 #include <iostream>
 #include <string>
+#include <sys/stat.h>
 #include <unistd.h>
 
 std::array<std::string, 2> soc_exclude = {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"};
@@ -49,8 +51,18 @@ int main(int argc, char* argv[]) {
   }
 
   std::string asm_file_name;
-  if (FLAGS_tag_file.find(".taginfo") != std::string::npos)
-    asm_file_name = FLAGS_tag_file.replace(FLAGS_tag_file.find(".taginfo"), 8, ".text");
-  else
+  if (FLAGS_tag_file.find(".taginfo") != std::string::npos) {
     asm_file_name = FLAGS_tag_file;
+    asm_file_name = asm_file_name.replace(FLAGS_tag_file.find(".taginfo"), 8, ".text");
+  } else {
+    asm_file_name = FLAGS_tag_file;
+  }
+  
+  struct stat buf;
+  if (stat(FLAGS_tag_file.c_str(), &buf) == 0) {
+    if (std::remove(FLAGS_tag_file.c_str()) != 0) {
+      std::printf("could not remove %s\n", FLAGS_tag_file.c_str());
+      exit(-1);
+    }
+  }
 }
