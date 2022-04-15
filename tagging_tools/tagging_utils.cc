@@ -126,4 +126,12 @@ std::vector<std::pair<uint64_t, uint64_t>>* RangeMap::get_ranges(const std::stri
   return ranges;
 }
 
+std::vector<range_t>::iterator RangeMap::begin() {
+  return range_map.begin();
+}
+
+std::vector<range_t>::iterator RangeMap::end() {
+  return range_map.end();
+}
+
 } // namespace policy_engine
