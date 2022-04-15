@@ -1,6 +1,7 @@
 #include <array>
-#include <gflags/gflags.h>
 #include <cstdlib>
+#include <gflags/gflags.h>
+#include <iostream>
 #include <string>
 #include <unistd.h>
 
@@ -46,4 +47,10 @@ int main(int argc, char* argv[]) {
     std::printf("Missing binary to tag!\n");
     exit(-1);
   }
+
+  std::string asm_file_name;
+  if (FLAGS_tag_file.find(".taginfo") != std::string::npos)
+    asm_file_name = FLAGS_tag_file.replace(FLAGS_tag_file.find(".taginfo"), 8, ".text");
+  else
+    asm_file_name = FLAGS_tag_file;
 }
