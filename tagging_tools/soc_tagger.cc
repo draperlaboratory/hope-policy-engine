@@ -8,7 +8,7 @@
 
 namespace policy_engine {
 
-void generate_soc_range(std::string soc_file, RangeFile& range_file, YAML::Node policy_inits) {
+void generate_soc_ranges(std::string soc_file, RangeFile& range_file, YAML::Node policy_inits) {
   YAML::Node soc_cfg = YAML::LoadFile(soc_file);
 
   std::map<std::string, std::pair<uint64_t, uint64_t>> soc_ranges;
