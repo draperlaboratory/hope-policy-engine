@@ -46,7 +46,7 @@ int generate_tag_array(const std::string& elfname, RangeFile& range_file, const 
   std::string elfname_policy = elfname + "-" + policy_name;
   std::string base_command = tool_prefix + "objcopy --target=" + bfd_target;
   if (objdump.find(".tag_array") != std::string::npos)
-    base_command += " --update-section .tag_array=" + tag_array_filename;
+    base_command += " --update-section .tag_array=" + tag_array_filename + " ";
   else
     base_command += " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data ";
   base_command += elfname + " " + elfname_policy;
