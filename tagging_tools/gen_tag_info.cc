@@ -14,6 +14,7 @@
 #include "elf_loader.h"
 #include "elf_section_tagger.h"
 #include "llvm_metadata_tagger.h"
+#include "md_asm_ann.h"
 #include "md_header.h"
 #include "md_index.h"
 #include "md_range.h"
@@ -41,7 +42,6 @@ DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
-  std::string md_asm_ann = "md_asm_ann";
   std::string md_embed = "md_embed";
   std::string md_entity = "md_entity";
 
@@ -118,7 +118,6 @@ int main(int argc, char* argv[]) {
   }
 
   if (FLAGS_arch == "rv64")
-    md_asm_ann += "64";
     md_embed += "64";
     md_entity += "64";
   
@@ -163,11 +162,9 @@ int main(int argc, char* argv[]) {
     exit(llvm_result);
   }
 
-  std::string asm_ann_cmd = md_asm_ann + " " + FLAGS_policy_dir + " " + FLAGS_tag_file + " " + asm_file_name;
-  std::printf("%s\n", asm_ann_cmd.c_str());
-  int asm_ann_result = pclose(popen(asm_ann_cmd.c_str(), "r"));
+  int asm_ann_result = policy_engine::md_asm_ann(FLAGS_policy_dir, FLAGS_tag_file, asm_file_name);
   if (asm_ann_result != 0) {
-    std::printf("md_asm_ann failed\n");
+    err.error("md_asm_ann failed");
     exit(asm_ann_result);
   }
 
