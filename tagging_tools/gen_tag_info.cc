@@ -16,6 +16,7 @@
 #include "llvm_metadata_tagger.h"
 #include "md_header.h"
 #include "md_index.h"
+#include "md_range.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
 #include "tag_elf_file.h"
@@ -40,7 +41,6 @@ DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
-  std::string md_range = "md_range";
   std::string md_code = "md_code";
   std::string md_asm_ann = "md_asm_ann";
   std::string md_embed = "md_embed";
@@ -109,23 +109,20 @@ int main(int argc, char* argv[]) {
       std::printf("Couldn't add .tag_array to binary\n");
   }
   range_file.finish();
-
-  if (FLAGS_arch == "rv64")
-    md_range += "64";
-    md_code += "64";
-    md_asm_ann += "64";
-    md_embed += "64";
-    md_entity += "64";
   
-  std::string range_cmd = md_range + " " + FLAGS_policy_dir + " " + range_file.name + " " + FLAGS_tag_file;
-  std::printf("%s\n", range_cmd.c_str());
-  int range_result = pclose(popen(range_cmd.c_str(), "r"));
+  int range_result = policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file);
   if (range_result != 0) {
-    std::printf("md_range failed\n");
+    err.error("md_range failed");
     exit(range_result);
   }
 
   }
+
+  if (FLAGS_arch == "rv64")
+    md_code += "64";
+    md_asm_ann += "64";
+    md_embed += "64";
+    md_entity += "64";
   
   std::unique_ptr<FILE, decltype(&fclose)> elf_file_post(fopen(FLAGS_bin.c_str(), "r"), fclose);
   policy_engine::FILE_reader_t reader_post(elf_file_post.get());
