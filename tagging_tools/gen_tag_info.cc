@@ -41,7 +41,6 @@ DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
-  std::string md_code = "md_code";
   std::string md_asm_ann = "md_asm_ann";
   std::string md_embed = "md_embed";
   std::string md_entity = "md_entity";
@@ -119,7 +118,6 @@ int main(int argc, char* argv[]) {
   }
 
   if (FLAGS_arch == "rv64")
-    md_code += "64";
     md_asm_ann += "64";
     md_embed += "64";
     md_entity += "64";
@@ -129,7 +127,7 @@ int main(int argc, char* argv[]) {
   policy_engine::elf_image_t elf_image_post(&reader_post, &err);
   elf_image_post.load();
 
-  tag_op_codes(FLAGS_policy_dir, md_code, elf_image_post, FLAGS_tag_file);
+  tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file);
 
   std::string entities_flat = "";
   if (FLAGS_entities)

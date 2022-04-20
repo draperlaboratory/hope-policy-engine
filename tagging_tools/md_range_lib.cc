@@ -36,16 +36,7 @@
 
 namespace policy_engine {
 
-metadata_factory_t *md_factory;
-
-void init(const std::string& policy_dir) {
-  try {
-    md_factory = new metadata_factory_t(policy_dir);
-    init_metadata_renderer(md_factory);
-  } catch (exception_t &e) {
-    std::printf("exception: %s\n", e.what());
-  }
-}
+metadata_factory_t* md_factory;
 
 bool apply_tag(metadata_memory_map_t *map, address_t start, address_t end, const char *tag_name) {
   metadata_t const *md = md_factory->lookup_metadata(tag_name);
@@ -88,7 +79,7 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
 }
 
 int md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name) {
-  init(policy_dir);
+  md_factory = init(policy_dir);
 
   metadata_memory_map_t map;
 
@@ -100,6 +91,7 @@ int md_range(const std::string& policy_dir, const std::string& range_file_name, 
     return 1;
   }
 
+  free(md_factory);
   return 0;
 }
 

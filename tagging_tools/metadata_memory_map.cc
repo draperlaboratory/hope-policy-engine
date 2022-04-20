@@ -27,6 +27,7 @@
 #include <string>
 #include "metadata_memory_map.h"
 #include "metadata_factory.h"
+#include "validator_exception.h"
 
 namespace policy_engine {
 
@@ -34,6 +35,16 @@ static metadata_factory_t *factory;
 
 void init_metadata_renderer(metadata_factory_t *md_factory) {
   factory = md_factory;
+}
+
+metadata_factory_t* init(const std::string& policy_dir) {
+  try {
+    metadata_factory_t* md_factory = new metadata_factory_t(policy_dir);
+    init_metadata_renderer(md_factory);
+    return md_factory;
+  } catch (exception_t &e) {
+    std::printf("exception: %s\n", e.what());
+  }
 }
 
 std::string render_metadata(metadata_t const *metadata) {
