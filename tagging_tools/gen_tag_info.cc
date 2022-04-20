@@ -13,6 +13,7 @@
 #include "elf_loader.h"
 #include "elf_section_tagger.h"
 #include "llvm_metadata_tagger.h"
+#include "md_index.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
 #include "tag_elf_file.h"
@@ -43,7 +44,6 @@ int main(int argc, char* argv[]) {
   std::string md_embed = "md_embed";
   std::string md_entity = "md_entity";
   std::string md_header = "md_header";
-  std::string md_index = "md_index";
 
   gflags::SetUsageMessage("Generate tag ranges file from ELF binary");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -116,7 +116,6 @@ int main(int argc, char* argv[]) {
     md_embed += "64";
     md_entity += "64";
     md_header += "64";
-    md_index += "64";
   
   std::string range_cmd = md_range + " " + FLAGS_policy_dir + " " + range_file.name + " " + FLAGS_tag_file;
   std::printf("%s\n", range_cmd.c_str());
@@ -178,14 +177,12 @@ int main(int argc, char* argv[]) {
   }
 
   if (!FLAGS_soc_file.empty()) {
-    std::string index_cmd = md_index + " " + FLAGS_tag_file + " " + FLAGS_policy_dir;
-    std::printf("%s\n", index_cmd.c_str());
-    exit(0);
-    int index_result = pclose(popen(index_cmd.c_str(), "r"));
+    int index_result = md_index(FLAGS_tag_file, FLAGS_policy_dir, err);
     if (index_result != 0) {
-      std::printf("md_index failed\n");
+      err.error("md_index failed");
       exit(index_result);
     }
+
     std::string soc_exclude_flat;
     for (const std::string& exclude : soc_exclude)
       soc_exclude_flat += " " + exclude;
