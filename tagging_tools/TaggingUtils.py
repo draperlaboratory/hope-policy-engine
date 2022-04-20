@@ -3,7 +3,7 @@ import tempfile
 
 class RangeFile:
      def __init__(self):
-          self.file = tempfile.NamedTemporaryFile(mode='a', delete = False, prefix='ranges_');
+          self.file = open("ranges", 'w')
      def write_range(self, start, end, tag):
           self.file.write('0x%016x 0x%016x %s\n' % (start, end, tag))
      def finish(self):
@@ -13,12 +13,7 @@ class RangeFile:
                raise Exception('file does not exist')
           return self.file.name
      def done(self):
-          if self.file is not None:
-               try:
-                    os.remove(self.file.name)
-                    self.file = None
-               except:
-                    pass
+          pass
      def print(self):
           print(self.file.name)
           with open(self.file.name, 'r') as f:

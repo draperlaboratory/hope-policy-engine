@@ -1,6 +1,7 @@
 #include <array>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <gflags/gflags.h>
 #include <iostream>
 #include <memory>
@@ -68,6 +69,8 @@ int main(int argc, char* argv[]) {
   } else {
     asm_file_name = FLAGS_tag_file;
   }
+
+  std::string policy_base = FLAGS_policy_dir.substr(FLAGS_policy_dir.find_last_of("/") + 1);
   
   struct stat tag_buf;
   if (stat(FLAGS_tag_file.c_str(), &tag_buf) == 0) {
@@ -83,22 +86,24 @@ int main(int argc, char* argv[]) {
   YAML::Node policy_inits = YAML::LoadFile(FLAGS_policy_dir + "/policy_init.yml");
   YAML::Node policy_metas = YAML::LoadFile(FLAGS_policy_dir + "/policy_meta.yml");
 
+  {
+
   std::unique_ptr<FILE, decltype(&fclose)> elf_file(fopen(FLAGS_bin.c_str(), "r"), fclose);
   policy_engine::FILE_reader_t reader(elf_file.get());
   policy_engine::elf_image_t elf_image(&reader, &err);
+  elf_image.load();
 
   policy_engine::RangeFile range_file;
   policy_engine::LLVMMetadataTagger llvm_tagger;
 
   if (policy_inits["Require"]) {
-    if (policy_inits["Require"].as<std::string>().find("elf") != std::string::npos)
+    if (policy_inits["Require"]["elf"])
       policy_engine::generate_rwx_ranges(elf_image, range_file);
-    if (policy_inits["Require"].as<std::string>().find("llvm") != std::string::npos)
+    if (policy_inits["Require"]["llvm"])
       policy_engine::RangeMap range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
-    if (policy_inits["Require"].as<std::string>().find("SOC") != std::string::npos && !FLAGS_soc_file.empty())
+    if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
       policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits);
-    size_t last = FLAGS_policy_dir.find_last_of("/");
-    int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, FLAGS_policy_dir.substr(0, last), policy_metas, FLAGS_arch == "rv64");
+    int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
     if (rc != 0)
       std::printf("Couldn't add .tag_array to binary\n");
   }
@@ -113,53 +118,80 @@ int main(int argc, char* argv[]) {
     md_header += "64";
     md_index += "64";
   
-  int range_result = pclose(popen((md_range + " " + FLAGS_policy_dir + " " + range_file.name() + " " + FLAGS_tag_file).c_str(), "r"));
-  if (range_result != 0)
+  std::string range_cmd = md_range + " " + FLAGS_policy_dir + " " + range_file.name + " " + FLAGS_tag_file;
+  std::printf("%s\n", range_cmd.c_str());
+  int range_result = pclose(popen(range_cmd.c_str(), "r"));
+  if (range_result != 0) {
     std::printf("md_range failed\n");
     exit(range_result);
+  }
+
+  }
   
   std::unique_ptr<FILE, decltype(&fclose)> elf_file_post(fopen(FLAGS_bin.c_str(), "r"), fclose);
   policy_engine::FILE_reader_t reader_post(elf_file_post.get());
-  policy_engine::elf_image_t elf_image_post(&reader, &err);
+  policy_engine::elf_image_t elf_image_post(&reader_post, &err);
+  elf_image_post.load();
 
   tag_op_codes(FLAGS_policy_dir, md_code, elf_image_post, FLAGS_tag_file);
+
   std::string entities_flat = "";
   if (FLAGS_entities)
-    for (int i = 0; i < argc; i++)
+    for (int i = 1; i < argc; i++)
       entities_flat += std::string(" ") + argv[i];
-  int entity_result = pclose(popen((md_entity + " " + FLAGS_policy_dir + " " + FLAGS_bin + FLAGS_tag_file + entities_flat).c_str(), "r"));
+  std::string entity_cmd = md_entity + " " + FLAGS_policy_dir + " " + FLAGS_bin + " " + FLAGS_tag_file + entities_flat;
+  std::printf("%s\n", entity_cmd.c_str());
+  int entity_result = pclose(popen(entity_cmd.c_str(), "r"));
   if (entity_result != 0) {
     std::printf("md_entity failed\n");
+    exit(entity_result);
   }
 
-  std::FILE* asm_file = fopen(asm_file_name.c_str(), "w");
-  std::FILE* llvm_proc = popen((get_isp_prefix() + "/bin/llvm-objdump -dS " + FLAGS_bin).c_str(), "r");
+  std::string embed_cmd = md_embed + " " + FLAGS_tag_file + " " + FLAGS_policy_dir + " " + FLAGS_bin + "-" + policy_base + entities_flat;
+  std::printf("%s\n", embed_cmd.c_str());
+  int embed_result = pclose(popen(embed_cmd.c_str(), "r"));
+  if (embed_result != 0)
+    std::printf("md_embed failed\n");
+
+  std::ofstream asm_file(asm_file_name);
+  std::string llvm_od_cmd = get_isp_prefix() + "/bin/llvm-objdump -dS " + FLAGS_bin;
+  std::printf("%s\n", llvm_od_cmd.c_str());
+  std::FILE* llvm_proc = popen(llvm_od_cmd.c_str(), "r");
   char llvm_buf[128];
+  std::string llvm_od_out;
   while (std::fgets(llvm_buf, sizeof(llvm_buf), llvm_proc) != nullptr)
-    fwrite(llvm_buf, sizeof(llvm_buf), 1, asm_file);
+    llvm_od_out += llvm_buf;
+  asm_file << llvm_od_out;
   int llvm_result = pclose(llvm_proc);
+  asm_file.close();
   if (llvm_result != 0) {
     std::printf("objdump failed\n");
     exit(llvm_result);
   }
-  fclose(asm_file);
 
-  int asm_ann_result = pclose(popen((md_asm_ann + " " + FLAGS_policy_dir + " " + FLAGS_tag_file + " " + asm_file_name).c_str(), "r"));
+  std::string asm_ann_cmd = md_asm_ann + " " + FLAGS_policy_dir + " " + FLAGS_tag_file + " " + asm_file_name;
+  std::printf("%s\n", asm_ann_cmd.c_str());
+  int asm_ann_result = pclose(popen(asm_ann_cmd.c_str(), "r"));
   if (asm_ann_result != 0) {
     std::printf("md_asm_ann failed\n");
     exit(asm_ann_result);
   }
 
   if (!FLAGS_soc_file.empty()) {
-    int index_result = pclose(popen((md_index + " " + FLAGS_tag_file + " " + FLAGS_policy_dir).c_str(), "r"));
+    std::string index_cmd = md_index + " " + FLAGS_tag_file + " " + FLAGS_policy_dir;
+    std::printf("%s\n", index_cmd.c_str());
+    exit(0);
+    int index_result = pclose(popen(index_cmd.c_str(), "r"));
     if (index_result != 0) {
-      std::printf("md_index failed");
+      std::printf("md_index failed\n");
       exit(index_result);
     }
     std::string soc_exclude_flat;
     for (const std::string& exclude : soc_exclude)
       soc_exclude_flat += " " + exclude;
-    int header_result = pclose(popen((md_header + " " + FLAGS_bin + " " + FLAGS_soc_file + " " + FLAGS_tag_file + " " + FLAGS_policy_dir + soc_exclude_flat).c_str(), "r"));
+    std::string header_cmd = md_header + " " + FLAGS_bin + " " + FLAGS_soc_file + " " + FLAGS_tag_file + " " + FLAGS_policy_dir + soc_exclude_flat;
+    std::printf("%s\n", header_cmd.c_str());
+    int header_result = pclose(popen(header_cmd.c_str(), "r"));
     if (header_result != 0) {
       std::printf("md_header failed\n");
       exit(header_result);

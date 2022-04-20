@@ -116,6 +116,7 @@ class LLVMMetadataTagger:
                 end = round_up(end, self.PTR_SIZE)
                 if ((flags & (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_WRITE | SH_FLAGS.SHF_EXECINSTR)) ==
                     (SH_FLAGS.SHF_ALLOC | SH_FLAGS.SHF_EXECINSTR)):
+                    print("saw code range = " + hex(start) + ":" + hex(end))
                     range_map.add_range(start, end)
 
     def check_and_write_range(self, range_file, start, end, tag_specifier,
@@ -123,6 +124,7 @@ class LLVMMetadataTagger:
         for policy, tags in self.policy_map.items():
             if self.policy_needs_tag(policy_inits, tags['name']):
                 if tags['tag_specifier'] == tag_specifier:
+                    print("saw tag " + tags['name'] + " = " + hex(start) + ":" + hex(end))
                     range_file.write_range(start, end, tags['name'])
                     range_map.add_range(start, end, tags['name'])
 
@@ -145,8 +147,7 @@ class LLVMMetadataTagger:
             elif (byte == self.metadata_ops['DMD_TAG_ADDRESS_OP']):
                 address = bytes_to_uint(it, self.PTR_SIZE) + base_address
                 tag_specifier = bytes_to_uint(it, 1)
-                logging.debug("tag is " + hex(tag_specifier) +
-                            " at address " + hex(address) + '\n')
+                print("tag is " + hex(tag_specifier) + " at address " + hex(address) + '\n')
 
                 self.check_and_write_range(range_file, address, address + self.PTR_SIZE,
                                     tag_specifier, policy_inits, range_map)
@@ -155,9 +156,7 @@ class LLVMMetadataTagger:
                 start_address = bytes_to_uint(it, self.PTR_SIZE) + base_address
                 end_address = bytes_to_uint(it, self.PTR_SIZE) + base_address
                 tag_specifier = bytes_to_uint(it, 1)
-                logging.debug("tag is " + hex(tag_specifier) +
-                            " for address range " +
-                            hex(start_address) + ":" + hex(end_address) + '\n')
+                print("tag is " + hex(tag_specifier) + " for address range " + hex(start_address) + ":" + hex(end_address) + '\n')
 
                 self.check_and_write_range(range_file, start_address, end_address,
                                     tag_specifier, policy_inits, range_map)
@@ -185,14 +184,12 @@ class LLVMMetadataTagger:
                 sys.exit(-1)
             elif (byte == self.metadata_ops['DMD_END_BLOCK']):
                 end_address = bytes_to_uint(it, self.PTR_SIZE)
-                logging.debug("saw end block tag range = " + hex(base_address) +
-                            ":" + hex(base_address + end_address))
+                print("saw end block tag range = " + hex(base_address) + ":" + hex(base_address + end_address))
                 range_map.add_range(base_address, base_address + end_address, "COMPILER_GENERATED")
             elif (byte == self.metadata_ops['DMD_FUNCTION_RANGE']):
                 start_address = bytes_to_uint(it, self.PTR_SIZE) + base_address
                 end_address = bytes_to_uint(it, self.PTR_SIZE) + base_address
-                logging.debug("saw function range = " + hex(start_address) +
-                            ":" + hex(end_address))
+                print("saw function range = " + hex(start_address) + ":" + hex(end_address))
                 range_map.add_range(start_address, end_address, "COMPILER_GENERATED")
             else:
                 logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
@@ -208,6 +205,7 @@ class LLVMMetadataTagger:
                 for s in range(start, end, self.PTR_SIZE):
                     e = s + self.PTR_SIZE
                     if (s, e, tags) not in range_map:
+                        print("llvm.NoCFI range = " + hex(s) + ":" + hex(e))
                         range_file.write_range(s, e, "llvm.NoCFI")
 
         return range_map

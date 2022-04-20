@@ -7,11 +7,13 @@ def tag_op_codes(policy_dir, md_code, ef, taginfo_file_name):
      for s in ef.iter_sections():
           if s['sh_flags'] & SH_FLAGS.SHF_EXECINSTR:
                section_addr_string = '0x{:08x}'.format(s['sh_addr'])
-               proc = subprocess.Popen([md_code,
+               args = [md_code,
                                         policy_dir,
                                         #base_address_string,
                                         section_addr_string,
-                                        taginfo_file_name],
+                                        taginfo_file_name]
+               print(' '.join(args))
+               proc = subprocess.Popen(args,
                                        stdin=subprocess.PIPE,
                )
                proc.communicate(s.data())

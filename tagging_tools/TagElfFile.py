@@ -7,9 +7,10 @@ import tempfile
 
 def generate_tag_array(elfname, range_file, policy_name, policy_meta_info, rv64):
 
-    tag_array_file = tempfile.NamedTemporaryFile(mode='w+b', delete=False, prefix='tag_array_')
+    tag_array_file = open("tag_array", "w+b")
     tag_array_filename = tag_array_file.name
     length = policy_meta_info.get('MaxBit')
+    print("MaxBit = " + str(length))
 
     if rv64:
         bytes_per_address = 8 # 64/8
@@ -24,22 +25,24 @@ def generate_tag_array(elfname, range_file, policy_name, policy_meta_info, rv64)
     tag_array_file.write(bytearray(tag_array_bytes))
     tag_array_file.close()
 
-    pout = subprocess.check_output([tool_prefix + 'objdump', '-h', elfname])
+    args = [tool_prefix + 'objdump', '-h', elfname]
+    print(' '.join(args))
+    pout = subprocess.check_output(args)
 
     if ".tag_array" in str(pout): # section exists, update the elf
         base_command = tool_prefix + "objcopy --target=" + bfd_target + " --update-section .tag_array=" + tag_array_filename + " " + elfname + " " + elfname + "-" + policy_name
     else:
         base_command = tool_prefix + "objcopy --target=" + bfd_target + " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data " + elfname + " " + elfname + "-" + policy_name
-
+    print(base_command)
     presult = subprocess.call(base_command.split(' '))
-
-    os.remove(tag_array_filename)
 
     if presult != 0:
         return presult
 
     start_addr = ""
-    pout = subprocess.check_output([tool_prefix + 'objdump', '--target', bfd_target ,'-h', elfname+ "-" + policy_name])
+    objdump_args = [tool_prefix + 'objdump', '--target', bfd_target ,'-h', elfname+ "-" + policy_name]
+    print(' '.join(objdump_args))
+    pout = subprocess.check_output(objdump_args)
 
     for line in str(pout).split('\\n'):
         if '.tag_array' in line:

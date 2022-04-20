@@ -2,6 +2,8 @@
 #define __TAGGING_TOOLS_H__
 
 #include <cstdint>
+#include <cstdio>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -15,25 +17,21 @@ struct range_t {
 
 class RangeFile {
 private:
-  int _fd;
-  std::string _name;
+  std::ofstream file;
 public:
-  RangeFile() : _name("/tmp/range_XXXXXX") {
-    _fd = mkstemp((char*)_name.data());
+  RangeFile() : name("ranges") {
+    file = std::ofstream(name);
   }
 
   size_t write_range(uint64_t start, uint64_t end, const std::string& tag);
   void finish();
-  std::string name();
-  int fd();
+  const std::string name;
   void done();
   void print();
 
   ~RangeFile() {
-    if (_fd >= 0) {
-      done();
-      finish();
-    }
+    if (file.is_open())
+      file.close();
   }
 };
 

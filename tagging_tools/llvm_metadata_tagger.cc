@@ -106,8 +106,10 @@ void LLVMMetadataTagger::add_code_section_ranges(const elf_image_t& ef, RangeMap
     if (ef.get_shdrs()[i].sh_flags & SHF_ALLOC) {
       uint64_t start = ef.get_shdrs()[i].sh_addr;
       uint64_t end = round_up(start + ef.get_shdrs()[i].sh_size, PTR_SIZE);
-      if ((ef.get_shdrs()[i].sh_flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR))
+      if ((ef.get_shdrs()[i].sh_flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR)) {
+        std::printf("saw code range = %lx:%lx\n", start, end);
         range_map.add_range(start, end);
+      }
     }
   }
 }
@@ -116,6 +118,7 @@ void LLVMMetadataTagger::check_and_write_range(RangeFile& range_file, uint64_t s
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
+        std::printf("saw tag %s = %lx:%lx\n", tags.at("name").c_str(), start, end);
         range_file.write_range(start, end, tags.at("name"));
         range_map.add_range(start, end, tags.at("name"));
       }
@@ -201,8 +204,10 @@ RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, Range
     for (auto& [ start, end, tags ] : code_range_map) {
       for (uint64_t s = start; s < end; s += PTR_SIZE) {
         uint64_t e = s + PTR_SIZE;
-        if (!range_map.contains(range_t{s, e, tags}))
+        if (!range_map.contains(range_t{s, e, tags})) {
+          std::printf("llvm.NoCFI range = %lx:%lx\n", s, e);
           range_file.write_range(s, e, "llvm.NoCFI");
+        }
       }
     }
   }
