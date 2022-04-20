@@ -16,6 +16,7 @@
 #include "llvm_metadata_tagger.h"
 #include "md_asm_ann.h"
 #include "md_embed.h"
+#include "md_entity.h"
 #include "md_header.h"
 #include "md_index.h"
 #include "md_range.h"
@@ -43,8 +44,6 @@ DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
-  std::string md_entity = "md_entity";
-
   gflags::SetUsageMessage("Generate tag ranges file from ELF binary");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   char** args_entities = argv;
@@ -116,9 +115,6 @@ int main(int argc, char* argv[]) {
   }
 
   }
-
-  if (FLAGS_arch == "rv64")
-    md_entity += "64";
   
   std::unique_ptr<FILE, decltype(&fclose)> elf_file_post(fopen(FLAGS_bin.c_str(), "r"), fclose);
   policy_engine::FILE_reader_t reader_post(elf_file_post.get());
@@ -127,13 +123,8 @@ int main(int argc, char* argv[]) {
 
   tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file);
 
-  std::string entities_flat = "";
-  if (FLAGS_entities)
-    for (int i = 1; i < argc; i++)
-      entities_flat += std::string(" ") + argv[i];
-  std::string entity_cmd = md_entity + " " + FLAGS_policy_dir + " " + FLAGS_bin + " " + FLAGS_tag_file + entities_flat;
-  std::printf("%s\n", entity_cmd.c_str());
-  int entity_result = pclose(popen(entity_cmd.c_str(), "r"));
+  std::vector<std::string> entities(&argv[1], &argv[argc - 1]);
+  int entity_result = policy_engine::md_entity(FLAGS_policy_dir, FLAGS_bin, FLAGS_tag_file, entities, err);
   if (entity_result != 0) {
     std::printf("md_entity failed\n");
     exit(entity_result);
