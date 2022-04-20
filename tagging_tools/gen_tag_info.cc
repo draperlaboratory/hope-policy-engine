@@ -4,6 +4,7 @@
 #include <fstream>
 #include <gflags/gflags.h>
 #include <iostream>
+#include <list>
 #include <memory>
 #include <string>
 #include <sys/stat.h>
@@ -13,13 +14,14 @@
 #include "elf_loader.h"
 #include "elf_section_tagger.h"
 #include "llvm_metadata_tagger.h"
+#include "md_header.h"
 #include "md_index.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
 #include "tag_elf_file.h"
 #include "tagging_utils.h"
 
-std::array<std::string, 2> soc_exclude = {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"};
+std::list<std::string> soc_exclude = {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"};
 
 std::string get_isp_prefix() {
   if (std::getenv("ISP_PREFIX")) {
@@ -43,7 +45,6 @@ int main(int argc, char* argv[]) {
   std::string md_asm_ann = "md_asm_ann";
   std::string md_embed = "md_embed";
   std::string md_entity = "md_entity";
-  std::string md_header = "md_header";
 
   gflags::SetUsageMessage("Generate tag ranges file from ELF binary");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -115,7 +116,6 @@ int main(int argc, char* argv[]) {
     md_asm_ann += "64";
     md_embed += "64";
     md_entity += "64";
-    md_header += "64";
   
   std::string range_cmd = md_range + " " + FLAGS_policy_dir + " " + range_file.name + " " + FLAGS_tag_file;
   std::printf("%s\n", range_cmd.c_str());
@@ -177,21 +177,18 @@ int main(int argc, char* argv[]) {
   }
 
   if (!FLAGS_soc_file.empty()) {
-    int index_result = md_index(FLAGS_tag_file, FLAGS_policy_dir, err);
+    int index_result = policy_engine::md_index(FLAGS_tag_file, FLAGS_policy_dir, err);
     if (index_result != 0) {
       err.error("md_index failed");
       exit(index_result);
     }
 
-    std::string soc_exclude_flat;
-    for (const std::string& exclude : soc_exclude)
-      soc_exclude_flat += " " + exclude;
-    std::string header_cmd = md_header + " " + FLAGS_bin + " " + FLAGS_soc_file + " " + FLAGS_tag_file + " " + FLAGS_policy_dir + soc_exclude_flat;
-    std::printf("%s\n", header_cmd.c_str());
-    int header_result = pclose(popen(header_cmd.c_str(), "r"));
+    int header_result = policy_engine::md_header(FLAGS_bin, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
     if (header_result != 0) {
-      std::printf("md_header failed\n");
+      err.error("md_header failed");
       exit(header_result);
     }
   }
+
+  return 0;
 }
