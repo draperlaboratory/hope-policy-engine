@@ -24,13 +24,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <string>
 #include "metadata_memory_map.h"
-
 #include "metadata_factory.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
-// for debugging only
 static metadata_factory_t *factory;
 
 void init_metadata_renderer(metadata_factory_t *md_factory) {
@@ -38,24 +37,21 @@ void init_metadata_renderer(metadata_factory_t *md_factory) {
 }
 
 std::string render_metadata(metadata_t const *metadata) {
-  if (factory)
+  if (factory != nullptr)
     return factory->render(metadata);
   return "<no renderer>";
 }
   
 void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
-
-  //  printf("(0x%x, 0x%x): %s\n", start, end, metadata->tagstring().c_str());
-  
   /* this is a meaningless call */
-  if ( start >= end )
+  if (start >= end)
     return;
   
   /* find the right mr */
-  for ( auto &mr : mrs ) {
+  for (auto &mr : mrs) {
 
     /* check whether the region is adjacent or contained within */
-    if ( mr.contains(start) || mr.contains(end) ) {
+    if (mr.contains(start) || mr.contains(end)) {
       mr.add_range(start, end, metadata);
       return;
     }
@@ -67,9 +63,8 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
 
   /* put it in the vector at the right location */
   int i;
-  for ( i = 0; i < len; i++ ) {
-    if ( end < mrs[i].range.start ) {
-
+  for (i = 0; i < len; i++) {
+    if (end < mrs[i].range.start) {
       /* insert in the correct place */
       mrs.insert(mrs.begin()+i, mr);
 
@@ -86,3 +81,4 @@ void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t
   return;
 }
 
+}
