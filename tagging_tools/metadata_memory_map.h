@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <vector>
 
-#include "platform_types.h"
 #include "metadata.h"
 #include "metadata_cache.h"
 #include "metadata_factory.h"

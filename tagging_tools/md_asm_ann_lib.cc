@@ -55,10 +55,10 @@ class annotater_t : public asm_annotater_t {
   public:
   annotater_t(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, std::istream& in, std::ostream& out) :
     asm_annotater_t(in, out), md_factory(md_factory), md_map(md_map) { }
-  std::string filter(address_t addr, std::string line);
+  std::string filter(uint64_t addr, std::string line);
 };
 
-std::string annotater_t::filter(address_t addr, std::string line) {
+std::string annotater_t::filter(uint64_t addr, std::string line) {
   metadata_t const* metadata = md_map.get_metadata(addr);
   if (!metadata)
     return line;
