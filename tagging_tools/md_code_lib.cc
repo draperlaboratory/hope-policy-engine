@@ -36,7 +36,7 @@
 
 namespace policy_engine {
 
-int md_code(const std::string& policy_dir, address_t code_address, const std::string& file_name, uint8_t* bytes, int n) {
+int md_code(const std::string& policy_dir, uint64_t code_address, const std::string& file_name, uint8_t* bytes, int n) {
   try {
     metadata_factory_t* md_factory = init(policy_dir);
     metadata_memory_map_t map;
@@ -57,7 +57,7 @@ int md_code(const std::string& policy_dir, address_t code_address, const std::st
       metadata_t const* metadata = md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
 
       if (metadata == nullptr) {
-        std::fprintf(stderr, "0x%" PRIaddr_pad ": 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
+        std::fprintf(stderr, "0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
       } else {
         map.add_range(code_address, code_address + 4, metadata);
       }

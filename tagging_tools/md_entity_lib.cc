@@ -121,7 +121,7 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
         symbol_t* sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
         if (sym) {
           // go ahead and mark it
-          address_t end_addr;
+          uint64_t end_addr;
           if (sb->is_singularity)
             end_addr = sym->get_address() + PLATFORM_WORD_SIZE;
           else
