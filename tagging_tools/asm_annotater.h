@@ -27,10 +27,9 @@
 #ifndef ASM_ANNOTATER_H
 #define ASM_ANNOTATER_H
 
+#include <cstdint>
 #include <istream>
 #include <string>
-
-#include "platform_types.h"
 
 namespace policy_engine {
 
@@ -73,7 +72,7 @@ class asm_annotater_t {
     The <code>addr</code> parameter will be set to the value of the hex number preceding the colon.
     The <code>line</code> parameter will contain the entire input line.
    */
-  virtual std::string filter(policy_engine::address_t addr, std::string line) { return line; }
+  virtual std::string filter(uint64_t addr, std::string line) { return line; }
 
   /**
      Implement this filter to be called for all other lines besides instruction lines.  E.g.:

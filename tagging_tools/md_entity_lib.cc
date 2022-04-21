@@ -89,10 +89,8 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
   std::string entity_yaml = policy_dir + "/policy_entities.yml";
 
   try {
-    std::FILE* elf_in;
-
     metadata_tool_t md_tool(policy_dir.c_str());
-    elf_in = fopen(elf_file_name.c_str(), "rb");
+    std::FILE* elf_in = fopen(elf_file_name.c_str(), "rb");
     FILE_reader_t reader(elf_in);
     elf_image_t img(&reader, &err);
     symbol_table_t symtab;
@@ -123,7 +121,7 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
           // go ahead and mark it
           uint64_t end_addr;
           if (sb->is_singularity)
-            end_addr = sym->get_address() + PLATFORM_WORD_SIZE;
+            end_addr = sym->get_address() + (img.is_64bit() ? 8 : 4);
           else
             end_addr = sym->get_address() + sym->get_size(); // TODO: align to platform word boundary?
           if (!md_tool.apply_tag(sym->get_address(), end_addr, sb->entity_name.c_str())) {

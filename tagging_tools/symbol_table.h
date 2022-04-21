@@ -27,12 +27,10 @@
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
-#include <map>
-#include <list>
-#include <string>
 #include <algorithm>
-
-#include "platform_types.h"
+#include <list>
+#include <map>
+#include <string>
 
 namespace policy_engine {
 
@@ -45,11 +43,11 @@ class symbol_t {
     CODE, DATA
   };
   symbol_t(const char *name) : name(name), addr(0), size(0), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, address_t addr) : name(name), addr(addr), size(0), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, address_t addr, size_t size) : name(name), addr(addr), size(size), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, address_t addr, size_t size, visibility_t visibility, kind_t kind) :
+  symbol_t(const char *name, uint64_t addr) : name(name), addr(addr), size(0), visibility(PUBLIC), kind(CODE) { }
+  symbol_t(const char *name, uint64_t addr, size_t size) : name(name), addr(addr), size(size), visibility(PUBLIC), kind(CODE) { }
+  symbol_t(const char *name, uint64_t addr, size_t size, visibility_t visibility, kind_t kind) :
   name(name), addr(addr), size(size), visibility(visibility), kind(kind) { }
-  address_t get_address() const { return addr; }
+  uint64_t get_address() const { return addr; }
   size_t get_size() const { return size; }
   std::string get_name() const { return name; }
   visibility_t get_visibility() { return visibility; }
@@ -60,14 +58,14 @@ class symbol_t {
   private:
 
   std::string name;
-  address_t addr;
+  uint64_t addr;
   size_t size;
   visibility_t visibility;
   kind_t kind;
 };
 
 class symbol_table_t {
-  typedef std::map<address_t, symbol_t *> symbol_map_t;
+  typedef std::map<uint64_t, symbol_t *> symbol_map_t;
   symbol_map_t symbols;
   std::map<std::string, symbol_t *> symbols_by_name;
 
@@ -85,7 +83,7 @@ class symbol_table_t {
     return it->second;
   }
 
-  symbol_t *find_nearest_symbol(address_t addr) const {
+  symbol_t *find_nearest_symbol(uint64_t addr) const {
     auto low = symbols.lower_bound(addr);
     if (low == symbols.end())
       return nullptr;
@@ -95,7 +93,7 @@ class symbol_table_t {
     return low->second;
   }
 
-  symbol_t *find_next_symbol(address_t addr) const {
+  symbol_t *find_next_symbol(uint64_t addr) const {
     auto low = symbols.lower_bound(addr);
     if (low == symbols.end())
       return nullptr;
@@ -114,7 +112,7 @@ class symbol_table_t {
  
   static void next_nearest_symbol(symbol_list_t::const_iterator &iter,
 				  symbol_list_t::const_iterator const &end,
-				  address_t addr) {
+				  uint64_t addr) {
     while (iter != end && (*iter)->get_address() < addr) {
 //      printf("nns: 0x%x - %s\n", (*iter)->get_address(), (*iter)->name.c_str());
       iter++;

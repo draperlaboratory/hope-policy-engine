@@ -27,7 +27,7 @@
 #ifndef METADATA_TOOL_H
 #define METADATA_TOOL_H
 
-#include "platform_types.h"
+#include <cstdint>
 #include "metadata_cache.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
@@ -55,7 +55,7 @@ class metadata_tool_t {
   metadata_t const *lookup_metadata(std::string const &dotted_path) {
     return md_factory->lookup_metadata(dotted_path);
   }
-  bool apply_group_tag(address_t start, address_t end, const char *group,
+  bool apply_group_tag(uint64_t start, uint64_t end, const char *group,
                        int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3,
                        uint32_t rd, int32_t imm) {
     metadata_t const *metadata = md_factory->lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
@@ -64,14 +64,14 @@ class metadata_tool_t {
     md_map.add_range(start, end, metadata);
     return true;
   }
-  bool apply_tag(address_t start, address_t end, const char *tag_name) {
+  bool apply_tag(uint64_t start, uint64_t end, const char *tag_name) {
     metadata_t const *md = md_factory->lookup_metadata(tag_name);
     if (!md)
       return false;
     md_map.add_range(start, end, md);
     return true;
   }
-  void apply_tag(address_t start, address_t end, metadata_t const *metadata) {
+  void apply_tag(uint64_t start, uint64_t end, metadata_t const *metadata) {
     md_map.add_range(start, end, metadata);
   }
   bool load_tag_info(const char *tag_file_name) {

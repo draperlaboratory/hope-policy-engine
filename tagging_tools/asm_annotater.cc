@@ -24,11 +24,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <cstdint>
 #include <iostream>
-
 #include "asm_annotater.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
 void asm_annotater_t::execute() {
   std::string line;
@@ -36,16 +36,15 @@ void asm_annotater_t::execute() {
     bool stop = false;
     for (size_t i = 0; i < line.size() && !stop; i++) {
       if (!isspace(line[i])) {
-	if (!isxdigit(line[i])) {
-	  stop = true;
-         if (i > 0 && line[i] == ':' && !isspace(line[i-1])) {
-	    address_t addr;
-	    addr = std::stoul(line, nullptr, 16);
-	    output << filter(addr, line) << std::endl;
-	  } else {
-	    output << filter(line) << std::endl;
-	  }
-	}
+        if (!isxdigit(line[i])) {
+          stop = true;
+          if (i > 0 && line[i] == ':' && !isspace(line[i-1])) {
+            uint64_t addr = std::stoul(line, nullptr, 16);
+            output << filter(addr, line) << std::endl;
+          } else {
+            output << filter(line) << std::endl;
+          }
+        }
       }
     }
     // edge case - entire line was nothing but numbers (can this happen?), or empty (just a newline)
@@ -60,8 +59,6 @@ std::string asm_annotater_t::pad(std::string str, int width) {
   int len = 0;
   for (char c: str) {
     if (c == '\t') {
-//      res += "        ";
-//      len += 8;
       res += "    ";
       len += 4;
     } else {
@@ -76,16 +73,4 @@ std::string asm_annotater_t::pad(std::string str, int width) {
   return res;
 }
 
-#if 0
-class my_a : public asm_annotater_t {
-  public:
-  my_a(std::istream &in, std::ostream &out) : asm_annotater_t(in, out) { }
-  virtual std::string filter(address_t addr, std::string line) { return "ADDR " + line; }
-  virtual std::string filter(std::string line) { return "FOO " + line; }
-};
-
-int main() {
-  my_a an(std::cin, std::cout);
-  an.execute();
 }
-#endif
