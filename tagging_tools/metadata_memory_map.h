@@ -38,7 +38,7 @@
 namespace policy_engine {
   
 struct range_t {
-  address_t start, end;
+  uint64_t start, end;
   bool operator<(range_t other) const {
     return (start < other.start) ||
             (start == other.start && end < other.end);
@@ -66,15 +66,15 @@ class metadata_memory_map_t {
     const_iterator cbegin() { return mem.cbegin(); }
     const_iterator cend()   { return mem.cend(); }
 
-    address_t itr_to_addr(iterator itr) { return index_to_addr(itr - begin()); }
-    address_t itr_to_addr(const_iterator itr) { return index_to_addr(itr - cbegin()); }
-    address_t index_to_addr(size_t idx) { return range.start + (idx * stride); }
-    size_t addr_to_index(address_t addr) { return (addr - range.start) / stride; }
-    metadata_t const *getaddr(address_t addr) { return mem[addr_to_index(addr)]; }
-    bool contains(address_t addr) { return (addr >= range.start) && (addr <= range.end); }
+    uint64_t itr_to_addr(iterator itr) { return index_to_addr(itr - begin()); }
+    uint64_t itr_to_addr(const_iterator itr) { return index_to_addr(itr - cbegin()); }
+    uint64_t index_to_addr(size_t idx) { return range.start + (idx * stride); }
+    size_t addr_to_index(uint64_t addr) { return (addr - range.start) / stride; }
+    metadata_t const *getaddr(uint64_t addr) { return mem[addr_to_index(addr)]; }
+    bool contains(uint64_t addr) { return (addr >= range.start) && (addr <= range.end); }
     size_t size() { return mem.size(); }
     
-    void add_range(address_t start, address_t end, metadata_t const *metadata) {
+    void add_range(uint64_t start, uint64_t end, metadata_t const *metadata) {
       if (range.start == range.end) {
         range.start = start;
         assert(mem.size() == 0); // first range added
@@ -104,14 +104,14 @@ class metadata_memory_map_t {
     }
   };
 
-  address_t base;
-  address_t end_address;
+  uint64_t base;
+  uint64_t end_address;
   metadata_cache_t *md_cache;
   std::vector<mem_region_t> mrs;
 
 public:
-  void add_range(address_t start, address_t end, metadata_t const *metadata);
-  metadata_t const *get_metadata(address_t addr) {
+  void add_range(uint64_t start, uint64_t end, metadata_t const *metadata);
+  metadata_t const *get_metadata(uint64_t addr) {
 
     for ( auto &mr : mrs ) {
       if ( mr.contains(addr) )

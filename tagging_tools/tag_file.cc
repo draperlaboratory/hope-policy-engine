@@ -60,15 +60,14 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
   fseek(fp, 0, SEEK_SET);
   
   while (eof_point != ftell(fp)) {
-    address_t start;
-    address_t end;
+    uint64_t start, end;
     uint32_t metadata_count;
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, start)) {
+    if (!read_uleb<file_reader_t, uint64_t>(&reader, start)) {
       fclose(fp);
       return false;
     }
-    if (!read_uleb<file_reader_t, address_t>(&reader, end)) {
+    if (!read_uleb<file_reader_t, uint64_t>(&reader, end)) {
       fclose(fp);
       return false;
     }
@@ -100,11 +99,11 @@ bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name)
     return false;
   file_writer_t writer(fp);
   for (auto &e: *map) {
-    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.start)) {
+    if (!write_uleb<file_writer_t, uint64_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;
     }
-    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.end)) {
+    if (!write_uleb<file_writer_t, uint64_t>(&writer, e.first.end)) {
       fclose(fp);
       return false;
     }
@@ -224,11 +223,11 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
   }
 
   for (auto &e: memory_index_map) {
-    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.start)) {
+    if (!write_uleb<file_writer_t, uint64_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;
     }
-    if (!write_uleb<file_writer_t, address_t>(&writer, e.first.end)) {
+    if (!write_uleb<file_writer_t, uint64_t>(&writer, e.first.end)) {
       fclose(fp);
       return false;
     }
@@ -288,11 +287,11 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
     return false;
   }
   for(const auto &it : code_ranges) {
-    if(!write_uleb<file_writer_t, address_t>(&writer, it.start)) {
+    if(!write_uleb<file_writer_t, uint64_t>(&writer, it.start)) {
       fclose(out_fp);
       return false;
     }
-    if(!write_uleb<file_writer_t, address_t>(&writer, it.end)) {
+    if(!write_uleb<file_writer_t, uint64_t>(&writer, it.end)) {
       fclose(out_fp);
       return false;
     }
@@ -303,15 +302,15 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
     return false;
   }
   for(const auto &it : data_ranges) {
-    if(!write_uleb<file_writer_t, address_t>(&writer, it.first.start)) {
+    if(!write_uleb<file_writer_t, uint64_t>(&writer, it.first.start)) {
       fclose(out_fp);
       return false;
     }
-    if(!write_uleb<file_writer_t, address_t>(&writer, it.first.end)) {
+    if(!write_uleb<file_writer_t, uint64_t>(&writer, it.first.end)) {
       fclose(out_fp);
       return false;
     }
-    if(!write_uleb<file_writer_t, address_t>(&writer, (uint32_t)it.second)) {
+    if(!write_uleb<file_writer_t, uint64_t>(&writer, (uint32_t)it.second)) {
       fclose(out_fp);
       return false;
     }
@@ -365,12 +364,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   }
   for(size_t i = 0; i < code_range_count; i++) {
     range_t range;
-    if(!read_uleb<file_reader_t, address_t>(&reader, range.start)) {
+    if(!read_uleb<file_reader_t, uint64_t>(&reader, range.start)) {
       fclose(fp);
       return false;
     }
 
-    if(!read_uleb<file_reader_t, address_t>(&reader, range.end)) {
+    if(!read_uleb<file_reader_t, uint64_t>(&reader, range.end)) {
       fclose(fp);
       return false;
     }
@@ -383,12 +382,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   }
   for(size_t i = 0; i < data_range_count; i++) {
     range_t range;
-    if(!read_uleb<file_reader_t, address_t>(&reader, range.start)) {
+    if(!read_uleb<file_reader_t, uint64_t>(&reader, range.start)) {
       fclose(fp);
       return false;
     }
 
-    if(!read_uleb<file_reader_t, address_t>(&reader, range.end)) {
+    if(!read_uleb<file_reader_t, uint64_t>(&reader, range.end)) {
       fclose(fp);
       return false;
     }
@@ -517,12 +516,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     range_t range;
     uint32_t metadata_index;
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, range.start)) {
+    if (!read_uleb<file_reader_t, uint64_t>(&reader, range.start)) {
       fclose(fp);
       return false;
     }
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, range.end)) {
+    if (!read_uleb<file_reader_t, uint64_t>(&reader, range.end)) {
       fclose(fp);
       return false;
     }

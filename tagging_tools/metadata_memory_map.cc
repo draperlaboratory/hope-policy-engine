@@ -53,7 +53,7 @@ std::string render_metadata(metadata_t const *metadata) {
   return "<no renderer>";
 }
   
-void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
+void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, metadata_t const *metadata) {
   /* this is a meaningless call */
   if (start >= end)
     return;

@@ -129,7 +129,7 @@ void coalesce_ranges(std::list<range_t>& ranges) {
   std::list<range_t>::iterator it = ++ranges.begin();
 
   while(it != ranges.end()) {
-    std::printf("Range: 0x%" PRIaddr " = 0x%" PRIaddr "\n", it->start, it->end);
+    std::printf("Range: 0x%lx = 0x%lx\n", it->start, it->end);
 
     auto previous = std::prev(it, 1);
 
@@ -165,14 +165,12 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
 
   std::printf("Code ranges:\n");
   for(const auto& it : code_ranges) {
-    std::printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }\n",
-           it.start, it.end);
+    std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
   }
 
   std::printf("Data ranges:\n");
   for(const auto& it : data_ranges) {
-    std::printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }\n",
-           it.start, it.end);
+    std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
   }
 }
 
