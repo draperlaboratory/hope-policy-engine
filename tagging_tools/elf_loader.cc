@@ -24,23 +24,33 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <cstdio>
+#include <cstdlib>
 #include <gelf.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <string>
 #include "elf_loader.h"
+#include "basic_elf_io.h" // not alphabetical, but FILE_reader_t needs to be declared after file_stream_t
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(file_stream_t *file, reporter_t *err) :
-  phdrs(0), shdrs(0), str_tab(0), sym_tab(0), file(file), err(err)
-{
+elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : phdrs(nullptr), shdrs(nullptr), str_tab(nullptr), sym_tab(nullptr), err(err) {
+  file = new FILE_reader_t(fopen(fname.c_str(), "rb"));
+  valid = file != nullptr && load();
 }
 
 elf_image_t::~elf_image_t() {
-  free(phdrs);
-  free(shdrs);
+  if (file != nullptr) {
+    fclose(static_cast<FILE_reader_t*>(file)->fp);
+    free(file);
+  }
+  if (phdrs != nullptr)
+    free(phdrs);
+  if (shdrs != nullptr)
+    free(shdrs);
+  if (str_tab != nullptr)
+    free(str_tab);
+  if (sym_tab != nullptr)
+    free(sym_tab);
 }
 
 bool elf_image_t::check_header_signature() {
@@ -52,15 +62,13 @@ bool elf_image_t::is_64bit() {
 }
 
 bool elf_image_t::load_bits(void **bits, size_t size, off_t off, const char *description) {
-//  err->info("loading bits for section: %s\n", description);
   *bits = malloc(size);
   if (!*bits) {
-    err->error("unable to allocate %s\n", description);
+    err.error("unable to allocate %s\n", description);
     return false;
   }
-  if (!file->seek(off, file_stream_t::SET) ||
-      !file->read(*bits, size)) {
-    err->error("file I/O error reading %s\n", description);
+  if (!file->seek(off, file_stream_t::SET) || !file->read(*bits, size)) {
+    err.error("file I/O error reading %s\n", description);
     free(*bits);
     *bits = 0;
     return false;
@@ -76,11 +84,11 @@ const char *elf_image_t::get_section_name(int sect_num) const {
   return NULL;
 }
 
-bool elf_image_t::find_symbol_addr(const char *name, uintptr_t &addr, size_t &size) const {
+bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const {
   if (str_tab && sym_tab) {
     GElf_Sym const *syms = sym_tab;
     for (int i = 0; i < symbol_count; syms++, i++) {
-      if (!strcmp(name, get_string(syms->st_name))) {
+      if (name == get_string(syms->st_name)) {
         addr = syms->st_value;
         size = syms->st_size;
         return true;
@@ -91,19 +99,17 @@ bool elf_image_t::find_symbol_addr(const char *name, uintptr_t &addr, size_t &si
 }
 
 bool elf_image_t::load() {
-  if (!file || !err)
-    return false;
   if (!file->read(&eh, sizeof(eh))) {
-    err->error("error reading header");
+    err.error("error reading header");
     return false;
   }
   if (!check_header_signature()) {
-    err->error("bad ELF signature");
+    err.error("bad ELF signature");
     return false;
   }
   
   if ((eh.e_phentsize != sizeof(*phdrs)) || (eh.e_shentsize != sizeof(*shdrs))) {
-    err->error("elf header inconsistency");
+    err.error("elf header inconsistency");
     return false;
   }
   
@@ -119,7 +125,7 @@ bool elf_image_t::load() {
 
   str_sh = find_section(".strtab");
   if (!str_sh) {
-    err->error("cound't find strtab\n");
+    err.error("cound't find strtab\n");
     return false;
   }
   if (!load_bits((void **)&str_tab, str_sh->sh_size, str_sh->sh_offset, "string table"))
@@ -131,7 +137,7 @@ bool elf_image_t::load() {
     return false;
   symbol_count = sym_sh->sh_size / sizeof(GElf_Sym);
   if (sym_sh->sh_size % sizeof(GElf_Sym)) {
-    err->error("section size not mod sizeof elf_sym\n");
+    err.error("section size not mod sizeof elf_sym\n");
     return false;
   }
 
@@ -142,13 +148,12 @@ uintptr_t elf_image_t::get_entry_point() const {
   return eh.e_entry;
 }
 
-GElf_Shdr const *elf_image_t::find_section(const char *name) const {
+GElf_Shdr const* elf_image_t::find_section(const std::string& name) const {
   // We have to have the string table loaded for this.
   if (sh_str_tab) {
     for (int i = 0; i < get_shdr_count(); i++) {
-      const char *sh_name = get_section_name(i);
-      if (sh_name && !strcmp(name, sh_name))
-	return &get_shdrs()[i];
+      if (name == get_section_name(i))
+	      return &get_shdrs()[i];
     }
   }
   return NULL;

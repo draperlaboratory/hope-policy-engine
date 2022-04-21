@@ -90,11 +90,8 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
 
   try {
     metadata_tool_t md_tool(policy_dir.c_str());
-    std::FILE* elf_in = fopen(elf_file_name.c_str(), "rb");
-    FILE_reader_t reader(elf_in);
-    elf_image_t img(&reader, &err);
+    elf_image_t img(elf_file_name, err);
     symbol_table_t symtab;
-    img.load();
     populate_symbol_table(&symtab, &img);
 
     if (update) {

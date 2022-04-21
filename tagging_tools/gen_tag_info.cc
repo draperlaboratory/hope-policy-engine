@@ -85,41 +85,34 @@ int main(int argc, char* argv[]) {
   YAML::Node policy_inits = YAML::LoadFile(FLAGS_policy_dir + "/policy_init.yml");
   YAML::Node policy_metas = YAML::LoadFile(FLAGS_policy_dir + "/policy_meta.yml");
 
-  {
+  { // open a new scope so that the ELF image cleans up properly before reopening it
+    policy_engine::elf_image_t elf_image(FLAGS_bin, err);
 
-  std::unique_ptr<FILE, decltype(&fclose)> elf_file(fopen(FLAGS_bin.c_str(), "r"), fclose);
-  policy_engine::FILE_reader_t reader(elf_file.get());
-  policy_engine::elf_image_t elf_image(&reader, &err);
-  elf_image.load();
+    policy_engine::RangeFile range_file;
+    policy_engine::LLVMMetadataTagger llvm_tagger;
 
-  policy_engine::RangeFile range_file;
-  policy_engine::LLVMMetadataTagger llvm_tagger;
-
-  if (policy_inits["Require"]) {
-    if (policy_inits["Require"]["elf"])
-      policy_engine::generate_rwx_ranges(elf_image, range_file);
-    if (policy_inits["Require"]["llvm"])
-      policy_engine::RangeMap range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
-    if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
-      policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits);
-    int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
-    if (rc != 0)
-      std::printf("Couldn't add .tag_array to binary\n");
-  }
-  range_file.finish();
-  
-  int range_result = policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file);
-  if (range_result != 0) {
-    err.error("md_range failed");
-    exit(range_result);
-  }
-
+    if (policy_inits["Require"]) {
+      if (policy_inits["Require"]["elf"])
+        policy_engine::generate_rwx_ranges(elf_image, range_file);
+      if (policy_inits["Require"]["llvm"])
+        policy_engine::RangeMap range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
+      if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
+        policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits);
+      int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
+      if (rc != 0)
+        std::printf("Couldn't add .tag_array to binary\n");
+    }
+    range_file.finish();
+    
+    int range_result = policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file);
+    if (range_result != 0) {
+      err.error("md_range failed");
+      exit(range_result);
+    }
   }
   
-  std::unique_ptr<FILE, decltype(&fclose)> elf_file_post(fopen(FLAGS_bin.c_str(), "r"), fclose);
-  policy_engine::FILE_reader_t reader_post(elf_file_post.get());
-  policy_engine::elf_image_t elf_image_post(&reader_post, &err);
-  elf_image_post.load();
+  // have to reopen the file here because it's been edited and the current copy is corrupt
+  policy_engine::elf_image_t elf_image_post(FLAGS_bin, err);
 
   tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file);
 

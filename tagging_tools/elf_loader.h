@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <gelf.h>
 #include <stdint.h>
+#include <string>
 #include <sys/types.h>
 #include "reporter.h"
 
@@ -42,10 +43,24 @@ struct file_stream_t {
 };
 
 class elf_image_t {
-public:
-  elf_image_t(file_stream_t *file, reporter_t *err);
-  ~elf_image_t();
+private:
+  bool valid;
+  GElf_Ehdr eh;
+  GElf_Phdr *phdrs;
+  GElf_Shdr *shdrs;
+  char *sh_str_tab;
+  char *str_tab;
+  GElf_Sym *sym_tab;
+  int symbol_count;
+  file_stream_t* file;
+  reporter_t& err;
+
   bool load();
+  bool check_header_signature();
+public:
+  elf_image_t(const std::string& fname, reporter_t& err);
+  ~elf_image_t();
+  bool is_valid() { return valid; }
   bool is_64bit();
   uintptr_t get_entry_point() const;
   GElf_Ehdr get_ehdr() const { return eh; }
@@ -54,7 +69,7 @@ public:
   GElf_Shdr const* get_shdrs() const { return shdrs; }
   int get_shdr_count() const { return eh.e_shnum; }
   const char *get_section_name(int sect_num) const;
-  GElf_Shdr const *find_section(const char *name) const;
+  GElf_Shdr const* find_section(const std::string& name) const;
 
   bool load_bits(GElf_Shdr const *shdr, void **bits, const char *purpose) {
     return load_bits(bits, shdr->sh_size, shdr->sh_offset, purpose);
@@ -62,21 +77,9 @@ public:
   bool load_bits(void **bits, size_t size, off_t off, const char *description);
 
   const char *get_string(int str) const { if (str_tab) return str_tab + str; return 0; }
-  bool find_symbol_addr(const char *name, uintptr_t &addr, size_t &size) const;
+  bool find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const;
   GElf_Sym const *get_symbols() const { return sym_tab; }
   int get_symbol_count() const { return symbol_count; }
-
-private:
-  bool check_header_signature();
-  GElf_Ehdr eh;
-  GElf_Phdr *phdrs;
-  GElf_Shdr *shdrs;
-  char *sh_str_tab;
-  char *str_tab;
-  GElf_Sym *sym_tab;
-  int symbol_count;
-  file_stream_t *file;
-  reporter_t *err;
 };
 
 } // namespace policy_engine

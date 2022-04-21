@@ -175,7 +175,6 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
 }
 
 int md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, stdio_reporter_t& err) {
-  FILE* elf_file;
   std::list<range_t> soc_ranges;
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;
@@ -184,15 +183,8 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
   YAML::Node soc_node;
 
   metadata_factory_t factory(policy_dir);
-
-  elf_file = fopen(elf_filename.c_str(), "rb");
-  if (elf_file == NULL) {
-    err.error("Failed to open ELF file\n");
-    return 1;
-  }
-  FILE_reader_t elf_reader(elf_file);
-  elf_image_t elf_image(&elf_reader,& err);
-  if (elf_image.load() == false) {
+  elf_image_t elf_image(elf_filename, err);
+  if (!elf_image.is_valid()) {
     err.error("Failed to load ELF image\n");
     return 1;
   }
@@ -228,8 +220,6 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
     err.error("Failed to write headers to tag file\n");
     return 1;
   }
-
-  fclose(elf_file);
 
   return 0;
 }

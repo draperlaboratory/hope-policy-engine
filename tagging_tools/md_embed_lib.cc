@@ -45,16 +45,12 @@ bool save_tags_to_temp(
   std::string old_elf_name, std::string new_elf_name, char tempfile[],
   bool is_64_bit, stdio_reporter_t& err
 ) {
-  std::FILE* elf_in;
-  elf_in = fopen(old_elf_name.c_str(), "rb");
-  FILE_reader_t reader(elf_in);
-  elf_image_t img(&reader, &err);
-  img.load();
+  elf_image_t img(old_elf_name, err);
   int address_width = img.is_64bit() ? 8 : 4;
   int fd = mkstemp(tempfile);
   std::FILE* section_file = fdopen(fd, "wb");
 
-  if (!elf_in)
+  if (!img.is_valid())
     return false;
 
   size_t mem_map_size = memory_index_map.size();
