@@ -77,13 +77,13 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<
       err->error("'start' node not present\n");
       return false;
     }
-    range.start = it->second["start"].as<address_t>();
+    range.start = it->second["start"].as<uint64_t>();
 
     if (it->second["end"] == NULL) {
       err->error("'end' node not present\n");
       return false;
     }
-    range.end = it->second["end"].as<address_t>();
+    range.end = it->second["end"].as<uint64_t>();
 
     ranges.push_back(range);
   }
@@ -94,8 +94,8 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<
 size_t get_soc_granularity(YAML::Node soc, range_t range, bool is_64_bit) {
   size_t default_granularity = is_64_bit ? 8 : 4;
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-    address_t start = it->second["start"].as<address_t>();
-    address_t end = it->second["end"].as<address_t>();
+    uint64_t start = it->second["start"].as<uint64_t>();
+    uint64_t end = it->second["end"].as<uint64_t>();
     if (start ==  range.start && end == range.end) {
       if (it->second["tag_granularity"] != NULL) {
         return it->second["tag_granularity"].as<size_t>();
