@@ -48,7 +48,7 @@ bool elf_image_t::check_header_signature() {
 }
 
 bool elf_image_t::is_64bit() {
-  return eh.e_ident[4] == 2;
+  return eh.e_ident[4] == ELFCLASS64;
 }
 
 bool elf_image_t::load_bits(void **bits, size_t size, off_t off, const char *description) {
