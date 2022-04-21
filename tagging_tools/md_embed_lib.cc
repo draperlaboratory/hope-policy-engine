@@ -43,10 +43,9 @@ bool save_tags_to_temp(
   std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   std::string old_elf_name, std::string new_elf_name, char tempfile[],
-  bool is_64_bit
+  bool is_64_bit, stdio_reporter_t& err
 ) {
   std::FILE* elf_in;
-  stdio_reporter_t err;
   elf_in = fopen(old_elf_name.c_str(), "rb");
   FILE_reader_t reader(elf_in);
   elf_image_t img(&reader, &err);
@@ -86,10 +85,11 @@ bool save_tags_to_temp(
 bool embed_tags_in_elf(
   std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
-  std::string old_elf_name, std::string new_elf_name, bool update, bool is_64_bit
+  std::string old_elf_name, std::string new_elf_name, bool update, bool is_64_bit,
+  stdio_reporter_t& err
 ) {
   char section_temp_file[] = "/tmp/sectionXXXXXX";
-  if (!save_tags_to_temp(metadata_values, memory_index_map, old_elf_name, new_elf_name, section_temp_file, is_64_bit)) {
+  if (!save_tags_to_temp(metadata_values, memory_index_map, old_elf_name, new_elf_name, section_temp_file, is_64_bit, err)) {
     printf("Failed to save tags\n");
     return false;
   }
@@ -133,7 +133,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, con
   std::printf("%s\n", command_string);
   int ret = system(command_string);
 
-  if (!embed_tags_in_elf(metadata_values, memory_index_map, elf_filename, elf_filename, ret == 0, is_64_bit)) {
+  if (!embed_tags_in_elf(metadata_values, memory_index_map, elf_filename, elf_filename, ret == 0, is_64_bit, err)) {
     err.error("Failed to save indexes to tag file\n");
     return 1;
   }
