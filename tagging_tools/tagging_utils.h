@@ -45,7 +45,6 @@ public:
   range_t& operator [](int i);
   void sort();
   void add_range(uint64_t start, uint64_t end, const std::string& tag = "");
-  void merge_ranges();
   const std::vector<std::string>* get_tags(uint64_t addr);
   std::vector<std::pair<uint64_t, uint64_t>>* get_ranges(const std::string& tag);
   std::vector<range_t>::iterator begin();

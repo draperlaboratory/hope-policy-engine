@@ -58,48 +58,6 @@ void RangeMap::add_range(uint64_t start, uint64_t end, const std::string& tag) {
   range_map.push_back(range_t{start, end, tags});
 }
 
-void RangeMap::merge_ranges() {
-  auto rangemap = std::vector<range_t>(range_map);
-  std::sort(rangemap.begin(), rangemap.end(), [](range_t a, range_t b) { return a.start < b.start; });
-  auto [ curr_s, curr_e, curr_tags ] = rangemap[0];
-  for (int i = 1; i < rangemap.size(); i++) {
-    auto [ s, e, tags ] = rangemap[i];
-    if (s > curr_s) {
-      if (e > curr_e) {
-        rangemap[i - 1] = range_t{curr_s, s - 1, curr_tags};
-        auto new_tags = new std::vector<std::string>(*curr_tags);
-        new_tags->insert(new_tags->end(), tags->begin(), tags->end());
-        delete rangemap[i].tags;
-        rangemap[i] = range_t{s, curr_e, new_tags};
-        rangemap.insert(rangemap.begin() + i + 1, range_t{curr_e + 1, e, tags});
-      } else {
-        auto new_tags = new std::vector<std::string>(*curr_tags);
-        new_tags->insert(new_tags->end(), tags->begin(), tags->end());
-        delete rangemap[i - 1].tags;
-        rangemap[i - 1] = range_t{curr_s, e, new_tags};
-        rangemap[i] = range_t{e + 1, curr_e, curr_tags};
-      }
-    } else if (s == curr_s) {
-      if (e == curr_e) {
-        auto new_tags = new std::vector<std::string>(*curr_tags);
-        new_tags->insert(new_tags->end(), tags->begin(), tags->end());
-        delete rangemap[i - 1].tags;
-        rangemap[i - 1] = range_t{s, e, new_tags};
-        rangemap.erase(rangemap.begin() + i);
-      } else {
-        auto new_tags = new std::vector<std::string>(*curr_tags);
-        new_tags->insert(new_tags->end(), tags->begin(), tags->end());
-        delete rangemap[i - 1].tags;
-        rangemap[i - 1] = range_t{curr_s, curr_e, new_tags};
-        rangemap[i] = range_t{curr_e + 1, e, tags};
-      }
-    }
-    curr_s = rangemap[i].start;
-    curr_e = rangemap[i].end;
-    curr_tags = rangemap[i].tags;
-  }
-}
-
 const std::vector<std::string> empty;
 
 const std::vector<std::string>* RangeMap::get_tags(uint64_t addr) {
