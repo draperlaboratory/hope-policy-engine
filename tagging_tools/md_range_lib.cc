@@ -38,7 +38,7 @@ namespace policy_engine {
 
 metadata_factory_t* md_factory;
 
-bool apply_tag(metadata_memory_map_t *map, address_t start, address_t end, const char *tag_name) {
+bool apply_tag(metadata_memory_map_t *map, uint64_t start, uint64_t end, const char *tag_name) {
   metadata_t const *md = md_factory->lookup_metadata(tag_name);
   if (!md)
     return false;
@@ -59,14 +59,11 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
         std::fprintf(stderr, "%s: %d: bad format - wrong number of items\n", file_name.c_str(), lineno);
         res = false;
       } else {
-        address_t start;
-        address_t end;
-        start = strtoul(tokens[0].c_str(), 0, 16);
-        end = strtoul(tokens[1].c_str(), 0, 16);
+        uint64_t start = strtoul(tokens[0].c_str(), 0, 16);
+        uint64_t end = strtoul(tokens[1].c_str(), 0, 16);
         if (!apply_tag(map, start, end, tokens[2].c_str())) {
           std::fprintf(stderr, "%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
           res = false;
-        } else {
         }
       }
       lineno++;
