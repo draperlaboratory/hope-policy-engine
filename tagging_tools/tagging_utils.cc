@@ -45,10 +45,6 @@ range_t& RangeMap::operator [](int i) {
   return range_map[i];
 }
 
-void RangeMap::sort() {
-  std::sort(range_map.begin(), range_map.end(), [](range_t a, range_t b) { return a.start < b.start; });
-}
-
 void RangeMap::add_range(uint64_t start, uint64_t end, const std::string& tag) {
   for(auto& [ s, e, tags ] : range_map)
     if (s == start && e == end)
