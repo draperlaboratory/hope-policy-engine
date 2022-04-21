@@ -50,9 +50,7 @@ bool save_tags_to_temp(
   FILE_reader_t reader(elf_in);
   elf_image_t img(&reader, &err);
   img.load();
-  if (is_64_bit != img.is_64bit()) {
-    err.error("bad ELF width");
-  }
+  int address_width = img.is_64bit() ? 8 : 4;
   int fd = mkstemp(tempfile);
   std::FILE* section_file = fdopen(fd, "wb");
 
@@ -60,19 +58,18 @@ bool save_tags_to_temp(
     return false;
 
   size_t mem_map_size = memory_index_map.size();
-  fwrite(&mem_map_size, (sizeof(address_t)), 1, section_file);
+  fwrite(&mem_map_size, address_width, 1, section_file);
   int i = 0;
   for (auto& e : memory_index_map) {
     range_t range = e.first;
-    address_t metadata_size = (address_t) metadata_values[e.second]->size();
+    uint64_t metadata_size = metadata_values[e.second]->size();
 
-    fwrite(&range.start, (sizeof(address_t)), 1, section_file);
-    fwrite(&range.end, (sizeof(address_t)), 1, section_file);
-    fwrite(&metadata_size, (sizeof(address_t)), 1, section_file);
+    fwrite(&range.start, address_width, 1, section_file);
+    fwrite(&range.end, address_width, 1, section_file);
+    fwrite(&metadata_size, address_width, 1, section_file);
 
     for(const meta_t& m : *metadata_values[e.second]) {
-      address_t sorta_m = (address_t) m;
-      fwrite(&sorta_m, (sizeof(address_t)), 1, section_file);
+      fwrite(&m, address_width, 1, section_file);
     }
   }
 
