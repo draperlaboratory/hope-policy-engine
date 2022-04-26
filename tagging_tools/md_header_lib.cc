@@ -23,7 +23,7 @@
 /* WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #include <cstdio>
-#include <fstream>
+#include <functional>
 #include <gelf.h>
 #include <sstream>
 #include <string>
@@ -107,13 +107,13 @@ size_t get_soc_granularity(YAML::Node soc, range_t range, bool is_64_bit) {
   return default_granularity;
 }
 
-void elf_sections_to_ranges(std::list<GElf_Shdr const*>& sections, std::list<range_t>& ranges) {
-  for(const auto& it : sections) {
+void elf_sections_to_ranges(const std::list<const elf_section_t*>& sections, std::list<range_t>& ranges) {
+  for(const auto section : sections) {
     range_t range;
-    range.start = it->sh_addr;
+    range.start = section->address;
 
     // Round up to the next word boundary, then subtract 1 to make inclusive
-    range.end = it->sh_addr + it->sh_size;
+    range.end = section->address + section->size;
     range.end += (4 - (range.end % 4)) % 4;
     range.end -= 1;
 
@@ -149,10 +149,17 @@ void coalesce_ranges(std::list<range_t>& ranges) {
 }
 
 void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges) {
-  std::list<GElf_Shdr const*> code_sections;
-  std::list<GElf_Shdr const*> data_sections;
+  std::list<const elf_section_t*> code_sections;
+  std::list<const elf_section_t*> data_sections;
 
-  get_elf_sections(&elf_image, code_sections, data_sections);
+  for (const auto& section : elf_image.sections) {
+    if (section.flags & SHF_ALLOC) {
+      if ((section.flags & (SHF_WRITE | SHF_EXECINSTR)) == SHF_EXECINSTR)
+        code_sections.push_back(&section);
+      else
+        data_sections.push_back(&section);
+    }
+  }
 
   elf_sections_to_ranges(code_sections, code_ranges);
   elf_sections_to_ranges(data_sections, data_ranges);

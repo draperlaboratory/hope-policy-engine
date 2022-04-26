@@ -102,11 +102,11 @@ bool LLVMMetadataTagger::policy_needs_tag(const YAML::Node& policy_inits, const 
 }
 
 void LLVMMetadataTagger::add_code_section_ranges(const elf_image_t& ef, RangeMap& range_map) {
-  for (int i = 0; i < ef.get_shdr_count(); i++) {
-    if (ef.get_shdrs()[i].sh_flags & SHF_ALLOC) {
-      uint64_t start = ef.get_shdrs()[i].sh_addr;
-      uint64_t end = round_up(start + ef.get_shdrs()[i].sh_size, PTR_SIZE);
-      if ((ef.get_shdrs()[i].sh_flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR)) {
+  for (int i = 0; i < ef.sections.size(); i++) {
+    if (ef.sections[i].flags & SHF_ALLOC) {
+      uint64_t start = ef.sections[i].address;
+      uint64_t end = round_up(start + ef.sections[i].size, PTR_SIZE);
+      if ((ef.sections[i].flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR)) {
         std::printf("saw code range = %lx:%lx\n", start, end);
         range_map.add_range(start, end);
       }
@@ -127,16 +127,15 @@ void LLVMMetadataTagger::check_and_write_range(RangeFile& range_file, uint64_t s
 }
 
 RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, RangeFile& range_file, const YAML::Node& policy_inits) {
-  const GElf_Shdr* metadata_section = elf_file.find_section(".dover_metadata");
-  if (!metadata_section)
+  const elf_section_t* metadata_section = elf_file.find_section(".dover_metadata");
+  if (metadata_section)
     throw std::runtime_error("No metadata found in ELF file!");
-  uint8_t* metadata;
-  elf_file.load_bits(metadata_section, (void**)&metadata, "dover metadata");
+  uint8_t* metadata = reinterpret_cast<uint8_t*>(metadata_section->data);
   if (metadata[0] != metadata_ops.at("DMD_SET_BASE_ADDRESS_OP"))
     throw std::runtime_error("Invalid metadata found in ELF file!");
 
   RangeMap range_map;
-  for (int i = 0; i < metadata_section->sh_size; i++) {
+  for (int i = 0; i < metadata_section->size; i++) {
     uint64_t base_address;
     if (metadata[i] == metadata_ops.at("DMD_SET_BASE_ADDRESS_OP")) {
       uint64_t addr = 0;

@@ -34,8 +34,7 @@
 namespace policy_engine {
 
 void populate_symbol_table(symbol_table_t *symtab, elf_image_t *img);
-void get_elf_sections(elf_image_t *img, std::list<GElf_Shdr const *>&code_sections,
-                      std::list<GElf_Shdr const *>&data_sections);
+//void get_elf_sections(elf_image_t *img, std::list<GElf_Shdr const *>&code_sections, std::list<GElf_Shdr const *>&data_sections);
 
 } // namespace policy_engine
 

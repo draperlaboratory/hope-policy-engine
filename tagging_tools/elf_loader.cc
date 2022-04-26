@@ -36,7 +36,7 @@
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), phdrs(nullptr), shdrs(nullptr), sym_tab(nullptr), err(err) {
+elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), phdrs(nullptr), sym_tab(nullptr), err(err) {
   valid = true;
   if (elf_version(EV_CURRENT) == EV_NONE) {
     valid = false;
@@ -72,25 +72,43 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
     }
   }
   if (valid) {
-    shdrs = new GElf_Shdr[eh.e_shnum];
-    phdrs = new GElf_Phdr[eh.e_phnum];
+//    shdrs = new GElf_Shdr[eh.e_shnum];
     for (int i = 0; i < eh.e_shnum; i++) {
       Elf_Scn* scn = elf_getscn(elf, i);
+      GElf_Shdr shdr;
       if (scn == nullptr) {
         err.error("could not get section %d: %s", i, elf_errmsg(elf_errno()));
-      } else if (gelf_getshdr(scn, &shdrs[i]) == nullptr) {
+      } else if (gelf_getshdr(scn, &shdr) == nullptr) {
         err.error("could not get section header %d: %s", i, elf_errmsg(elf_errno()));
+      } else {
+        Elf_Data* data = nullptr;
+        if (elf_getdata(scn, data) == nullptr)
+          err.error("could not load section %d data: %s", i, elf_errmsg(elf_errno()));
+        sections.push_back({
+          .name=elf_strptr(elf, eh.e_shstrndx, shdr.sh_name),
+          .flags=shdr.sh_flags,
+          .type=shdr.sh_type,
+          .address=shdr.sh_addr,
+          .offset=shdr.sh_offset,
+          .size=shdr.sh_size,
+          .data=data->d_buf
+        });
       }
     }
+
+    phdrs = new GElf_Phdr[eh.e_phnum];
     for (int i = 0; i < eh.e_phnum; i++) {
       if (gelf_getphdr(elf, i, &phdrs[i]) == nullptr) {
         err.error("could not get program header %d: %s", i, elf_errmsg(elf_errno()));
       }
     }
 
+    str_tab = reinterpret_cast<char*>(find_section(".strtab")->data);
+
+/*
     int str;
     for (str = 0; str < eh.e_shnum; str++) {
-      std::string name = elf_strptr(elf, eh.e_shstrndx, shdrs[str].sh_name);
+      std::string name = elf_strptr(elf, eh.e_shstrndx, sections[str].name);
       if (name == ".strtab")
         break;
     }
@@ -104,11 +122,10 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
       else
         str_tab = (char*)strtab_data->d_buf;
     }
-
+*/
     int sym;
-    for (sym = 0; sym < eh.e_shnum; sym++) {
-      std::string name = elf_strptr(elf, eh.e_shstrndx, shdrs[sym].sh_name);
-      if (name == ".symtab")
+    for (sym = 0; sym < sections.size(); sym++) {
+      if (sections[sym].name == ".symtab")
         break;
     }
     if (sym == eh.e_shnum)
@@ -119,7 +136,7 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
       if (elf_getdata(symtab_scn, symtab_data) == nullptr)
         err.error("could not load .symtab: %s", elf_errmsg(elf_errno()));
       else {
-        symbol_count = shdrs[sym].sh_size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+        symbol_count = sections[sym].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
         sym_tab = new GElf_Sym[symbol_count];
         for (int i = 0; i < symbol_count; i++) {
           if (gelf_getsym(symtab_data, i, &sym_tab[i]) == nullptr)
@@ -137,8 +154,6 @@ elf_image_t::~elf_image_t() {
     close(fd);
   if (phdrs != nullptr)
     free(phdrs);
-  if (shdrs != nullptr)
-    free(shdrs);
   if (sym_tab != nullptr)
     free(sym_tab);
 }
@@ -164,7 +179,7 @@ bool elf_image_t::load_bits(void **bits, size_t size, off_t off, const char *des
   lseek(fd, offset, SEEK_SET);
   return true;
 }
-
+/*
 std::string elf_image_t::get_section_name(int sect_num) const {
   Elf_Scn* scn = elf_getscn(elf, sect_num);
   if (scn == nullptr) {
@@ -180,7 +195,7 @@ std::string elf_image_t::get_section_name(int sect_num) const {
     }
   }
 }
-
+*/
 bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const {
   if (sym_tab) {
     GElf_Sym const *syms = sym_tab;
@@ -199,11 +214,12 @@ uintptr_t elf_image_t::get_entry_point() const {
   return eh.e_entry;
 }
 
-GElf_Shdr const* elf_image_t::find_section(const std::string& name) const {
-  for (int i = 0; i < get_shdr_count(); i++) {
-    if (name == get_section_name(i))
-      return &shdrs[i];
+const elf_section_t* elf_image_t::find_section(const std::string& name) const {
+  for (const auto& section : sections) {
+    if (section.name == name)
+      return &section;
   }
+  err.error("could not find section named %s", name.c_str());
   return nullptr;
 }
 

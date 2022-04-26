@@ -8,13 +8,8 @@
 namespace policy_engine {
 
 void tag_op_codes(const std::string& policy_dir, elf_image_t& ef, const std::string& taginfo_file_name) {
-  for (int i = 0; i < ef.get_shdr_count(); i++) {
-    if (ef.get_shdrs()[i].sh_flags & SHF_EXECINSTR) {
-      uint8_t* data;
-      ef.load_bits(&ef.get_shdrs()[i], (void**)&data, "section data");
-      md_code(policy_dir, ef.get_shdrs()[i].sh_addr, taginfo_file_name, data, ef.get_shdrs()[i].sh_size);
-      free(data);
-    }
+  for (const auto& section : ef.sections) {
+    md_code(policy_dir, section.address, taginfo_file_name, reinterpret_cast<uint8_t*>(section.data), section.size);
   }
 }
 

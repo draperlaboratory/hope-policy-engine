@@ -50,10 +50,17 @@ void populate_symbol_table(symbol_table_t *symtab, elf_image_t *img) {
     }
   }
 }
-
-void get_elf_sections(elf_image_t *img,
-     std::list<GElf_Shdr const *>&code_sections,
-     std::list<GElf_Shdr const *>&data_sections) {
+/*
+void get_elf_sections(elf_image_t& img, std::list<const elf_section_t&>& code_sections, std::list<const elf_section_t&>& data_sections) {
+  for (const auto& section : img.sections) {
+    if (section.flags & SHF_ALLOC) {
+      if ((flags & (SHF_WRITE | SHF_EXECINSTR)) == SHF_EXECINSTR)
+        code_sections.push_back(&section);
+      else
+        data_sections.push_back(&section);
+    }
+  }
+/**
   GElf_Shdr const *shdrs = img->get_shdrs();
   size_t i;
   unsigned int flags;
@@ -69,5 +76,5 @@ void get_elf_sections(elf_image_t *img,
     }
   }
 }
-
+*/
 } // namespace policy_engine
