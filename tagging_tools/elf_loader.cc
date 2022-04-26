@@ -72,7 +72,6 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
     }
   }
   if (valid) {
-//    shdrs = new GElf_Shdr[eh.e_shnum];
     for (int i = 0; i < eh.e_shnum; i++) {
       Elf_Scn* scn = elf_getscn(elf, i);
       GElf_Shdr shdr;
@@ -105,24 +104,6 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
 
     str_tab = reinterpret_cast<char*>(find_section(".strtab")->data);
 
-/*
-    int str;
-    for (str = 0; str < eh.e_shnum; str++) {
-      std::string name = elf_strptr(elf, eh.e_shstrndx, sections[str].name);
-      if (name == ".strtab")
-        break;
-    }
-    if (str == eh.e_shnum)
-      err.error("could not find section .strtab\n");
-    else {
-      Elf_Scn* strtab_scn = elf_getscn(elf, str);
-      Elf_Data* strtab_data = nullptr;
-      if ((strtab_data = elf_getdata(strtab_scn, strtab_data)) == nullptr)
-        err.error("could not load .strtab: %s\n", elf_errmsg(elf_errno()));
-      else
-        str_tab = (char*)strtab_data->d_buf;
-    }
-*/
     int sym;
     for (sym = 0; sym < sections.size(); sym++) {
       if (sections[sym].name == ".symtab")
@@ -158,44 +139,6 @@ elf_image_t::~elf_image_t() {
     free(sym_tab);
 }
 
-bool elf_image_t::is_64bit() {
-  return eh.e_ident[4] == ELFCLASS64;
-}
-
-bool elf_image_t::load_bits(void **bits, size_t size, off_t off, const char *description) {
-  *bits = malloc(size);
-  if (!*bits) {
-    err.error("unable to allocate %s\n", description);
-    return false;
-  }
-  off_t offset = lseek(fd, 0, SEEK_CUR);
-  lseek(fd, off, SEEK_SET);
-  if (read(fd, *bits, size) < 0) {
-    err.error("file I/O error reading %s\n", description);
-    free(*bits);
-    *bits = 0;
-    return false;
-  }
-  lseek(fd, offset, SEEK_SET);
-  return true;
-}
-/*
-std::string elf_image_t::get_section_name(int sect_num) const {
-  Elf_Scn* scn = elf_getscn(elf, sect_num);
-  if (scn == nullptr) {
-    err.error("could not get elf section %d: %s\n", sect_num, elf_errmsg(elf_errno()));
-    return "";
-  } else {
-    const char* name = elf_strptr(elf, eh.e_shstrndx, shdrs[sect_num].sh_name);
-    if (name == NULL) {
-      err.error("could not get elf section %d name: %s\n", sect_num, elf_errmsg(elf_errno()));
-      return "";
-    } else {
-      return name;
-    }
-  }
-}
-*/
 bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const {
   if (sym_tab) {
     GElf_Sym const *syms = sym_tab;
@@ -208,10 +151,6 @@ bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, siz
     }
   }
   return false;
-}
-
-uintptr_t elf_image_t::get_entry_point() const {
-  return eh.e_entry;
 }
 
 const elf_section_t* elf_image_t::find_section(const std::string& name) const {

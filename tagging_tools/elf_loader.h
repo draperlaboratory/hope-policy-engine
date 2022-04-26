@@ -61,7 +61,6 @@ private:
   bool valid;
   int fd;
   Elf* elf;
-//  GElf_Shdr* shdrs;
   char* str_tab;
   GElf_Sym* sym_tab;
   int symbol_count;
@@ -74,20 +73,12 @@ public:
   ~elf_image_t();
 
   bool is_valid() { return valid; }
-  bool is_64bit();
-  uintptr_t get_entry_point() const;
+  bool is_64bit() { return eh.e_ident[4] == ELFCLASS64; }
+  uintptr_t get_entry_point() const { return eh.e_entry; }
   GElf_Ehdr get_ehdr() const { return eh; }
   GElf_Phdr const* get_phdrs() const { return phdrs; }
   int get_phdr_count() const { return eh.e_phnum; }
-//  GElf_Shdr const* get_shdrs() const { return shdrs; }
-//  int get_shdr_count() const { return eh.e_shnum; }
-//  std::string get_section_name(int sect_num) const;
   const elf_section_t* find_section(const std::string& name) const;
-
-  bool load_bits(GElf_Shdr const *shdr, void **bits, const char *purpose) {
-    return load_bits(bits, shdr->sh_size, shdr->sh_offset, purpose);
-  }
-  bool load_bits(void **bits, size_t size, off_t off, const char *description);
 
   const char *get_string(int str) const { if (str_tab) return str_tab + str; return 0; }
   bool find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const;
