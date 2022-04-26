@@ -56,7 +56,6 @@ struct elf_section_t {
 class elf_image_t {
 private:
   GElf_Ehdr eh;
-  GElf_Phdr* phdrs;
 
   bool valid;
   int fd;
@@ -68,6 +67,7 @@ private:
 
 public:
   std::vector<elf_section_t> sections;
+  std::vector<GElf_Phdr> program_headers;
 
   elf_image_t(const std::string& fname, reporter_t& err);
   ~elf_image_t();
@@ -76,8 +76,6 @@ public:
   bool is_64bit() { return eh.e_ident[4] == ELFCLASS64; }
   uintptr_t get_entry_point() const { return eh.e_entry; }
   GElf_Ehdr get_ehdr() const { return eh; }
-  GElf_Phdr const* get_phdrs() const { return phdrs; }
-  int get_phdr_count() const { return eh.e_phnum; }
   const elf_section_t* find_section(const std::string& name) const;
 
   const char *get_string(int str) const { if (str_tab) return str_tab + str; return 0; }

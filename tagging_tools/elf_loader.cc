@@ -36,7 +36,7 @@
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), phdrs(nullptr), sym_tab(nullptr), err(err) {
+elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), sym_tab(nullptr), err(err) {
   valid = true;
   if (elf_version(EV_CURRENT) == EV_NONE) {
     valid = false;
@@ -95,11 +95,12 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
       }
     }
 
-    phdrs = new GElf_Phdr[eh.e_phnum];
     for (int i = 0; i < eh.e_phnum; i++) {
-      if (gelf_getphdr(elf, i, &phdrs[i]) == nullptr) {
+      GElf_Phdr phdr;
+      if (gelf_getphdr(elf, i, &phdr) == nullptr)
         err.error("could not get program header %d: %s\n", i, elf_errmsg(elf_errno()));
-      }
+      else
+        program_headers.push_back(phdr);
     }
 
     str_tab = reinterpret_cast<char*>(find_section(".strtab")->data);
@@ -133,8 +134,6 @@ elf_image_t::~elf_image_t() {
     elf_end(elf);
   if (fd >= 0)
     close(fd);
-  if (phdrs != nullptr)
-    free(phdrs);
   if (sym_tab != nullptr)
     free(sym_tab);
 }
