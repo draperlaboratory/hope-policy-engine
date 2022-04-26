@@ -40,35 +40,35 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
   valid = true;
   if (elf_version(EV_CURRENT) == EV_NONE) {
     valid = false;
-    err.error("failed to initialize ELF library: %s", elf_errmsg(elf_errno()));
+    err.error("failed to initialize ELF library: %s\n", elf_errmsg(elf_errno()));
   }
   if (valid) {
     fd = open(fname.c_str(), O_RDONLY);
     if (fd < 0) {
       valid = false;
-      err.error("failed to open %s: %s", fname.c_str(), std::strerror(errno));
+      err.error("failed to open %s: %s\n", fname.c_str(), std::strerror(errno));
     }
   }
   if (valid) {
     elf = elf_begin(fd, ELF_C_READ, nullptr);
     if (elf == nullptr) {
       valid = false;
-      err.error("failed to initialize ELF file: %s", elf_errmsg(elf_errno()));
+      err.error("failed to initialize ELF file: %s\n", elf_errmsg(elf_errno()));
     } else if (elf_kind(elf) != ELF_K_ELF) {
       valid = false;
-      err.error("%s is not an ELF file", fname.c_str());
+      err.error("%s is not an ELF file\n", fname.c_str());
     }
   }
   if (valid) {
     if (gelf_getehdr(elf, &eh) == nullptr) {
       valid = false;
-      err.error("could not get ELF header: %s", elf_errmsg(elf_errno()));
+      err.error("could not get ELF header: %s\n", elf_errmsg(elf_errno()));
     } else if (!(eh.e_ident[0] == 0x7f && eh.e_ident[1] == 'E' && eh.e_ident[2] == 'L' && eh.e_ident[3] == 'F')) {
       valid = false;
-      err.error("bad ELF signature");
+      err.error("bad ELF signature\n");
     } else if (eh.e_ident[4] == ELFCLASSNONE) {
       valid = false;
-      err.error("could not determine ELF class");
+      err.error("could not determine ELF class\n");
     }
   }
   if (valid) {
@@ -79,11 +79,11 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
       if (scn == nullptr) {
         err.error("could not get section %d: %s", i, elf_errmsg(elf_errno()));
       } else if (gelf_getshdr(scn, &shdr) == nullptr) {
-        err.error("could not get section header %d: %s", i, elf_errmsg(elf_errno()));
+        err.error("could not get section header %d: %s\n", i, elf_errmsg(elf_errno()));
       } else {
         Elf_Data* data = nullptr;
-        if (elf_getdata(scn, data) == nullptr)
-          err.error("could not load section %d data: %s", i, elf_errmsg(elf_errno()));
+        if ((data = elf_getdata(scn, data)) == nullptr)
+          err.error("could not load section %d data: %s\n", i, elf_errmsg(elf_errno()));
         sections.push_back({
           .name=elf_strptr(elf, eh.e_shstrndx, shdr.sh_name),
           .flags=shdr.sh_flags,
@@ -99,7 +99,7 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
     phdrs = new GElf_Phdr[eh.e_phnum];
     for (int i = 0; i < eh.e_phnum; i++) {
       if (gelf_getphdr(elf, i, &phdrs[i]) == nullptr) {
-        err.error("could not get program header %d: %s", i, elf_errmsg(elf_errno()));
+        err.error("could not get program header %d: %s\n", i, elf_errmsg(elf_errno()));
       }
     }
 
@@ -113,12 +113,12 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
         break;
     }
     if (str == eh.e_shnum)
-      err.error("could not find section .strtab");
+      err.error("could not find section .strtab\n");
     else {
       Elf_Scn* strtab_scn = elf_getscn(elf, str);
-      Elf_Data* strtab_data;
-      if (elf_getdata(strtab_scn, strtab_data) == nullptr)
-        err.error("could not load .strtab: %s", elf_errmsg(elf_errno()));
+      Elf_Data* strtab_data = nullptr;
+      if ((strtab_data = elf_getdata(strtab_scn, strtab_data)) == nullptr)
+        err.error("could not load .strtab: %s\n", elf_errmsg(elf_errno()));
       else
         str_tab = (char*)strtab_data->d_buf;
     }
@@ -129,18 +129,18 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
         break;
     }
     if (sym == eh.e_shnum)
-      err.error("could not find section .symtab");
+      err.error("could not find section .symtab\n");
     else {
       Elf_Scn* symtab_scn = elf_getscn(elf, sym);
-      Elf_Data* symtab_data;
-      if (elf_getdata(symtab_scn, symtab_data) == nullptr)
-        err.error("could not load .symtab: %s", elf_errmsg(elf_errno()));
+      Elf_Data* symtab_data = nullptr;
+      if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) == nullptr)
+        err.error("could not load .symtab: %s\n", elf_errmsg(elf_errno()));
       else {
         symbol_count = sections[sym].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
         sym_tab = new GElf_Sym[symbol_count];
         for (int i = 0; i < symbol_count; i++) {
           if (gelf_getsym(symtab_data, i, &sym_tab[i]) == nullptr)
-            err.error("could not load .symtab symbol %d: %s", i, elf_errmsg(elf_errno()));
+            err.error("could not load .symtab symbol %d: %s\n", i, elf_errmsg(elf_errno()));
         }
       }
     }
@@ -183,12 +183,12 @@ bool elf_image_t::load_bits(void **bits, size_t size, off_t off, const char *des
 std::string elf_image_t::get_section_name(int sect_num) const {
   Elf_Scn* scn = elf_getscn(elf, sect_num);
   if (scn == nullptr) {
-    err.error("could not get elf section %d: %s", sect_num, elf_errmsg(elf_errno()));
+    err.error("could not get elf section %d: %s\n", sect_num, elf_errmsg(elf_errno()));
     return "";
   } else {
     const char* name = elf_strptr(elf, eh.e_shstrndx, shdrs[sect_num].sh_name);
     if (name == NULL) {
-      err.error("could not get elf section %d name: %s", sect_num, elf_errmsg(elf_errno()));
+      err.error("could not get elf section %d name: %s\n", sect_num, elf_errmsg(elf_errno()));
       return "";
     } else {
       return name;
