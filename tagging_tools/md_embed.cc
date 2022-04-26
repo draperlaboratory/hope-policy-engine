@@ -99,16 +99,25 @@ bool embed_tags_in_elf(std::vector<const metadata_t *> &metadata_values,
         return false;
     }
 
-    char command_string[512];
+    //char command_string[512];
+    std::string command_string;
+    
     char* base_command;
     if (update)
         base_command = "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1";
     else
         base_command = "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
 
-    sprintf(command_string, base_command, riscv_prefix,bfd_target, section_temp_file, old_elf_name.c_str(), new_elf_name.c_str());
+    command_string.append(base_command);
+    command_string += riscv_prefix;
+    command_string += bfd_target;
+    command_string += section_temp_file;
+    command_string += old_elf_name;
+    command_string += new_elf_name;
+    
+    //    sprintf(command_string, base_command, riscv_prefix,bfd_target, section_temp_file, old_elf_name.c_str(), new_elf_name.c_str());
 //     printf(command_string);
-    int ret = system(command_string);
+    int ret = system(command_string.c_str());
 
     if (remove(section_temp_file))
         printf("Failed to delete temporary file %s.\n", section_temp_file);
@@ -147,9 +156,15 @@ int main(int argc, char **argv) {
     // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
     char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
 
-    char command_string[256];
-    sprintf(command_string, base_command, riscv_prefix, bfd_target, elf_filename);
-    int ret = system(command_string);
+    // char command_string[256];
+    std::string command_string;
+    command_string += base_command;
+    command_string += riscv_prefix;
+    command_string += bfd_target;
+    command_string += elf_filename;
+    
+    //    sprintf(command_string, base_command, riscv_prefix, bfd_target, elf_filename);
+    int ret = system(command_string.c_str());
 
     if(!embed_tags_in_elf(metadata_values, memory_index_map, elf_filename, elf_filename, ret == 0)) {
         err.error("Failed to save indexes to tag file\n");
