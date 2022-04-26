@@ -26,35 +26,121 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
 #include <gelf.h>
 #include <string>
+#include <unistd.h>
 #include "elf_loader.h"
 #include "basic_elf_io.h" // not alphabetical, but FILE_reader_t needs to be declared after file_stream_t
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : phdrs(nullptr), shdrs(nullptr), str_tab(nullptr), sym_tab(nullptr), err(err) {
-  file = new FILE_reader_t(fopen(fname.c_str(), "rb"));
-  valid = file != nullptr && load();
+elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), phdrs(nullptr), shdrs(nullptr), sym_tab(nullptr), err(err) {
+  valid = true;
+  if (elf_version(EV_CURRENT) == EV_NONE) {
+    valid = false;
+    err.error("failed to initialize ELF library: %s", elf_errmsg(elf_errno()));
+  }
+  if (valid) {
+    fd = open(fname.c_str(), O_RDONLY);
+    if (fd < 0) {
+      valid = false;
+      err.error("failed to open %s: %s", fname.c_str(), std::strerror(errno));
+    }
+  }
+  if (valid) {
+    elf = elf_begin(fd, ELF_C_READ, nullptr);
+    if (elf == nullptr) {
+      valid = false;
+      err.error("failed to initialize ELF file: %s", elf_errmsg(elf_errno()));
+    } else if (elf_kind(elf) != ELF_K_ELF) {
+      valid = false;
+      err.error("%s is not an ELF file", fname.c_str());
+    }
+  }
+  if (valid) {
+    if (gelf_getehdr(elf, &eh) == nullptr) {
+      valid = false;
+      err.error("could not get ELF header: %s", elf_errmsg(elf_errno()));
+    } else if (!(eh.e_ident[0] == 0x7f && eh.e_ident[1] == 'E' && eh.e_ident[2] == 'L' && eh.e_ident[3] == 'F')) {
+      valid = false;
+      err.error("bad ELF signature");
+    } else if (eh.e_ident[4] == ELFCLASSNONE) {
+      valid = false;
+      err.error("could not determine ELF class");
+    }
+  }
+  if (valid) {
+    shdrs = new GElf_Shdr[eh.e_shnum];
+    phdrs = new GElf_Phdr[eh.e_phnum];
+    for (int i = 0; i < eh.e_shnum; i++) {
+      Elf_Scn* scn = elf_getscn(elf, i);
+      if (scn == nullptr) {
+        err.error("could not get section %d: %s", i, elf_errmsg(elf_errno()));
+      } else if (gelf_getshdr(scn, &shdrs[i]) == nullptr) {
+        err.error("could not get section header %d: %s", i, elf_errmsg(elf_errno()));
+      }
+    }
+    for (int i = 0; i < eh.e_phnum; i++) {
+      if (gelf_getphdr(elf, i, &phdrs[i]) == nullptr) {
+        err.error("could not get program header %d: %s", i, elf_errmsg(elf_errno()));
+      }
+    }
+
+    int str;
+    for (str = 0; str < eh.e_shnum; str++) {
+      std::string name = elf_strptr(elf, eh.e_shstrndx, shdrs[str].sh_name);
+      if (name == ".strtab")
+        break;
+    }
+    if (str == eh.e_shnum)
+      err.error("could not find section .strtab");
+    else {
+      Elf_Scn* strtab_scn = elf_getscn(elf, str);
+      Elf_Data* strtab_data;
+      if (elf_getdata(strtab_scn, strtab_data) == nullptr)
+        err.error("could not load .strtab: %s", elf_errmsg(elf_errno()));
+      else
+        str_tab = (char*)strtab_data->d_buf;
+    }
+
+    int sym;
+    for (sym = 0; sym < eh.e_shnum; sym++) {
+      std::string name = elf_strptr(elf, eh.e_shstrndx, shdrs[sym].sh_name);
+      if (name == ".symtab")
+        break;
+    }
+    if (sym == eh.e_shnum)
+      err.error("could not find section .symtab");
+    else {
+      Elf_Scn* symtab_scn = elf_getscn(elf, sym);
+      Elf_Data* symtab_data;
+      if (elf_getdata(symtab_scn, symtab_data) == nullptr)
+        err.error("could not load .symtab: %s", elf_errmsg(elf_errno()));
+      else {
+        symbol_count = shdrs[sym].sh_size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+        sym_tab = new GElf_Sym[symbol_count];
+        for (int i = 0; i < symbol_count; i++) {
+          if (gelf_getsym(symtab_data, i, &sym_tab[i]) == nullptr)
+            err.error("could not load .symtab symbol %d: %s", i, elf_errmsg(elf_errno()));
+        }
+      }
+    }
+  }
 }
 
 elf_image_t::~elf_image_t() {
-  if (file != nullptr) {
-    fclose(static_cast<FILE_reader_t*>(file)->fp);
-    free(file);
-  }
+  if (elf != nullptr)
+    elf_end(elf);
+  if (fd >= 0)
+    close(fd);
   if (phdrs != nullptr)
     free(phdrs);
   if (shdrs != nullptr)
     free(shdrs);
-  if (str_tab != nullptr)
-    free(str_tab);
   if (sym_tab != nullptr)
     free(sym_tab);
-}
-
-bool elf_image_t::check_header_signature() {
-  return eh.e_ident[0] == 0x7f && eh.e_ident[1] == 'E' && eh.e_ident[2] == 'L' && eh.e_ident[3] == 'F';
 }
 
 bool elf_image_t::is_64bit() {
@@ -67,25 +153,36 @@ bool elf_image_t::load_bits(void **bits, size_t size, off_t off, const char *des
     err.error("unable to allocate %s\n", description);
     return false;
   }
-  if (!file->seek(off, file_stream_t::SET) || !file->read(*bits, size)) {
+  off_t offset = lseek(fd, 0, SEEK_CUR);
+  lseek(fd, off, SEEK_SET);
+  if (read(fd, *bits, size) < 0) {
     err.error("file I/O error reading %s\n", description);
     free(*bits);
     *bits = 0;
     return false;
   }
+  lseek(fd, offset, SEEK_SET);
   return true;
 }
 
-const char *elf_image_t::get_section_name(int sect_num) const {
-  if (sh_str_tab) {
-    GElf_Shdr const *sh = &get_shdrs()[sect_num];
-    return sh_str_tab + sh->sh_name;
+std::string elf_image_t::get_section_name(int sect_num) const {
+  Elf_Scn* scn = elf_getscn(elf, sect_num);
+  if (scn == nullptr) {
+    err.error("could not get elf section %d: %s", sect_num, elf_errmsg(elf_errno()));
+    return "";
+  } else {
+    const char* name = elf_strptr(elf, eh.e_shstrndx, shdrs[sect_num].sh_name);
+    if (name == NULL) {
+      err.error("could not get elf section %d name: %s", sect_num, elf_errmsg(elf_errno()));
+      return "";
+    } else {
+      return name;
+    }
   }
-  return NULL;
 }
 
 bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const {
-  if (str_tab && sym_tab) {
+  if (sym_tab) {
     GElf_Sym const *syms = sym_tab;
     for (int i = 0; i < symbol_count; syms++, i++) {
       if (name == get_string(syms->st_name)) {
@@ -98,65 +195,16 @@ bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, siz
   return false;
 }
 
-bool elf_image_t::load() {
-  if (!file->read(&eh, sizeof(eh))) {
-    err.error("error reading header");
-    return false;
-  }
-  if (!check_header_signature()) {
-    err.error("bad ELF signature");
-    return false;
-  }
-  
-  if ((eh.e_phentsize != sizeof(*phdrs)) || (eh.e_shentsize != sizeof(*shdrs))) {
-    err.error("elf header inconsistency");
-    return false;
-  }
-  
-  if (!load_bits((void **)&phdrs, eh.e_phnum * eh.e_phentsize, eh.e_phoff, "program headers"))
-    return false;
-  if (!load_bits((void **)&shdrs, eh.e_shnum * eh.e_shentsize, eh.e_shoff, "section headers"))
-    return false;
-
-  // Should validate the header's section index here...
-  GElf_Shdr const *str_sh = &get_shdrs()[eh.e_shstrndx];
-  if (!load_bits((void **)&sh_str_tab, str_sh->sh_size, str_sh->sh_offset, "section string table"))
-    return false;
-
-  str_sh = find_section(".strtab");
-  if (!str_sh) {
-    err.error("cound't find strtab\n");
-    return false;
-  }
-  if (!load_bits((void **)&str_tab, str_sh->sh_size, str_sh->sh_offset, "string table"))
-    return false;
-  GElf_Shdr const *sym_sh = find_section(".symtab");
-  if (!sym_sh)
-    return false;
-  if (!load_bits((void **)&sym_tab, sym_sh->sh_size, sym_sh->sh_offset, "symbol table"))
-    return false;
-  symbol_count = sym_sh->sh_size / sizeof(GElf_Sym);
-  if (sym_sh->sh_size % sizeof(GElf_Sym)) {
-    err.error("section size not mod sizeof elf_sym\n");
-    return false;
-  }
-
-  return true;
-}
-
 uintptr_t elf_image_t::get_entry_point() const {
   return eh.e_entry;
 }
 
 GElf_Shdr const* elf_image_t::find_section(const std::string& name) const {
-  // We have to have the string table loaded for this.
-  if (sh_str_tab) {
-    for (int i = 0; i < get_shdr_count(); i++) {
-      if (name == get_section_name(i))
-	      return &get_shdrs()[i];
-    }
+  for (int i = 0; i < get_shdr_count(); i++) {
+    if (name == get_section_name(i))
+      return &shdrs[i];
   }
-  return NULL;
+  return nullptr;
 }
 
 } // namespace policy_engine

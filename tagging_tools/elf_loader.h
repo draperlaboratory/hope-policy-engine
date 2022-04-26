@@ -45,18 +45,16 @@ struct file_stream_t {
 class elf_image_t {
 private:
   bool valid;
+  int fd;
+  Elf* elf;
   GElf_Ehdr eh;
-  GElf_Phdr *phdrs;
-  GElf_Shdr *shdrs;
-  char *sh_str_tab;
-  char *str_tab;
-  GElf_Sym *sym_tab;
+  GElf_Phdr* phdrs;
+  GElf_Shdr* shdrs;
+  char* str_tab;
+  GElf_Sym* sym_tab;
   int symbol_count;
-  file_stream_t* file;
   reporter_t& err;
 
-  bool load();
-  bool check_header_signature();
 public:
   elf_image_t(const std::string& fname, reporter_t& err);
   ~elf_image_t();
@@ -68,7 +66,7 @@ public:
   int get_phdr_count() const { return eh.e_phnum; }
   GElf_Shdr const* get_shdrs() const { return shdrs; }
   int get_shdr_count() const { return eh.e_shnum; }
-  const char *get_section_name(int sect_num) const;
+  std::string get_section_name(int sect_num) const;
   GElf_Shdr const* find_section(const std::string& name) const;
 
   bool load_bits(GElf_Shdr const *shdr, void **bits, const char *purpose) {
