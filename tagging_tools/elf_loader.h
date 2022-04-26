@@ -72,8 +72,8 @@ public:
   elf_image_t(const std::string& fname, reporter_t& err);
   ~elf_image_t();
 
-  bool is_valid() { return valid; }
-  bool is_64bit() { return eh.e_ident[4] == ELFCLASS64; }
+  bool is_valid() const { return valid; }
+  bool is_64bit() const { return eh.e_ident[4] == ELFCLASS64; }
   uintptr_t get_entry_point() const { return eh.e_entry; }
   GElf_Ehdr get_ehdr() const { return eh; }
   const elf_section_t* find_section(const std::string& name) const;
