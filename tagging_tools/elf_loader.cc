@@ -119,17 +119,11 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
         err.error("could not load .symtab: %s\n", elf_errmsg(elf_errno()));
       else {
         symbol_count = sections[symind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
-        std::list<GElf_Sym> symbols;
         for (int i = 0; i < symbol_count; i++) {
           GElf_Sym symbol;
           if (gelf_getsym(symtab_data, i, &symbol) == nullptr)
             err.error("could not load .symtab symbol %d: %s\n", i, elf_errmsg(elf_errno()));
-          else
-            symbols.push_back(symbol);
-        }
-
-        for (const auto& symbol : symbols) {
-          if (symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
+          else if (symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
             symbol_t::visibility_t visibility;
             symbol_t::kind_t kind;
             switch (GELF_ST_BIND(symbol.st_info)) {
