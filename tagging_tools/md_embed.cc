@@ -40,11 +40,11 @@ using namespace policy_engine;
 #include <unistd.h>
 
 #ifdef RV64_VALIDATOR
-        char* bfd_target = "elf64-littleriscv";
+        std::string bfd_target = "elf64-littleriscv";
 #else
-        char* bfd_target = "elf32-littleriscv";
+        std::string bfd_target = "elf32-littleriscv";
 #endif
-char* riscv_prefix = "riscv64-unknown-elf-";
+std::string riscv_prefix = "riscv64-unknown-elf-";
 
 void usage(char** argv) {
     printf("usage: %s <tag_file> <policy_dir> <elf to embed tags>\n", argv[0]);
@@ -99,23 +99,19 @@ bool embed_tags_in_elf(std::vector<const metadata_t *> &metadata_values,
         return false;
     }
 
-    //char command_string[512];
     std::string command_string;
     
-    char* base_command;
-    if (update)
-        base_command = "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1";
-    else
-        base_command = "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
-
-    command_string.append(base_command);
     command_string += riscv_prefix;
+    command_string += "objcopy --target ";
     command_string += bfd_target;
+    command_string += " --add-section .initial_tag_map=";
     command_string += section_temp_file;
+    command_string += " --set-section-flags .initial_tag_map=readonly,data ";
     command_string += old_elf_name;
+    command_string += " ";
     command_string += new_elf_name;
+    command_string += " > /dev/null 2>&1";
     
-    //    sprintf(command_string, base_command, riscv_prefix,bfd_target, section_temp_file, old_elf_name.c_str(), new_elf_name.c_str());
 //     printf(command_string);
     int ret = system(command_string.c_str());
 
@@ -154,16 +150,15 @@ int main(int argc, char **argv) {
         metadata_index_map_t<metadata_memory_map_t, range_t>(&metadata_memory_map, &metadata_values);
 
     // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
-    char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
 
-    // char command_string[256];
     std::string command_string;
-    command_string += base_command;
     command_string += riscv_prefix;
+    command_string += "objdump --target ";
     command_string += bfd_target;
+    command_string += " -d -j .initial_tag_map ";
     command_string += elf_filename;
-    
-    //    sprintf(command_string, base_command, riscv_prefix, bfd_target, elf_filename);
+    command_string += " > /dev/null 2>&1";
+
     int ret = system(command_string.c_str());
 
     if(!embed_tags_in_elf(metadata_values, memory_index_map, elf_filename, elf_filename, ret == 0)) {
