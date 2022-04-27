@@ -56,12 +56,11 @@ struct elf_section_t {
 
 class elf_image_t {
 private:
+  int fd;
+  Elf* elf;
   GElf_Ehdr eh;
 
   bool valid;
-  int fd;
-  Elf* elf;
-  int symbol_count;
   reporter_t& err;
 
 public:
@@ -78,8 +77,6 @@ public:
   uintptr_t get_entry_point() const { return eh.e_entry; }
   GElf_Ehdr get_ehdr() const { return eh; }
   const elf_section_t* find_section(const std::string& name) const;
-
-  int get_symbol_count() const { return symbol_count; }
 };
 
 } // namespace policy_engine

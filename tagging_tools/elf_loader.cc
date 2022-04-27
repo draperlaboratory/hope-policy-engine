@@ -36,7 +36,7 @@
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), err(err) {
+elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), err(err) {
   valid = true;
   if (elf_version(EV_CURRENT) == EV_NONE) {
     valid = false;
@@ -123,7 +123,7 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
       if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) == nullptr)
         err.error("could not load .symtab: %s\n", elf_errmsg(elf_errno()));
       else {
-        symbol_count = sections[symind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+        int symbol_count = sections[symind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
         for (int i = 0; i < symbol_count; i++) {
           GElf_Sym symbol;
           if (gelf_getsym(symtab_data, i, &symbol) == nullptr)
