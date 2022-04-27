@@ -30,7 +30,6 @@
 #include <vector>
 #include "basic_elf_io.h"
 #include "elf_loader.h"
-#include "elf_utils.h"
 #include "entity_binding.h"
 #include "metadata_tool.h"
 #include "symbol_table.h"
@@ -38,8 +37,8 @@
 
 namespace policy_engine {
 
-static symbol_t* get_symbol(symbol_table_t const* symtab, reporter_t* err, std::string name, bool needs_size, bool optional) {
-  symbol_t* sym = symtab->find_symbol(name);
+static symbol_t* get_symbol(const symbol_table_t& symtab, reporter_t* err, const std::string& name, bool needs_size, bool optional) {
+  symbol_t* sym = symtab.find_symbol(name);
   if (sym) {
     if (needs_size && sym->get_size() == 0) {
       if(optional) {
@@ -91,8 +90,6 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
   try {
     metadata_tool_t md_tool(policy_dir.c_str());
     elf_image_t img(elf_file_name, err);
-    symbol_table_t symtab;
-    populate_symbol_table(&symtab, &img);
 
     if (update) {
       if (!md_tool.load_tag_info(tag_file_name.c_str())) {
@@ -113,7 +110,7 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
     for (auto &e: bindings) {
       entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
       if (sb != nullptr) {
-        symbol_t* sym = get_symbol(&symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
+        symbol_t* sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
         if (sym) {
           // go ahead and mark it
           uint64_t end_addr;
@@ -128,8 +125,8 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
       } else {
         entity_range_binding_t* rb = dynamic_cast<entity_range_binding_t*>(e.get());
         if (rb != nullptr) {
-          symbol_t* sym = get_symbol(&symtab, &err, rb->elf_start_name, false, false);
-          symbol_t* end = get_symbol(&symtab, &err, rb->elf_end_name, false, false);
+          symbol_t* sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
+          symbol_t* end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
           if (sym && end) {
             if (!md_tool.apply_tag(sym->get_address(), end->get_address(), rb->entity_name.c_str())) {
               err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());

@@ -27,7 +27,6 @@
 #include <sstream>
 #include <string>
 #include "basic_elf_io.h"
-#include "elf_utils.h"
 #include "metadata_index_map.h"
 #include "metadata_factory.h"
 #include "metadata_register_map.h"

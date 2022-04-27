@@ -29,14 +29,14 @@
 #include <cstring>
 #include <fcntl.h>
 #include <gelf.h>
+#include <list>
 #include <string>
 #include <unistd.h>
 #include "elf_loader.h"
-#include "basic_elf_io.h" // not alphabetical, but FILE_reader_t needs to be declared after file_stream_t
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), sym_tab(nullptr), err(err) {
+elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), elf(nullptr), err(err) {
   valid = true;
   if (elf_version(EV_CURRENT) == EV_NONE) {
     valid = false;
@@ -105,24 +105,45 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
 
     str_tab = reinterpret_cast<char*>(find_section(".strtab")->data);
 
-    int sym;
-    for (sym = 0; sym < sections.size(); sym++) {
-      if (sections[sym].name == ".symtab")
+    int symind;
+    for (symind = 0; symind < sections.size(); symind++) {
+      if (sections[symind].name == ".symtab")
         break;
     }
-    if (sym == eh.e_shnum)
+    if (symind == eh.e_shnum)
       err.error("could not find section .symtab\n");
     else {
-      Elf_Scn* symtab_scn = elf_getscn(elf, sym);
+      Elf_Scn* symtab_scn = elf_getscn(elf, symind);
       Elf_Data* symtab_data = nullptr;
       if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) == nullptr)
         err.error("could not load .symtab: %s\n", elf_errmsg(elf_errno()));
       else {
-        symbol_count = sections[sym].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
-        sym_tab = new GElf_Sym[symbol_count];
+        symbol_count = sections[symind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+        std::list<GElf_Sym> symbols;
         for (int i = 0; i < symbol_count; i++) {
-          if (gelf_getsym(symtab_data, i, &sym_tab[i]) == nullptr)
+          GElf_Sym symbol;
+          if (gelf_getsym(symtab_data, i, &symbol) == nullptr)
             err.error("could not load .symtab symbol %d: %s\n", i, elf_errmsg(elf_errno()));
+          else
+            symbols.push_back(symbol);
+        }
+
+        for (const auto& symbol : symbols) {
+          if (symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
+            symbol_t::visibility_t visibility;
+            symbol_t::kind_t kind;
+            switch (GELF_ST_BIND(symbol.st_info)) {
+              case STB_LOCAL: visibility = symbol_t::PRIVATE; break;
+              case STB_GLOBAL: visibility = symbol_t::PUBLIC; break;
+              default: visibility = symbol_t::PRIVATE; break;
+            }
+            switch (GELF_ST_TYPE(symbol.st_info)) {
+              case STT_FUNC: kind = symbol_t::CODE; break;
+              default: kind = symbol_t::DATA; break;
+            }
+            symbol_t* sym = new symbol_t(get_string(symbol.st_name), symbol.st_value & ~1, symbol.st_size, visibility, kind);
+            symtab.add_symbol(sym);
+          }
         }
       }
     }
@@ -134,22 +155,6 @@ elf_image_t::~elf_image_t() {
     elf_end(elf);
   if (fd >= 0)
     close(fd);
-  if (sym_tab != nullptr)
-    free(sym_tab);
-}
-
-bool elf_image_t::find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const {
-  if (sym_tab) {
-    GElf_Sym const *syms = sym_tab;
-    for (int i = 0; i < symbol_count; syms++, i++) {
-      if (name == get_string(syms->st_name)) {
-        addr = syms->st_value;
-        size = syms->st_size;
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 const elf_section_t* elf_image_t::find_section(const std::string& name) const {

@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <vector>
 #include "reporter.h"
+#include "symbol_table.h"
 
 namespace policy_engine {
 
@@ -61,13 +62,13 @@ private:
   int fd;
   Elf* elf;
   char* str_tab;
-  GElf_Sym* sym_tab;
   int symbol_count;
   reporter_t& err;
 
 public:
   std::vector<elf_section_t> sections;
   std::vector<GElf_Phdr> program_headers;
+  symbol_table_t symtab;
 
   elf_image_t(const std::string& fname, reporter_t& err);
   ~elf_image_t();
@@ -78,9 +79,7 @@ public:
   GElf_Ehdr get_ehdr() const { return eh; }
   const elf_section_t* find_section(const std::string& name) const;
 
-  const char *get_string(int str) const { if (str_tab) return str_tab + str; return 0; }
-  bool find_symbol_addr(const std::string& name, uintptr_t &addr, size_t &size) const;
-  GElf_Sym const *get_symbols() const { return sym_tab; }
+  const char* get_string(int str) const { if (str_tab) return str_tab + str; return 0; }
   int get_symbol_count() const { return symbol_count; }
 };
 

@@ -31,7 +31,6 @@
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
 #include "metadata_index_map.h"
-#include "elf_utils.h"
 
 namespace policy_engine {
 

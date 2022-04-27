@@ -28,7 +28,6 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
-#include "elf_utils.h"
 #include "basic_elf_io.h"
 #include "metadata_factory.h"
 #include "metadata_index_map.h"
