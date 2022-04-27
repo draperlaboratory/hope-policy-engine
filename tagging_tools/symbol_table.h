@@ -27,12 +27,9 @@
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
-#include <algorithm>
 #include <cstdint>
 #include <gelf.h>
-#include <list>
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -82,55 +79,16 @@ public:
   const_iterator begin() const { return sym_list.begin(); }
   const_iterator end() const { return sym_list.end(); }
 
-  void add_symbol(const symbol_t& sym) {
-    sym_list.push_back(sym);
-    addr_map[sym.address] = sym_list.size() - 1;
-    name_map[sym.name] = sym_list.size() - 1;
-  }
+  void push_back(const symbol_t& sym);
 
-  const symbol_t& at(const std::string& name) const { return sym_list[name_map.at(name)]; }
-  const symbol_t& at(uint64_t addr) const { return sym_list[addr_map.at(addr)]; }
+  const symbol_t& operator [](const std::string& name) const { return sym_list[name_map.at(name)]; }
+  const symbol_t& operator [](uint64_t addr) const { return sym_list[addr_map.at(addr)]; }
 
-  const_iterator find(const std::string& name) const {
-    if (name_map.find(name) == name_map.end())
-      return end();
-    return begin() + name_map.at(name);
-  }
-
-  const_iterator find(uint64_t addr) const {
-    if (addr_map.find(addr) == addr_map.end())
-      return end();
-    return begin() + addr_map.at(addr);
-  }
-
-  const_iterator lower_bound(uint64_t addr) const {
-    auto low = addr_map.lower_bound(addr);
-    if (low == addr_map.end())
-      return end();
-    return begin() + low->second;
-  }
-
-  const_iterator upper_bound(uint64_t addr) const {
-    auto low = addr_map.upper_bound(addr);
-    if (low == addr_map.end())
-      return end();
-    return begin() + low->second;
-  }
-
-  const_iterator find_nearest(uint64_t addr) const {
-    auto low = lower_bound(addr);
-    auto high = upper_bound(addr);
-    if (low == end() && high == end())
-      return end();
-    else if (low == end() && high != end())
-      return high;
-    else if (low != end() && high == end())
-      return low;
-    else if ((addr - low->address) < (high->address - addr))
-      return low;
-    else
-      return high;
-  }
+  const_iterator find(const std::string& name) const;
+  const_iterator find(uint64_t addr) const;
+  const_iterator lower_bound(uint64_t addr) const;
+  const_iterator upper_bound(uint64_t addr) const;
+  const_iterator find_nearest(uint64_t addr) const;
 };
 
 } // namespace policy_engine
