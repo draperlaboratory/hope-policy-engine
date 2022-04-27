@@ -124,14 +124,13 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
           if (gelf_getsym(symtab_data, i, &symbol) == nullptr)
             err.error("could not load .symtab symbol %d: %s\n", i, elf_errmsg(elf_errno()));
           else if (symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
-            symbol_t* sym = new symbol_t{
+            symtab.add_symbol(symbol_t{
               .name=get_string(symbol.st_name),
               .address=symbol.st_value & ~1,
               .size=symbol.st_size,
               .visibility=symbol_t::get_visibility(symbol),
               .kind=symbol_t::get_kind(symbol)
-            };
-            symtab.add_symbol(sym);
+            });
           }
         }
       }

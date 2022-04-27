@@ -28,10 +28,13 @@
 #define SYMBOL_TABLE_H
 
 #include <algorithm>
+#include <cstdint>
 #include <gelf.h>
 #include <list>
 #include <map>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace policy_engine {
 
@@ -66,57 +69,67 @@ struct symbol_t {
 };
 
 class symbol_table_t {
-  typedef std::map<uint64_t, symbol_t *> symbol_map_t;
-  symbol_map_t symbols;
-  std::map<std::string, symbol_t *> symbols_by_name;
+private:
+  std::vector<symbol_t> sym_list;
+  std::map<uint64_t, int> addr_map;
+  std::map<std::string, int> name_map;
 
-  public:
+public:
+  typedef std::vector<symbol_t>::const_iterator const_iterator;
 
-  void add_symbol(symbol_t *sym) {
-    symbols[sym->address] = sym;
-    symbols_by_name[sym->name] = sym;
+  symbol_table_t() {}
+
+  const_iterator begin() const { return sym_list.begin(); }
+  const_iterator end() const { return sym_list.end(); }
+
+  void add_symbol(const symbol_t& sym) {
+    sym_list.push_back(sym);
+    addr_map[sym.address] = sym_list.size() - 1;
+    name_map[sym.name] = sym_list.size() - 1;
   }
 
-  symbol_t *find_symbol(std::string name) const {
-    auto it = symbols_by_name.find(name);
-    if (it == symbols_by_name.end())
-      return nullptr;
-    return it->second;
+  const symbol_t& at(const std::string& name) const { return sym_list[name_map.at(name)]; }
+  const symbol_t& at(uint64_t addr) const { return sym_list[addr_map.at(addr)]; }
+
+  const_iterator find(const std::string& name) const {
+    if (name_map.find(name) == name_map.end())
+      return end();
+    return begin() + name_map.at(name);
   }
 
-  symbol_t *find_nearest_symbol(uint64_t addr) const {
-    auto low = symbols.lower_bound(addr);
-    if (low == symbols.end())
-      return nullptr;
-    if (low == symbols.begin())
-      return nullptr;
-    --low;
-    return low->second;
+  const_iterator find(uint64_t addr) const {
+    if (addr_map.find(addr) == addr_map.end())
+      return end();
+    return begin() + addr_map.at(addr);
   }
 
-  symbol_t *find_next_symbol(uint64_t addr) const {
-    auto low = symbols.lower_bound(addr);
-    if (low == symbols.end())
-      return nullptr;
-    ++low;
-    return low->second;
+  const_iterator lower_bound(uint64_t addr) const {
+    auto low = addr_map.lower_bound(addr);
+    if (low == addr_map.end())
+      return end();
+    return begin() + low->second;
   }
 
-  typedef std::list<symbol_t *> symbol_list_t;
-  symbol_list_t sorted_symbols() {
-    symbol_list_t res;
-    std::transform(symbols.begin(), symbols.end(), std::back_inserter(res),
-		   [](const symbol_map_t::value_type &val) { return val.second; });
-    res.sort([](const symbol_t * const &lhs, const symbol_t * const &rhs) { return *lhs <= *rhs; });
-    return res;
+  const_iterator upper_bound(uint64_t addr) const {
+    auto low = addr_map.upper_bound(addr);
+    if (low == addr_map.end())
+      return end();
+    return begin() + low->second;
   }
- 
-  static void next_nearest_symbol(symbol_list_t::const_iterator &iter,
-				  symbol_list_t::const_iterator const &end,
-				  uint64_t addr) {
-    while (iter != end && (*iter)->address < addr) {
-      iter++;
-    }
+
+  const_iterator find_nearest(uint64_t addr) const {
+    auto low = lower_bound(addr);
+    auto high = upper_bound(addr);
+    if (low == end() && high == end())
+      return end();
+    else if (low == end() && high != end())
+      return high;
+    else if (low != end() && high == end())
+      return low;
+    else if ((addr - low->address) < (high->address - addr))
+      return low;
+    else
+      return high;
   }
 };
 

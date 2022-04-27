@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "basic_elf_io.h"
@@ -37,22 +38,19 @@
 
 namespace policy_engine {
 
-static symbol_t* get_symbol(const symbol_table_t& symtab, reporter_t* err, const std::string& name, bool needs_size, bool optional) {
-  symbol_t* sym = symtab.find_symbol(name);
-  if (sym) {
+static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, reporter_t* err, const std::string& name, bool needs_size, bool optional) {
+  auto sym = symtab.find(name);
+  if (sym != symtab.end()) {
     if (needs_size && sym->size == 0) {
-      if(optional) {
-          err->warning("symbol %s has zero size.\n", name.c_str());
-      }
+      if (optional)
+        err->warning("symbol %s has zero size.\n", name.c_str());
       else {
-          err->error("symbol %s has zero size.\n", name.c_str());
-          sym = nullptr;
+        err->error("symbol %s has zero size.\n", name.c_str());
+        sym = symtab.end();
       }
     }
-  } else {
-    if (!optional)
-      err->error("symbol %s not found\n", name.c_str());
-  }
+  } else if (!optional)
+    err->error("symbol %s not found\n", name.c_str());
   return sym;
 }
 
@@ -99,7 +97,7 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
     }
 
     std::list<std::unique_ptr<entity_binding_t>> bindings;
-    std::printf("parsin %s\n", entity_yaml.c_str());
+    std::printf("parsing %s\n", entity_yaml.c_str());
     load_entity_bindings(entity_yaml.c_str(), bindings, &err);
     for (const std::string& yaml_file : yaml_files) {
       std::printf("parsing %s\n", yaml_file.c_str());
@@ -110,8 +108,8 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
     for (auto &e: bindings) {
       entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
       if (sb != nullptr) {
-        symbol_t* sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
-        if (sym) {
+        auto sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
+        if (sym != img.symtab.end()) {
           // go ahead and mark it
           uint64_t end_addr;
           if (sb->is_singularity)
@@ -125,9 +123,9 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
       } else {
         entity_range_binding_t* rb = dynamic_cast<entity_range_binding_t*>(e.get());
         if (rb != nullptr) {
-          symbol_t* sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
-          symbol_t* end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
-          if (sym && end) {
+          auto sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
+          auto end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
+          if (sym != img.symtab.end() && end != img.symtab.end()) {
             if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
               err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
             }
