@@ -103,7 +103,12 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
         program_headers.push_back(phdr);
     }
 
-    str_tab = reinterpret_cast<char*>(find_section(".strtab")->data);
+    const elf_section_t* strtab_scn = find_section(".strtab");
+    char* strtab_bytes = reinterpret_cast<char*>(strtab_scn->data);
+    for (int i = 1; i < strtab_scn->size; i++) {
+      if (strtab_bytes[i - 1] == '\0')
+        strtab.push_back(&strtab_bytes[i]);
+    }
 
     int symind;
     for (symind = 0; symind < sections.size(); symind++) {
@@ -125,7 +130,7 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), el
             err.error("could not load .symtab symbol %d: %s\n", i, elf_errmsg(elf_errno()));
           else if (symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
             symtab.push_back(symbol_t{
-              .name=get_string(symbol.st_name),
+              .name=strtab_bytes + symbol.st_name,
               .address=symbol.st_value & ~1,
               .size=symbol.st_size,
               .visibility=symbol_t::get_visibility(symbol),

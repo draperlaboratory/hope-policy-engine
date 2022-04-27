@@ -61,7 +61,6 @@ private:
   bool valid;
   int fd;
   Elf* elf;
-  char* str_tab;
   int symbol_count;
   reporter_t& err;
 
@@ -69,6 +68,7 @@ public:
   std::vector<elf_section_t> sections;
   std::vector<GElf_Phdr> program_headers;
   symbol_table_t symtab;
+  std::vector<std::string> strtab;
 
   elf_image_t(const std::string& fname, reporter_t& err);
   ~elf_image_t();
@@ -79,7 +79,6 @@ public:
   GElf_Ehdr get_ehdr() const { return eh; }
   const elf_section_t* find_section(const std::string& name) const;
 
-  const char* get_string(int str) const { if (str_tab) return str_tab + str; return 0; }
   int get_symbol_count() const { return symbol_count; }
 };
 
