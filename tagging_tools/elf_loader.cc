@@ -24,6 +24,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -103,7 +104,7 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), er
         program_headers.push_back(phdr);
     }
 
-    const elf_section_t* strtab_scn = find_section(".strtab");
+    auto strtab_scn = std::find_if(sections.begin(), sections.end(), [](const elf_section_t& s){ return s.name == ".strtab"; });
     char* strtab_bytes = reinterpret_cast<char*>(strtab_scn->data);
     for (int i = 1; i < strtab_scn->size; i++) {
       if (strtab_bytes[i - 1] == '\0')
@@ -148,15 +149,6 @@ elf_image_t::~elf_image_t() {
     elf_end(elf);
   if (fd >= 0)
     close(fd);
-}
-
-const elf_section_t* elf_image_t::find_section(const std::string& name) const {
-  for (const auto& section : sections) {
-    if (section.name == name)
-      return &section;
-  }
-  err.error("could not find section named %s", name.c_str());
-  return nullptr;
 }
 
 } // namespace policy_engine

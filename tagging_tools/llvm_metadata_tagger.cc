@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdint>
 #include <gelf.h>
 #include <iostream>
@@ -127,8 +128,8 @@ void LLVMMetadataTagger::check_and_write_range(RangeFile& range_file, uint64_t s
 }
 
 RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, RangeFile& range_file, const YAML::Node& policy_inits) {
-  const elf_section_t* metadata_section = elf_file.find_section(".dover_metadata");
-  if (metadata_section)
+  auto metadata_section = std::find_if(elf_file.sections.begin(), elf_file.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
+  if (metadata_section == elf_file.sections.end())
     throw std::runtime_error("No metadata found in ELF file!");
   uint8_t* metadata = reinterpret_cast<uint8_t*>(metadata_section->data);
   if (metadata[0] != metadata_ops.at("DMD_SET_BASE_ADDRESS_OP"))

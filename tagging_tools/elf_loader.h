@@ -76,7 +76,6 @@ public:
   bool is_64bit() const { return eh.e_ident[4] == ELFCLASS64; }
   uintptr_t get_entry_point() const { return eh.e_entry; }
   GElf_Ehdr get_ehdr() const { return eh; }
-  const elf_section_t* find_section(const std::string& name) const;
 };
 
 } // namespace policy_engine
