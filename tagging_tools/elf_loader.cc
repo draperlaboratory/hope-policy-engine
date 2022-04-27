@@ -111,20 +111,16 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), er
         strtab.push_back(&strtab_bytes[i]);
     }
 
-    int symind;
-    for (symind = 0; symind < sections.size(); symind++) {
-      if (sections[symind].name == ".symtab")
-        break;
-    }
-    if (symind == eh.e_shnum)
+    int ind = std::find_if(sections.begin(), sections.end(), [](const elf_section_t& s){ return s.name == ".symtab"; }) - sections.begin();
+    if (ind == sections.size())
       err.error("could not find section .symtab\n");
     else {
-      Elf_Scn* symtab_scn = elf_getscn(elf, symind);
+      Elf_Scn* symtab_scn = elf_getscn(elf, ind);
       Elf_Data* symtab_data = nullptr;
       if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) == nullptr)
         err.error("could not load .symtab: %s\n", elf_errmsg(elf_errno()));
       else {
-        int symbol_count = sections[symind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+        int symbol_count = sections[ind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
         for (int i = 0; i < symbol_count; i++) {
           GElf_Sym symbol;
           if (gelf_getsym(symtab_data, i, &symbol) == nullptr)
