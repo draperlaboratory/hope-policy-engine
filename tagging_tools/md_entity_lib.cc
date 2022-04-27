@@ -40,7 +40,7 @@ namespace policy_engine {
 static symbol_t* get_symbol(const symbol_table_t& symtab, reporter_t* err, const std::string& name, bool needs_size, bool optional) {
   symbol_t* sym = symtab.find_symbol(name);
   if (sym) {
-    if (needs_size && sym->get_size() == 0) {
+    if (needs_size && sym->size == 0) {
       if(optional) {
           err->warning("symbol %s has zero size.\n", name.c_str());
       }
@@ -115,10 +115,10 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
           // go ahead and mark it
           uint64_t end_addr;
           if (sb->is_singularity)
-            end_addr = sym->get_address() + (img.is_64bit() ? 8 : 4);
+            end_addr = sym->address + (img.is_64bit() ? 8 : 4);
           else
-            end_addr = sym->get_address() + sym->get_size(); // TODO: align to platform word boundary?
-          if (!md_tool.apply_tag(sym->get_address(), end_addr, sb->entity_name.c_str())) {
+            end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
+          if (!md_tool.apply_tag(sym->address, end_addr, sb->entity_name.c_str())) {
             err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
           }
         }
@@ -128,7 +128,7 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
           symbol_t* sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
           symbol_t* end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
           if (sym && end) {
-            if (!md_tool.apply_tag(sym->get_address(), end->get_address(), rb->entity_name.c_str())) {
+            if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
               err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
             }
           }

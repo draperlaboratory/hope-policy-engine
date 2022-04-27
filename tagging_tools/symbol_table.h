@@ -28,40 +28,41 @@
 #define SYMBOL_TABLE_H
 
 #include <algorithm>
+#include <gelf.h>
 #include <list>
 #include <map>
 #include <string>
 
 namespace policy_engine {
 
-class symbol_t {
-  public:
-  enum visibility_t {
-    PUBLIC, PRIVATE
-  };
-  enum kind_t {
-    CODE, DATA
-  };
-  symbol_t(const char *name) : name(name), addr(0), size(0), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, uint64_t addr) : name(name), addr(addr), size(0), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, uint64_t addr, size_t size) : name(name), addr(addr), size(size), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, uint64_t addr, size_t size, visibility_t visibility, kind_t kind) :
-  name(name), addr(addr), size(size), visibility(visibility), kind(kind) { }
-  uint64_t get_address() const { return addr; }
-  size_t get_size() const { return size; }
-  std::string get_name() const { return name; }
-  visibility_t get_visibility() { return visibility; }
-  kind_t get_kind() { return kind; }
+struct symbol_t {
+  enum visibility_t { PUBLIC, PRIVATE };
+  static visibility_t get_visibility(const GElf_Sym& symbol) {
+    switch (GELF_ST_BIND(symbol.st_info)) {
+      case STB_LOCAL:  return PRIVATE;
+      case STB_GLOBAL: return PUBLIC;
+      default: return PRIVATE;
+    }
+  }
 
-  bool operator <=(const symbol_t &rhs) const { return addr <= rhs.addr; }
-  bool operator <(const symbol_t &rhs) const { return addr < rhs.addr; }
-  private:
+  enum kind_t { CODE, DATA };
+  static kind_t get_kind(const GElf_Sym& symbol) {
+    switch (GELF_ST_TYPE(symbol.st_info)) {
+      case STT_FUNC: return CODE;
+      default: return DATA;
+    }
+  }
 
-  std::string name;
-  uint64_t addr;
-  size_t size;
-  visibility_t visibility;
-  kind_t kind;
+  const std::string name;
+  const uint64_t address = 0;
+  const size_t size = 0;
+  const visibility_t visibility = PUBLIC;
+  const kind_t kind = CODE;
+
+  bool operator <(const symbol_t& rhs) const { return address < rhs.address; }
+  bool operator <=(const symbol_t& rhs) const { return address <= rhs.address; }
+  bool operator >(const symbol_t& rhs) const { return address > rhs.address; }
+  bool operator >=(const symbol_t& rhs) const { return address >= rhs.address; }
 };
 
 class symbol_table_t {
@@ -72,8 +73,8 @@ class symbol_table_t {
   public:
 
   void add_symbol(symbol_t *sym) {
-    symbols[sym->get_address()] = sym;
-    symbols_by_name[sym->get_name()] = sym;
+    symbols[sym->address] = sym;
+    symbols_by_name[sym->name] = sym;
   }
 
   symbol_t *find_symbol(std::string name) const {
@@ -113,8 +114,7 @@ class symbol_table_t {
   static void next_nearest_symbol(symbol_list_t::const_iterator &iter,
 				  symbol_list_t::const_iterator const &end,
 				  uint64_t addr) {
-    while (iter != end && (*iter)->get_address() < addr) {
-//      printf("nns: 0x%x - %s\n", (*iter)->get_address(), (*iter)->name.c_str());
+    while (iter != end && (*iter)->address < addr) {
       iter++;
     }
   }
