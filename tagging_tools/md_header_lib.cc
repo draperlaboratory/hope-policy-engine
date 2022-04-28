@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <functional>
 #include <gelf.h>
+#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <yaml-cpp/yaml.h>
@@ -188,46 +189,47 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
   bool is_64_bit = false;
   YAML::Node soc_node;
 
-  metadata_factory_t factory(policy_dir);
-  elf_image_t elf_image(elf_filename, err);
-  if (!elf_image.is_valid()) {
-    err.error("Failed to load ELF image\n");
+  try {
+    metadata_factory_t factory(policy_dir);
+    elf_image_t elf_image(elf_filename);
+
+    if (elf_image.get_ehdr().e_ident[EI_CLASS] == ELFCLASS64) {
+      is_64_bit = true;
+    }
+
+    soc_node = YAML::LoadFile(soc_filename);
+    if (soc_node["SOC"] == NULL) {
+      err.error("SOC root node not present\n");
+      return false;
+    }
+
+    if (exclude_unused_soc(soc_node["SOC"], soc_exclude, factory,& err) == false) {
+      err.error("Failed to get SOC ranges\n");
+      return 1;
+    }
+
+    if (get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude,& err) == false) {
+      err.error("Failed to get SOC ranges\n");
+      return 1;
+    }
+
+    data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+    get_address_ranges(elf_image, code_ranges, data_ranges);
+
+    for(const auto& it : data_ranges) {
+      data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, is_64_bit)));
+    }
+
+    if (!write_headers(code_ranges, data_ranges_granularity, is_64_bit, std::string(tag_filename))) {
+      err.error("Failed to write headers to tag file\n");
+      return 1;
+    }
+
+    return 0;
+  } catch (const std::runtime_error& e) {
+    err.error("Failed to load ELF image: %s\n", e.what());
     return 1;
   }
-
-  if (elf_image.get_ehdr().e_ident[EI_CLASS] == ELFCLASS64) {
-    is_64_bit = true;
-  }
-
-  soc_node = YAML::LoadFile(soc_filename);
-  if (soc_node["SOC"] == NULL) {
-    err.error("SOC root node not present\n");
-    return false;
-  }
-
-  if (exclude_unused_soc(soc_node["SOC"], soc_exclude, factory,& err) == false) {
-    err.error("Failed to get SOC ranges\n");
-    return 1;
-  }
-
-  if (get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude,& err) == false) {
-    err.error("Failed to get SOC ranges\n");
-    return 1;
-  }
-
-  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
-  get_address_ranges(elf_image, code_ranges, data_ranges);
-
-  for(const auto& it : data_ranges) {
-    data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, is_64_bit)));
-  }
-
-  if (!write_headers(code_ranges, data_ranges_granularity, is_64_bit, std::string(tag_filename))) {
-    err.error("Failed to write headers to tag file\n");
-    return 1;
-  }
-
-  return 0;
 }
 
 } // namespace policy_engine

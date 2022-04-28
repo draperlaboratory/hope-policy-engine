@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <unistd.h>
@@ -44,34 +45,35 @@ bool save_tags_to_temp(
   std::string old_elf_name, std::string new_elf_name, char tempfile[],
   bool is_64_bit, stdio_reporter_t& err
 ) {
-  elf_image_t img(old_elf_name, err);
-  int address_width = img.is_64bit() ? 8 : 4;
-  int fd = mkstemp(tempfile);
-  std::FILE* section_file = fdopen(fd, "wb");
+  try {
+    elf_image_t img(old_elf_name);
+    int address_width = img.is_64bit() ? 8 : 4;
+    int fd = mkstemp(tempfile);
+    std::FILE* section_file = fdopen(fd, "wb");
 
-  if (!img.is_valid())
-    return false;
+    size_t mem_map_size = memory_index_map.size();
+    fwrite(&mem_map_size, address_width, 1, section_file);
+    int i = 0;
+    for (auto& e : memory_index_map) {
+      range_t range = e.first;
+      uint64_t metadata_size = metadata_values[e.second]->size();
 
-  size_t mem_map_size = memory_index_map.size();
-  fwrite(&mem_map_size, address_width, 1, section_file);
-  int i = 0;
-  for (auto& e : memory_index_map) {
-    range_t range = e.first;
-    uint64_t metadata_size = metadata_values[e.second]->size();
+      fwrite(&range.start, address_width, 1, section_file);
+      fwrite(&range.end, address_width, 1, section_file);
+      fwrite(&metadata_size, address_width, 1, section_file);
 
-    fwrite(&range.start, address_width, 1, section_file);
-    fwrite(&range.end, address_width, 1, section_file);
-    fwrite(&metadata_size, address_width, 1, section_file);
-
-    for(const meta_t& m : *metadata_values[e.second]) {
-      fwrite(&m, address_width, 1, section_file);
+      for(const meta_t& m : *metadata_values[e.second]) {
+        fwrite(&m, address_width, 1, section_file);
+      }
     }
+
+    fclose(section_file);
+    close(fd);
+
+    return true;
+  } catch (const std::runtime_error& e) {
+    return false;
   }
-
-  fclose(section_file);
-  close(fd);
-
-  return true;
 }
 
 bool embed_tags_in_elf(

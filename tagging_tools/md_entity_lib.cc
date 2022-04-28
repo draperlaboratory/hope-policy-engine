@@ -87,7 +87,7 @@ int md_entity(const std::string& policy_dir, const std::string& elf_file_name, c
 
   try {
     metadata_tool_t md_tool(policy_dir.c_str());
-    elf_image_t img(elf_file_name, err);
+    elf_image_t img(elf_file_name);
 
     if (update) {
       if (!md_tool.load_tag_info(tag_file_name.c_str())) {

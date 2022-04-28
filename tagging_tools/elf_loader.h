@@ -60,19 +60,15 @@ private:
   Elf* elf;
   GElf_Ehdr eh;
 
-  bool valid;
-  reporter_t& err;
-
 public:
   std::vector<elf_section_t> sections;
   std::vector<GElf_Phdr> program_headers;
   symbol_table_t symtab;
   std::vector<std::string> strtab;
 
-  elf_image_t(const std::string& fname, reporter_t& err);
+  elf_image_t(const std::string& fname);
   ~elf_image_t();
 
-  bool is_valid() const { return valid; }
   bool is_64bit() const { return eh.e_ident[4] == ELFCLASS64; }
   uintptr_t get_entry_point() const { return eh.e_entry; }
   GElf_Ehdr get_ehdr() const { return eh; }

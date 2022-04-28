@@ -31,59 +31,38 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <list>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
 #include "elf_loader.h"
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), err(err) {
-  valid = true;
-  if (elf_version(EV_CURRENT) == EV_NONE) {
-    valid = false;
-    err.error("failed to initialize ELF library: %s\n", elf_errmsg(elf_errno()));
-  }
-  if (valid) {
-    fd = open(fname.c_str(), O_RDONLY);
-    if (fd < 0) {
-      valid = false;
-      err.error("failed to open %s: %s\n", fname.c_str(), std::strerror(errno));
-    }
-  }
-  if (valid) {
-    elf = elf_begin(fd, ELF_C_READ, nullptr);
-    if (elf == nullptr) {
-      valid = false;
-      err.error("failed to initialize ELF file: %s\n", elf_errmsg(elf_errno()));
-    } else if (elf_kind(elf) != ELF_K_ELF) {
-      valid = false;
-      err.error("%s is not an ELF file\n", fname.c_str());
-    }
-  }
-  if (valid) {
-    if (gelf_getehdr(elf, &eh) == nullptr) {
-      valid = false;
-      err.error("could not get ELF header: %s\n", elf_errmsg(elf_errno()));
-    } else if (!(eh.e_ident[0] == 0x7f && eh.e_ident[1] == 'E' && eh.e_ident[2] == 'L' && eh.e_ident[3] == 'F')) {
-      valid = false;
-      err.error("bad ELF signature\n");
-    } else if (eh.e_ident[4] == ELFCLASSNONE) {
-      valid = false;
-      err.error("could not determine ELF class\n");
-    }
-  }
-  if (valid) {
-    for (int i = 0; i < eh.e_shnum; i++) {
-      Elf_Scn* scn = elf_getscn(elf, i);
-      GElf_Shdr shdr;
-      if (scn == nullptr) {
-        err.error("could not get section %d: %s", i, elf_errmsg(elf_errno()));
-      } else if (gelf_getshdr(scn, &shdr) == nullptr) {
-        err.error("could not get section header %d: %s\n", i, elf_errmsg(elf_errno()));
-      } else {
-        Elf_Data* data = nullptr;
-        if ((data = elf_getdata(scn, data)) == nullptr)
-          err.error("could not load section %d data: %s\n", i, elf_errmsg(elf_errno()));
+elf_image_t::elf_image_t(const std::string& fname) : fd(-1), elf(nullptr) {
+  if (elf_version(EV_CURRENT) == EV_NONE)
+    throw std::runtime_error(std::string("failed to initialize ELF library: ") + elf_errmsg(elf_errno()));
+  fd = open(fname.c_str(), O_RDONLY);
+  if (fd < 0)
+    throw std::runtime_error("failed to open " + fname + ": " + std::strerror(errno));
+  elf = elf_begin(fd, ELF_C_READ, nullptr);
+  if (elf == nullptr)
+    throw std::runtime_error(std::string("failed to initialize ELF file: ") + elf_errmsg(elf_errno()));
+  else if (elf_kind(elf) != ELF_K_ELF)
+    throw std::runtime_error(fname + " is not an ELF file");
+
+  if (gelf_getehdr(elf, &eh) == nullptr)
+    throw std::runtime_error(std::string("could not get ELF header: ") + elf_errmsg(elf_errno()));
+  else if (!(eh.e_ident[0] == 0x7f && eh.e_ident[1] == 'E' && eh.e_ident[2] == 'L' && eh.e_ident[3] == 'F'))
+    throw std::runtime_error("bad ELF signature");
+  else if (eh.e_ident[4] == ELFCLASSNONE)
+    throw std::runtime_error("could not determine ELF class");
+
+  for (int i = 0; i < eh.e_shnum; i++) {
+    Elf_Scn* scn = elf_getscn(elf, i);
+    GElf_Shdr shdr;
+    if (scn != nullptr && gelf_getshdr(scn, &shdr) != nullptr) {
+      Elf_Data* data = nullptr;
+      if ((data = elf_getdata(scn, data)) != nullptr) {
         sections.push_back({
           .name=elf_strptr(elf, eh.e_shstrndx, shdr.sh_name),
           .flags=shdr.sh_flags,
@@ -95,45 +74,37 @@ elf_image_t::elf_image_t(const std::string& fname, reporter_t& err) : fd(-1), er
         });
       }
     }
+  }
 
-    for (int i = 0; i < eh.e_phnum; i++) {
-      GElf_Phdr phdr;
-      if (gelf_getphdr(elf, i, &phdr) == nullptr)
-        err.error("could not get program header %d: %s\n", i, elf_errmsg(elf_errno()));
-      else
-        program_headers.push_back(phdr);
-    }
+  for (int i = 0; i < eh.e_phnum; i++) {
+    GElf_Phdr phdr;
+    if (gelf_getphdr(elf, i, &phdr) != nullptr)
+      program_headers.push_back(phdr);
+  }
 
-    auto strtab_scn = std::find_if(sections.begin(), sections.end(), [](const elf_section_t& s){ return s.name == ".strtab"; });
-    char* strtab_bytes = reinterpret_cast<char*>(strtab_scn->data);
-    for (int i = 1; i < strtab_scn->size; i++) {
-      if (strtab_bytes[i - 1] == '\0')
-        strtab.push_back(&strtab_bytes[i]);
-    }
+  auto strtab_scn = std::find_if(sections.begin(), sections.end(), [](const elf_section_t& s){ return s.name == ".strtab"; });
+  char* strtab_bytes = reinterpret_cast<char*>(strtab_scn->data);
+  for (int i = 1; i < strtab_scn->size; i++) {
+    if (strtab_bytes[i - 1] == '\0')
+      strtab.push_back(&strtab_bytes[i]);
+  }
 
-    int ind = std::find_if(sections.begin(), sections.end(), [](const elf_section_t& s){ return s.name == ".symtab"; }) - sections.begin();
-    if (ind == sections.size())
-      err.error("could not find section .symtab\n");
-    else {
-      Elf_Scn* symtab_scn = elf_getscn(elf, ind);
-      Elf_Data* symtab_data = nullptr;
-      if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) == nullptr)
-        err.error("could not load .symtab: %s\n", elf_errmsg(elf_errno()));
-      else {
-        int symbol_count = sections[ind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
-        for (int i = 0; i < symbol_count; i++) {
-          GElf_Sym symbol;
-          if (gelf_getsym(symtab_data, i, &symbol) == nullptr)
-            err.error("could not load .symtab symbol %d: %s\n", i, elf_errmsg(elf_errno()));
-          else if (symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
-            symtab.push_back(symbol_t{
-              .name=strtab_bytes + symbol.st_name,
-              .address=symbol.st_value & ~1,
-              .size=symbol.st_size,
-              .visibility=symbol_t::get_visibility(symbol),
-              .kind=symbol_t::get_kind(symbol)
-            });
-          }
+  int ind = std::find_if(sections.begin(), sections.end(), [](const elf_section_t& s){ return s.name == ".symtab"; }) - sections.begin();
+  if (ind != sections.size()) {
+    Elf_Scn* symtab_scn = elf_getscn(elf, ind);
+    Elf_Data* symtab_data = nullptr;
+    if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) != nullptr) {
+      int symbol_count = sections[ind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+      for (int i = 0; i < symbol_count; i++) {
+        GElf_Sym symbol;
+        if (gelf_getsym(symtab_data, i, &symbol) != nullptr && symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {
+          symtab.push_back(symbol_t{
+            .name=strtab_bytes + symbol.st_name,
+            .address=symbol.st_value & ~1,
+            .size=symbol.st_size,
+            .visibility=symbol_t::get_visibility(symbol),
+            .kind=symbol_t::get_kind(symbol)
+          });
         }
       }
     }

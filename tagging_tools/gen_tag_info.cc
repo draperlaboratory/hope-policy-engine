@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
   YAML::Node policy_metas = YAML::LoadFile(FLAGS_policy_dir + "/policy_meta.yml");
 
   { // open a new scope so that the ELF image cleans up properly before reopening it
-    policy_engine::elf_image_t elf_image(FLAGS_bin, err);
+    policy_engine::elf_image_t elf_image(FLAGS_bin);
 
     policy_engine::RangeFile range_file;
     policy_engine::LLVMMetadataTagger llvm_tagger;
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
   }
   
   // have to reopen the file here because it's been edited and the current copy is corrupt
-  policy_engine::elf_image_t elf_image_post(FLAGS_bin, err);
+  policy_engine::elf_image_t elf_image_post(FLAGS_bin);
 
   tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file);
 
