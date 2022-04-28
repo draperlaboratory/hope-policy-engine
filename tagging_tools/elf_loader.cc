@@ -38,7 +38,7 @@
 
 namespace policy_engine {
 
-elf_image_t::elf_image_t(const std::string& fname) : fd(-1), elf(nullptr) {
+elf_image_t::elf_image_t(const std::string& fname) : name(fname), fd(-1), elf(nullptr) {
   if (elf_version(EV_CURRENT) == EV_NONE)
     throw std::runtime_error(std::string("failed to initialize ELF library: ") + elf_errmsg(elf_errno()));
   fd = open(fname.c_str(), O_RDONLY);

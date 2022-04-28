@@ -44,20 +44,22 @@ DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
+  policy_engine::stdio_reporter_t err;
+
   gflags::SetUsageMessage("Generate tag ranges file from ELF binary");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   char** args_entities = argv;
 
   if (FLAGS_policy_dir.empty()) {
-    std::printf("Missing policy directory!\n");
+    err.error("Missing policy directory!\n");
     exit(-1);
   }
   if (FLAGS_tag_file.empty()) {
-    std::printf("Missing tag output file!\n");
+    err.error("Missing tag output file!\n");
     exit(-1);
   }
   if (FLAGS_bin.empty()) {
-    std::printf("Missing binary to tag!\n");
+    err.error("Missing binary to tag!\n");
     exit(-1);
   }
 
@@ -74,12 +76,10 @@ int main(int argc, char* argv[]) {
   struct stat tag_buf;
   if (stat(FLAGS_tag_file.c_str(), &tag_buf) == 0) {
     if (std::remove(FLAGS_tag_file.c_str()) != 0) {
-      std::printf("could not remove %s\n", FLAGS_tag_file.c_str());
+      err.error("could not remove %s\n", FLAGS_tag_file.c_str());
       exit(-1);
     }
   }
-
-  policy_engine::stdio_reporter_t err;
 
   YAML::Node policy_modules = YAML::LoadFile(FLAGS_policy_dir + "/policy_modules.yml");
   YAML::Node policy_inits = YAML::LoadFile(FLAGS_policy_dir + "/policy_init.yml");
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
         policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits);
       int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
       if (rc != 0)
-        std::printf("Couldn't add .tag_array to binary\n");
+        err.error("Couldn't add .tag_array to binary\n");
     }
     range_file.finish();
     
@@ -119,17 +119,16 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> entities(&argv[1], &argv[argc - 1]);
   int entity_result = policy_engine::md_entity(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, entities, err);
   if (entity_result != 0) {
-    std::printf("md_entity failed\n");
+    err.error("md_entity failed\n");
     exit(entity_result);
   }
 
   int embed_result = policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, FLAGS_arch == "rv64", err);
   if (embed_result != 0)
-    std::printf("md_embed failed\n");
+    err.error("md_embed failed\n");
 
   std::ofstream asm_file(asm_file_name);
   std::string llvm_od_cmd = get_isp_prefix() + "/bin/llvm-objdump -dS " + FLAGS_bin;
-  std::printf("%s\n", llvm_od_cmd.c_str());
   std::FILE* llvm_proc = popen(llvm_od_cmd.c_str(), "r");
   char llvm_buf[128];
   std::string llvm_od_out;
@@ -139,7 +138,7 @@ int main(int argc, char* argv[]) {
   int llvm_result = pclose(llvm_proc);
   asm_file.close();
   if (llvm_result != 0) {
-    std::printf("objdump failed\n");
+    err.error("objdump failed\n");
     exit(llvm_result);
   }
 

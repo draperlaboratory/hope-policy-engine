@@ -15,7 +15,6 @@ namespace policy_engine {
 std::string check_output(const std::string& cmd) {
   char buf[128];
   std::string proc_stdout;
-  std::printf("%s\n", cmd.c_str());
   std::unique_ptr<std::FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
   while (std::fgets(buf, sizeof(buf), pipe.get()) != nullptr)
     proc_stdout += buf;
@@ -26,7 +25,6 @@ int generate_tag_array(const std::string& elfname, RangeFile& range_file, const 
   std::string tag_array_filename = "tag_array";
   std::ofstream tag_array_file(tag_array_filename, std::ios::binary);
   int length = policy_meta_info["MaxBit"].as<int>();
-  std::printf("MaxBit = %d\n", length);
 
   int bytes_per_address = (rv64 ? 64 : 32)/8;
   std::string bfd_target = rv64 ? "elf64-littleriscv" : "elf32-littleriscv";
@@ -50,7 +48,6 @@ int generate_tag_array(const std::string& elfname, RangeFile& range_file, const 
   else
     base_command += " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data ";
   base_command += elfname + " " + elfname_policy;
-  std::printf("%s\n", base_command.c_str());
   std::FILE* objcopy_proc = popen(base_command.c_str(), "r");
   int objcopy_result = pclose(objcopy_proc);
   if (objcopy_result < 0)

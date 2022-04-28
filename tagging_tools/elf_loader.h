@@ -60,6 +60,7 @@ private:
   Elf* elf;
 
 public:
+  const std::string name;
   GElf_Ehdr ehdr;
   std::vector<elf_section_t> sections;
   std::vector<GElf_Phdr> program_headers;

@@ -84,7 +84,6 @@ bool embed_tags_in_elf(
     "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
   std::string bfd_target = is_64_bit ? "elf64-littleriscv" : "elf32-littleriscv";
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file, old_elf.name.c_str(), new_elf_name.c_str());
-  std::printf("%s\n", command_string);
   int ret = system(command_string);
 
   if (remove(section_temp_file))
@@ -114,7 +113,6 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   std::string bfd_target = is_64_bit ? "elf64-littleriscv" : "elf32-littleriscv";
   char command_string[256];
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), elf_filename.c_str());
-  std::printf("%s\n", command_string);
   int ret = system(command_string);
 
   if (!embed_tags_in_elf(metadata_values, memory_index_map, img, elf_filename, ret == 0, is_64_bit, err)) {
