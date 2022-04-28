@@ -30,7 +30,6 @@
 #include <cstring>
 #include <fcntl.h>
 #include <gelf.h>
-#include <list>
 #include <stdexcept>
 #include <string>
 #include <unistd.h>

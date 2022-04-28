@@ -30,6 +30,7 @@
 #include <string>
 #include <unistd.h>
 #include "basic_elf_io.h"
+#include "elf_loader.h"
 #include "metadata_factory.h"
 #include "metadata_index_map.h"
 #include "metadata_register_map.h"

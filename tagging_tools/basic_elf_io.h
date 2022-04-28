@@ -27,77 +27,41 @@
 #ifndef BASIC_ELF_IO_H
 #define BASIC_ELF_IO_H
 
-#include <stdio.h>
-#include <stdarg.h>
-
-#include "elf_loader.h"
+#include <cstdio>
+#include <cstdarg>
+#include "file_stream.h"
+#include "reporter.h"
 
 namespace policy_engine {
 
 /*
-  Herein are some utility classes that implement the basic APIs that are needed by our ELF loader
-  to load ELF files for utilities.  These implementations go to FILE * objects for I/O.
-*/
+ * Herein are some utility classes that implement the basic APIs that are needed by our ELF loader
+ * to load ELF files for utilities.  These implementations go to FILE * objects for I/O.
+ */
 
 /**
-   Basic reporter class that just talks to STDIO.
-*/
+ * Basic reporter class that just talks to STDIO.
+ */
 struct stdio_reporter_t : reporter_t {
   int errors;
   int warnings;
 
-  stdio_reporter_t() : errors(0), warnings(0) { }
+  stdio_reporter_t() : errors(0), warnings(0) {}
 
-  void error(const char *fmt, ...) {
-    fprintf(stderr, "error: ");
-    va_list vl;
-    va_start(vl, fmt);
-    vfprintf(stderr, fmt, vl);
-    va_end(vl);
-    errors++;
-  }
-  void warning(const char *fmt, ...) {
-    fprintf(stderr, "warning: ");
-    va_list vl;
-    va_start(vl, fmt);
-    vfprintf(stderr, fmt, vl);
-    va_end(vl);
-    warnings++;
-  }
-  void info(const char *fmt, ...) {
-    printf("info: ");
-    va_list vl;
-    va_start(vl, fmt);
-    vprintf(fmt, vl);
-    va_end(vl);
-  }
+  void error(const char *fmt, ...);
+  void warning(const char *fmt, ...);
+  void info(const char *fmt, ...);
 };
 
 /**
-   File reader that reads its bits from a FILE *.
-*/
+ * File reader that reads its bits from a FILE *.
+ */
 struct FILE_reader_t : file_stream_t {
+  std::FILE* fp;
 
-  FILE_reader_t(FILE *fp) : fp(fp) { }
-  bool read(void *buff, size_t size) {
-    if (fread(buff, 1, size, fp) != size)
-      return false;
-    return true;
-  }
-
-  bool seek(size_t where, whence_t whence) {
-    int w;
-    switch (whence) {
-    case CUR: w = SEEK_CUR; break;
-    case SET: w = SEEK_SET; break;
-    default: return false;
-    }
-    if (fseek(fp, where, w))
-      return false;
-    return true;
-  }
-  
-  FILE *fp;
+  FILE_reader_t(std::FILE* fp) : fp(fp) {}
+  bool read(void *buff, std::size_t size) { return fread(buff, 1, size, fp) == size; }
+  bool seek(std::size_t where, whence_t whence);
 };
 
 } // namespace policy_engine

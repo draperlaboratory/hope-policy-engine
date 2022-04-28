@@ -30,6 +30,7 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include "basic_elf_io.h"
+#include "elf_loader.h"
 #include "metadata_factory.h"
 #include "tag_file.h"
 

@@ -27,22 +27,15 @@
 #ifndef ELF_LOADER_H
 #define ELF_LOADER_H
 
-#include <cstdlib>
+#include <cstdint>
 #include <gelf.h>
 #include <stdint.h>
 #include <string>
 #include <sys/types.h>
 #include <vector>
-#include "reporter.h"
 #include "symbol_table.h"
 
 namespace policy_engine {
-
-struct file_stream_t {
-  enum whence_t { CUR, SET };
-  virtual bool read(void *buff, size_t size) = 0;
-  virtual bool seek(size_t where, whence_t whence) = 0;
-};
 
 struct elf_section_t {
   const std::string name;
