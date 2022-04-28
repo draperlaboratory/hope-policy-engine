@@ -26,9 +26,9 @@
  */
 
 #include <yaml-cpp/yaml.h>
-
-#include "validator_exception.h"
 #include "entity_binding.h"
+#include "reporter.h"
+#include "validator_exception.h"
 
 using namespace policy_engine;
 
@@ -94,22 +94,14 @@ static void process_element(const YAML::Node &n,
   }
 }
 
-void policy_engine::load_entity_bindings(const char *file_name,
-					 std::list<std::unique_ptr<entity_binding_t>> &bindings,
-					 reporter_t *err) {
+void policy_engine::load_entity_bindings(const char* file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
   try {
     YAML::Node n = YAML::LoadFile(file_name);
-//  if (n["entities"]) {
-//    YAML::Node soc = n["entities"];
-//    for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     for (YAML::const_iterator it = n.begin(); it != n.end(); ++it) {
       process_element(*it, bindings);
     }
   } catch (std::exception &e) {
-    err->error("while parsing %s: %s\n", file_name, e.what());
+    err.error("while parsing %s: %s\n", file_name, e.what());
   }
-//  } else {
-//    throw configuration_exception_t("Expected a root 'entities' node");
-//  }
 }
 
