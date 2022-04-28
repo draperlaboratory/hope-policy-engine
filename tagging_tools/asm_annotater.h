@@ -49,39 +49,40 @@ namespace policy_engine {
    generate one on the output line.
 */
 class asm_annotater_t {
-  std::istream &input;
-  std::ostream &output;
+private:
+  std::istream& input;
+  std::ostream& output;
 
-  public:
+public:
 
   /**
-     Construct with an input stream and an output stream.
+   * Construct with an input stream and an output stream.
    */
-  asm_annotater_t(std::istream &input, std::ostream &output) : input(input), output(output) { }
+  asm_annotater_t(std::istream& input, std::ostream& output) : input(input), output(output) {}
 
   /**
-     Call this to parse the entire input stream, calling filters along the way.
+   * Call this to parse the entire input stream, calling filters along the way.
    */
   void execute();
 
   /**
-     Implement this filter to be called for lines that contain instructions.  Lines that contain instructions
-     look like this:
-    1954:	6828      	ldr	r0, [r5, #0]
-
-    The <code>addr</code> parameter will be set to the value of the hex number preceding the colon.
-    The <code>line</code> parameter will contain the entire input line.
+   * Implement this filter to be called for lines that contain instructions.  Lines that contain instructions
+   * look like this:
+   * 1954:	6828      	ldr	r0, [r5, #0]
+   *
+   * The <code>addr</code> parameter will be set to the value of the hex number preceding the colon.
+   * The <code>line</code> parameter will contain the entire input line.
    */
-  virtual std::string filter(uint64_t addr, std::string line) { return line; }
+  virtual std::string filter(uint64_t addr, const std::string& line) { return line; }
 
   /**
-     Implement this filter to be called for all other lines besides instruction lines.  E.g.:
+   * Implement this filter to be called for all other lines besides instruction lines.  E.g.:
 00001970 <_close_r>:
-    The <code>line</code> parameter will contain the entire input line.
+   * The <code>line</code> parameter will contain the entire input line.
    */
-  virtual std::string filter(std::string line) { return line; }
+  virtual std::string filter(const std::string& line) { return line; }
 
-  static std::string pad(std::string str, int width);
+  static std::string pad(const std::string &str, int width);
 };
 
 } // namespace policy_engine

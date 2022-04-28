@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <string>
 #include "asm_annotater.h"
 
 namespace policy_engine {
@@ -54,7 +55,7 @@ void asm_annotater_t::execute() {
   }
 }
 
-std::string asm_annotater_t::pad(std::string str, int width) {
+std::string asm_annotater_t::pad(const std::string& str, int width) {
   std::string res;
   int len = 0;
   for (char c: str) {
