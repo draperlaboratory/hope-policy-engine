@@ -171,13 +171,21 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   coalesce_ranges(data_ranges);
 
   std::printf("Code ranges:\n");
-  for(const auto& it : code_ranges) {
-    std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+  if (elf_image.is_64bit()) {
+    for (const auto& it : code_ranges)
+      std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+  } else {
+    for (const auto& it : code_ranges)
+      std::printf("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
   }
 
   std::printf("Data ranges:\n");
-  for(const auto& it : data_ranges) {
-    std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+  if (elf_image.is_64bit()) {
+    for(const auto& it : data_ranges)
+      std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+  } else {
+    for(const auto& it : data_ranges)
+      std::printf("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
   }
 }
 
