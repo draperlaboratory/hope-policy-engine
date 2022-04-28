@@ -94,10 +94,10 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
 
   std::list<std::unique_ptr<entity_binding_t>> bindings;
   std::printf("parsing %s\n", entity_yaml.c_str());
-  load_entity_bindings(entity_yaml.c_str(), bindings, err);
+  load_entity_bindings(entity_yaml, bindings, err);
   for (const std::string& yaml_file : yaml_files) {
     std::printf("parsing %s\n", yaml_file.c_str());
-    load_entity_bindings(yaml_file.c_str(), bindings, err);
+    load_entity_bindings(yaml_file, bindings, err);
   }
   verify_entity_bindings(md_tool, bindings, err);
 

@@ -80,7 +80,7 @@ struct entity_image_binding_t : entity_binding_t {
   virtual ~entity_image_binding_t() { }
 };
 
-void load_entity_bindings(const char* file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err);
+void load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err);
 
 } // namespace policy_engine
 

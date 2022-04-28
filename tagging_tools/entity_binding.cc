@@ -25,6 +25,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <string>
 #include <yaml-cpp/yaml.h>
 #include "entity_binding.h"
 #include "reporter.h"
@@ -94,14 +95,14 @@ static void process_element(const YAML::Node &n,
   }
 }
 
-void policy_engine::load_entity_bindings(const char* file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
+void policy_engine::load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
   try {
     YAML::Node n = YAML::LoadFile(file_name);
     for (YAML::const_iterator it = n.begin(); it != n.end(); ++it) {
       process_element(*it, bindings);
     }
   } catch (std::exception &e) {
-    err.error("while parsing %s: %s\n", file_name, e.what());
+    err.error("while parsing %s: %s\n", file_name.c_str(), e.what());
   }
 }
 
