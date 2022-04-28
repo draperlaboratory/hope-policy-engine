@@ -39,61 +39,51 @@ namespace policy_engine {
 
 static const std::string riscv_prefix = "riscv64-unknown-elf-";
 
-bool save_tags_to_temp(
+void save_tags_to_temp(
   std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
-  std::string old_elf_name, std::string new_elf_name, char tempfile[],
+  elf_image_t& img, std::string new_elf_name, char tempfile[],
   bool is_64_bit, stdio_reporter_t& err
 ) {
-  try {
-    elf_image_t img(old_elf_name);
-    int address_width = img.is_64bit() ? 8 : 4;
-    int fd = mkstemp(tempfile);
-    std::FILE* section_file = fdopen(fd, "wb");
+  int address_width = img.is_64bit() ? 8 : 4;
+  int fd = mkstemp(tempfile);
+  std::FILE* section_file = fdopen(fd, "wb");
 
-    size_t mem_map_size = memory_index_map.size();
-    fwrite(&mem_map_size, address_width, 1, section_file);
-    int i = 0;
-    for (auto& e : memory_index_map) {
-      range_t range = e.first;
-      uint64_t metadata_size = metadata_values[e.second]->size();
+  size_t mem_map_size = memory_index_map.size();
+  fwrite(&mem_map_size, address_width, 1, section_file);
+  int i = 0;
+  for (auto& e : memory_index_map) {
+    range_t range = e.first;
+    uint64_t metadata_size = metadata_values[e.second]->size();
 
-      fwrite(&range.start, address_width, 1, section_file);
-      fwrite(&range.end, address_width, 1, section_file);
-      fwrite(&metadata_size, address_width, 1, section_file);
+    fwrite(&range.start, address_width, 1, section_file);
+    fwrite(&range.end, address_width, 1, section_file);
+    fwrite(&metadata_size, address_width, 1, section_file);
 
-      for(const meta_t& m : *metadata_values[e.second]) {
-        fwrite(&m, address_width, 1, section_file);
-      }
+    for (const meta_t& m : *metadata_values[e.second]) {
+      fwrite(&m, address_width, 1, section_file);
     }
-
-    fclose(section_file);
-    close(fd);
-
-    return true;
-  } catch (const std::runtime_error& e) {
-    return false;
   }
+
+  fclose(section_file);
+  close(fd);
 }
 
 bool embed_tags_in_elf(
   std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
-  std::string old_elf_name, std::string new_elf_name, bool update, bool is_64_bit,
+  elf_image_t& old_elf, std::string new_elf_name, bool update, bool is_64_bit,
   stdio_reporter_t& err
 ) {
   char section_temp_file[] = "/tmp/sectionXXXXXX";
-  if (!save_tags_to_temp(metadata_values, memory_index_map, old_elf_name, new_elf_name, section_temp_file, is_64_bit, err)) {
-    printf("Failed to save tags\n");
-    return false;
-  }
+  save_tags_to_temp(metadata_values, memory_index_map, old_elf, new_elf_name, section_temp_file, is_64_bit, err);
 
   char command_string[512];
   const char* base_command = update ?
     "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1" : 
     "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
   std::string bfd_target = is_64_bit ? "elf64-littleriscv" : "elf32-littleriscv";
-  std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file, old_elf_name.c_str(), new_elf_name.c_str());
+  std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file, old_elf.name.c_str(), new_elf_name.c_str());
   std::printf("%s\n", command_string);
   int ret = system(command_string);
 
@@ -103,7 +93,7 @@ bool embed_tags_in_elf(
   return (ret == 0);
 }
 
-int md_embed(const std::string& tag_filename, const std::string& policy_dir, const std::string& elf_filename, bool is_64_bit, stdio_reporter_t& err) {
+int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, bool is_64_bit, stdio_reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
   std::vector<const metadata_t*> metadata_values;
 
@@ -127,7 +117,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, con
   std::printf("%s\n", command_string);
   int ret = system(command_string);
 
-  if (!embed_tags_in_elf(metadata_values, memory_index_map, elf_filename, elf_filename, ret == 0, is_64_bit, err)) {
+  if (!embed_tags_in_elf(metadata_values, memory_index_map, img, elf_filename, ret == 0, is_64_bit, err)) {
     err.error("Failed to save indexes to tag file\n");
     return 1;
   }

@@ -81,66 +81,59 @@ void verify_entity_bindings(metadata_tool_t& md_tool,
   }
 }
 
-int md_entity(const std::string& policy_dir, const std::string& elf_file_name, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, stdio_reporter_t& err, bool update) {
-  int yaml_count = yaml_files.size();
+int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, stdio_reporter_t& err, bool update) {
   std::string entity_yaml = policy_dir + "/policy_entities.yml";
+  metadata_tool_t md_tool(policy_dir.c_str());
 
-  try {
-    metadata_tool_t md_tool(policy_dir.c_str());
-    elf_image_t img(elf_file_name);
-
-    if (update) {
-      if (!md_tool.load_tag_info(tag_file_name.c_str())) {
-        err.error("couldn't load tags from %s\n", tag_file_name);
-        return 2;
-      }
+  if (update) {
+    if (!md_tool.load_tag_info(tag_file_name.c_str())) {
+      err.error("couldn't load tags from %s\n", tag_file_name);
+      return 2;
     }
+  }
 
-    std::list<std::unique_ptr<entity_binding_t>> bindings;
-    std::printf("parsing %s\n", entity_yaml.c_str());
-    load_entity_bindings(entity_yaml.c_str(), bindings, &err);
-    for (const std::string& yaml_file : yaml_files) {
-      std::printf("parsing %s\n", yaml_file.c_str());
-      load_entity_bindings(yaml_file.c_str(), bindings, &err);
-    }
-    verify_entity_bindings(md_tool, bindings, err);
+  std::list<std::unique_ptr<entity_binding_t>> bindings;
+  std::printf("parsing %s\n", entity_yaml.c_str());
+  load_entity_bindings(entity_yaml.c_str(), bindings, &err);
+  for (const std::string& yaml_file : yaml_files) {
+    std::printf("parsing %s\n", yaml_file.c_str());
+    load_entity_bindings(yaml_file.c_str(), bindings, &err);
+  }
+  verify_entity_bindings(md_tool, bindings, err);
 
-    for (auto &e: bindings) {
-      entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
-      if (sb != nullptr) {
-        auto sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
-        if (sym != img.symtab.end()) {
-          // go ahead and mark it
-          uint64_t end_addr;
-          if (sb->is_singularity)
-            end_addr = sym->address + (img.is_64bit() ? 8 : 4);
-          else
-            end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
-          if (!md_tool.apply_tag(sym->address, end_addr, sb->entity_name.c_str())) {
-            err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
-          }
+  for (auto &e: bindings) {
+    entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
+    if (sb != nullptr) {
+      auto sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
+      if (sym != img.symtab.end()) {
+        // go ahead and mark it
+        uint64_t end_addr;
+        if (sb->is_singularity)
+          end_addr = sym->address + (img.is_64bit() ? 8 : 4);
+        else
+          end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
+        if (!md_tool.apply_tag(sym->address, end_addr, sb->entity_name.c_str())) {
+          err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
         }
-      } else {
-        entity_range_binding_t* rb = dynamic_cast<entity_range_binding_t*>(e.get());
-        if (rb != nullptr) {
-          auto sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
-          auto end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
-          if (sym != img.symtab.end() && end != img.symtab.end()) {
-            if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
-              err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
-            }
+      }
+    } else {
+      entity_range_binding_t* rb = dynamic_cast<entity_range_binding_t*>(e.get());
+      if (rb != nullptr) {
+        auto sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
+        auto end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
+        if (sym != img.symtab.end() && end != img.symtab.end()) {
+          if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
+            err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
           }
         }
       }
     }
+  }
 
-    if (err.errors == 0) {
-      if (!md_tool.save_tag_info(tag_file_name.c_str())) {
-	      err.error("couldn't save tags to %s\n", tag_file_name);
-      }
+  if (err.errors == 0) {
+    if (!md_tool.save_tag_info(tag_file_name.c_str())) {
+      err.error("couldn't save tags to %s\n", tag_file_name);
     }
-  } catch (std::exception& e) {
-    err.error("exception: %s\n", e.what());
   }
 
   return err.errors;

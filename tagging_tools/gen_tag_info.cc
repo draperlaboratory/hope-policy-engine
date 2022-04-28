@@ -117,13 +117,13 @@ int main(int argc, char* argv[]) {
   tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file);
 
   std::vector<std::string> entities(&argv[1], &argv[argc - 1]);
-  int entity_result = policy_engine::md_entity(FLAGS_policy_dir, FLAGS_bin, FLAGS_tag_file, entities, err);
+  int entity_result = policy_engine::md_entity(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, entities, err);
   if (entity_result != 0) {
     std::printf("md_entity failed\n");
     exit(entity_result);
   }
 
-  int embed_result = policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, FLAGS_bin + "-" + policy_base, FLAGS_arch == "rv64", err);
+  int embed_result = policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, FLAGS_arch == "rv64", err);
   if (embed_result != 0)
     std::printf("md_embed failed\n");
 
