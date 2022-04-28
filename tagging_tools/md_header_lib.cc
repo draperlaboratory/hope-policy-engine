@@ -186,16 +186,11 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;
   std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
-  bool is_64_bit = false;
   YAML::Node soc_node;
 
   try {
     metadata_factory_t factory(policy_dir);
     elf_image_t elf_image(elf_filename);
-
-    if (elf_image.get_ehdr().e_ident[EI_CLASS] == ELFCLASS64) {
-      is_64_bit = true;
-    }
 
     soc_node = YAML::LoadFile(soc_filename);
     if (soc_node["SOC"] == NULL) {
@@ -217,10 +212,10 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
     get_address_ranges(elf_image, code_ranges, data_ranges);
 
     for(const auto& it : data_ranges) {
-      data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, is_64_bit)));
+      data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, elf_image.is_64bit())));
     }
 
-    if (!write_headers(code_ranges, data_ranges_granularity, is_64_bit, std::string(tag_filename))) {
+    if (!write_headers(code_ranges, data_ranges_granularity, elf_image.is_64bit(), std::string(tag_filename))) {
       err.error("Failed to write headers to tag file\n");
       return 1;
     }

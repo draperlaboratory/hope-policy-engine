@@ -58,9 +58,9 @@ class elf_image_t {
 private:
   int fd;
   Elf* elf;
-  GElf_Ehdr eh;
 
 public:
+  GElf_Ehdr ehdr;
   std::vector<elf_section_t> sections;
   std::vector<GElf_Phdr> program_headers;
   symbol_table_t symtab;
@@ -69,9 +69,8 @@ public:
   elf_image_t(const std::string& fname);
   ~elf_image_t();
 
-  bool is_64bit() const { return eh.e_ident[4] == ELFCLASS64; }
-  uintptr_t get_entry_point() const { return eh.e_entry; }
-  GElf_Ehdr get_ehdr() const { return eh; }
+  bool is_64bit() const { return ehdr.e_ident[4] == ELFCLASS64; }
+  uintptr_t entry_point() const { return ehdr.e_entry; }
 };
 
 } // namespace policy_engine

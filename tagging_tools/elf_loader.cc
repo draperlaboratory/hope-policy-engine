@@ -50,21 +50,21 @@ elf_image_t::elf_image_t(const std::string& fname) : fd(-1), elf(nullptr) {
   else if (elf_kind(elf) != ELF_K_ELF)
     throw std::runtime_error(fname + " is not an ELF file");
 
-  if (gelf_getehdr(elf, &eh) == nullptr)
+  if (gelf_getehdr(elf, &ehdr) == nullptr)
     throw std::runtime_error(std::string("could not get ELF header: ") + elf_errmsg(elf_errno()));
-  else if (!(eh.e_ident[0] == 0x7f && eh.e_ident[1] == 'E' && eh.e_ident[2] == 'L' && eh.e_ident[3] == 'F'))
+  else if (!(ehdr.e_ident[0] == 0x7f && ehdr.e_ident[1] == 'E' && ehdr.e_ident[2] == 'L' && ehdr.e_ident[3] == 'F'))
     throw std::runtime_error("bad ELF signature");
-  else if (eh.e_ident[4] == ELFCLASSNONE)
+  else if (ehdr.e_ident[4] == ELFCLASSNONE)
     throw std::runtime_error("could not determine ELF class");
 
-  for (int i = 0; i < eh.e_shnum; i++) {
+  for (int i = 0; i < ehdr.e_shnum; i++) {
     Elf_Scn* scn = elf_getscn(elf, i);
     GElf_Shdr shdr;
     if (scn != nullptr && gelf_getshdr(scn, &shdr) != nullptr) {
       Elf_Data* data = nullptr;
       if ((data = elf_getdata(scn, data)) != nullptr) {
         sections.push_back({
-          .name=elf_strptr(elf, eh.e_shstrndx, shdr.sh_name),
+          .name=elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name),
           .flags=shdr.sh_flags,
           .type=shdr.sh_type,
           .address=shdr.sh_addr,
@@ -76,7 +76,7 @@ elf_image_t::elf_image_t(const std::string& fname) : fd(-1), elf(nullptr) {
     }
   }
 
-  for (int i = 0; i < eh.e_phnum; i++) {
+  for (int i = 0; i < ehdr.e_phnum; i++) {
     GElf_Phdr phdr;
     if (gelf_getphdr(elf, i, &phdr) != nullptr)
       program_headers.push_back(phdr);
