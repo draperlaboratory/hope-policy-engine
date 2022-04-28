@@ -32,7 +32,12 @@ namespace policy_engine {
 /**
    Generic reporter class, allowing error/informational messages to be channeled.
 */
-struct reporter_t {
+class reporter_t {
+public:
+  int errors;
+  int warnings;
+
+  reporter_t(int err_init=0, int warn_init=0) : errors(err_init), warnings(warn_init) {}
   virtual void error(const char *fmt, ...) = 0;
   virtual void warning(const char *fmt, ...) = 0;
   virtual void info(const char *fmt, ...) = 0;

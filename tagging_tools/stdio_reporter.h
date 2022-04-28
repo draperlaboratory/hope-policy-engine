@@ -24,12 +24,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef BASIC_ELF_IO_H
-#define BASIC_ELF_IO_H
+#ifndef __STDIO_REPORTER_H__
+#define __STDIO_REPORTER_H__
 
 #include <cstdio>
 #include <cstdarg>
-#include "file_stream.h"
 #include "reporter.h"
 
 namespace policy_engine {
@@ -42,28 +41,15 @@ namespace policy_engine {
 /**
  * Basic reporter class that just talks to STDIO.
  */
-struct stdio_reporter_t : reporter_t {
-  int errors;
-  int warnings;
-
-  stdio_reporter_t() : errors(0), warnings(0) {}
+class stdio_reporter_t : public reporter_t {
+public:
+  stdio_reporter_t() : reporter_t(0, 0) {}
 
   void error(const char *fmt, ...);
   void warning(const char *fmt, ...);
   void info(const char *fmt, ...);
 };
 
-/**
- * File reader that reads its bits from a FILE *.
- */
-struct FILE_reader_t : file_stream_t {
-  std::FILE* fp;
-
-  FILE_reader_t(std::FILE* fp) : fp(fp) {}
-  bool read(void *buff, std::size_t size) { return fread(buff, 1, size, fp) == size; }
-  bool seek(std::size_t where, whence_t whence);
-};
-
 } // namespace policy_engine
 
-#endif
+#endif // __STDIO_REPORTER_H__

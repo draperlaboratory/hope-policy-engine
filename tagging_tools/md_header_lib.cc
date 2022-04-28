@@ -29,9 +29,9 @@
 #include <sstream>
 #include <string>
 #include <yaml-cpp/yaml.h>
-#include "basic_elf_io.h"
 #include "elf_loader.h"
 #include "metadata_factory.h"
+#include "reporter.h"
 #include "tag_file.h"
 
 namespace policy_engine {
@@ -190,7 +190,7 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   }
 }
 
-int md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, stdio_reporter_t& err) {
+int md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, reporter_t& err) {
   std::list<range_t> soc_ranges;
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;

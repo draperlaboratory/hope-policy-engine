@@ -26,15 +26,15 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "basic_elf_io.h"
 #include "metadata_index_map.h"
 #include "metadata_factory.h"
 #include "metadata_register_map.h"
+#include "reporter.h"
 #include "tag_file.h"
 
 namespace policy_engine {
 
-int md_index(const std::string& tag_filename, const std::string& policy_dir, stdio_reporter_t& err) {
+int md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
   metadata_register_map_t *register_map;
   metadata_register_map_t *csr_map;

@@ -29,11 +29,11 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
-#include "basic_elf_io.h"
 #include "elf_loader.h"
 #include "metadata_factory.h"
 #include "metadata_index_map.h"
 #include "metadata_register_map.h"
+#include "reporter.h"
 #include "tag_file.h"
 
 namespace policy_engine {
@@ -44,7 +44,7 @@ void save_tags_to_temp(
   std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   elf_image_t& img, std::string new_elf_name, char tempfile[],
-  bool is_64_bit, stdio_reporter_t& err
+  bool is_64_bit, reporter_t& err
 ) {
   int address_width = img.is_64bit() ? 8 : 4;
   int fd = mkstemp(tempfile);
@@ -74,7 +74,7 @@ bool embed_tags_in_elf(
   std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   elf_image_t& old_elf, std::string new_elf_name, bool update, bool is_64_bit,
-  stdio_reporter_t& err
+  reporter_t& err
 ) {
   char section_temp_file[] = "/tmp/sectionXXXXXX";
   save_tags_to_temp(metadata_values, memory_index_map, old_elf, new_elf_name, section_temp_file, is_64_bit, err);
@@ -93,7 +93,7 @@ bool embed_tags_in_elf(
   return (ret == 0);
 }
 
-int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, bool is_64_bit, stdio_reporter_t& err) {
+int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, bool is_64_bit, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
   std::vector<const metadata_t*> metadata_values;
 

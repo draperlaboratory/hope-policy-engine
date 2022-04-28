@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <yaml-cpp/yaml.h>
-#include "basic_elf_io.h"
 #include "elf_loader.h"
 #include "elf_section_tagger.h"
 #include "llvm_metadata_tagger.h"
@@ -22,6 +21,7 @@
 #include "md_range.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
+#include "stdio_reporter.h"
 #include "tag_elf_file.h"
 #include "tagging_utils.h"
 

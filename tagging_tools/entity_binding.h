@@ -30,8 +30,7 @@
 #include <string>
 #include <list>
 #include <memory>
-
-#include "basic_elf_io.h"
+#include "reporter.h"
 
 namespace policy_engine {
 

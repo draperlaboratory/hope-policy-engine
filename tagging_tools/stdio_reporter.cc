@@ -1,7 +1,6 @@
 #include <cstdarg>
 #include <cstdio>
-#include "basic_elf_io.h"
-#include "file_stream.h"
+#include "stdio_reporter.h"
 
 namespace policy_engine {
 
@@ -29,15 +28,6 @@ void stdio_reporter_t::info(const char *fmt, ...) {
   va_start(vl, fmt);
   std::vprintf(fmt, vl);
   va_end(vl);
-}
-
-bool FILE_reader_t::seek(std::size_t where, whence_t whence) {
-  int w;
-  switch (whence) {
-    case CUR: w = SEEK_CUR; break;
-    case SET: w = SEEK_SET; break;
-  }
-  return fseek(fp, where, w) == 0;
 }
 
 } // namespace policy_engine
