@@ -33,19 +33,16 @@
 
 using namespace policy_engine;
 
-static void expect_field(YAML::Node const *n, const char *field, std::string entity_name) {
-  if (!(*n)[field])
-    throw configuration_exception_t("expected field " + std::string(field) + " in entity " + entity_name);
+static void expect_field(const YAML::Node& n, const std::string& field, std::string& entity_name) {
+  if (!n[field])
+    throw configuration_exception_t("expected field " + field + " in entity " + entity_name);
 }
 
-static void process_element(const YAML::Node &n,
-			    std::list<std::unique_ptr<entity_binding_t>> &bindings) {
-  std::string elt_path;
-  
+static void process_element(const YAML::Node& n, std::list<std::unique_ptr<entity_binding_t>>& bindings) {
   if (!n["name"])
     throw configuration_exception_t("binding must have an entity name");
   std::string entity_name = n["name"].as<std::string>();
-  expect_field(&n, "kind", entity_name);
+  expect_field(n, "kind", entity_name);
   std::string element_name = n["kind"].as<std::string>();
   if (element_name == "symbol") {
     entity_symbol_binding_t *binding = new entity_symbol_binding_t(
@@ -54,7 +51,7 @@ static void process_element(const YAML::Node &n,
       n["optional"] && n["optional"].as<bool>(),
       n["tag_all"] && !n["tag_all"].as<bool>()
     );
-    expect_field(&n, "elf_name", entity_name);
+    expect_field(n, "elf_name", entity_name);
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     bindings.push_back(std::move(u));
   } else if (element_name == "range") {
@@ -64,8 +61,8 @@ static void process_element(const YAML::Node &n,
       n["elf_end"].as<std::string>(),
       n["optional"] && n["optional"].as<bool>()
     );
-    expect_field(&n, "elf_start", entity_name);
-    expect_field(&n, "elf_end", entity_name);
+    expect_field(n, "elf_start", entity_name);
+    expect_field(n, "elf_end", entity_name);
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     bindings.push_back(std::move(u));
   } else if (element_name == "soc") {
@@ -86,11 +83,11 @@ static void process_element(const YAML::Node &n,
 }
 
 void policy_engine::load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
-//  try {
+  try {
     for (const YAML::Node& node : YAML::LoadFile(file_name))
       process_element(node, bindings);
-//  } catch (const std::exception &e) {
-//    err.error("while parsing %s: %s\n", file_name.c_str(), e.what());
-//  }
+  } catch (const std::exception &e) {
+    err.error("while parsing %s: %s\n", file_name.c_str(), e.what());
+  }
 }
 
