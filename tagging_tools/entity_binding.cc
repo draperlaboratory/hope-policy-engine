@@ -33,36 +33,32 @@
 
 using namespace policy_engine;
 
-static void expect_field(const YAML::Node& n, const std::string& field, std::string& entity_name) {
+template <class T=std::string>
+static T expect_field(const YAML::Node& n, const std::string& field, const std::string& entity_name) {
   if (!n[field])
     throw configuration_exception_t("expected field " + field + " in entity " + entity_name);
+  return n[field].as<T>();
 }
 
 static void process_element(const YAML::Node& n, std::list<std::unique_ptr<entity_binding_t>>& bindings) {
-  if (!n["name"])
-    throw configuration_exception_t("binding must have an entity name");
-  std::string entity_name = n["name"].as<std::string>();
-  expect_field(n, "kind", entity_name);
-  std::string element_name = n["kind"].as<std::string>();
+  std::string entity_name = expect_field(n, "name", "");
+  std::string element_name = expect_field(n, "kind", entity_name);
   if (element_name == "symbol") {
     entity_symbol_binding_t *binding = new entity_symbol_binding_t(
       entity_name,
-      n["elf_name"].as<std::string>(),
+      expect_field(n, "elf_name", entity_name),
       n["optional"] && n["optional"].as<bool>(),
       n["tag_all"] && !n["tag_all"].as<bool>()
     );
-    expect_field(n, "elf_name", entity_name);
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     bindings.push_back(std::move(u));
   } else if (element_name == "range") {
     entity_range_binding_t *binding = new entity_range_binding_t(
       entity_name,
-      n["elf_start"].as<std::string>(),
-      n["elf_end"].as<std::string>(),
+      expect_field(n, "elf_start", entity_name),
+      expect_field(n, "elf_end", entity_name),
       n["optional"] && n["optional"].as<bool>()
     );
-    expect_field(n, "elf_start", entity_name);
-    expect_field(n, "elf_end", entity_name);
     std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
     bindings.push_back(std::move(u));
   } else if (element_name == "soc") {
