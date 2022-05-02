@@ -71,20 +71,13 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
     return 1;
   }
 
-  std::unique_ptr<metadata_factory_t> md_factory;
-    
-  try {
-    md_factory = std::make_unique<metadata_factory_t>(policy_dir);
-  } catch (...) {
-    err.error("couldn't load policy information from  %s\n", policy_dir);
-    return 1;
-  }
+  metadata_factory_t md_factory(policy_dir);
 
   if (!load_tags(&md_map, taginfo_file)) {
     err.error("couldn't load tags from %s\n", taginfo_file);
     return 1;
   }
-  annotater_t ann(*md_factory, md_map, asm_in, asm_out);
+  annotater_t ann(md_factory, md_map, asm_in, asm_out);
   ann.execute();
   return 0;
 }
