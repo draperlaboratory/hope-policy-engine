@@ -44,35 +44,25 @@ static void process_element(const YAML::Node& n, std::list<std::unique_ptr<entit
   std::string entity_name = expect_field(n, "name", "");
   std::string element_name = expect_field(n, "kind", entity_name);
   if (element_name == "symbol") {
-    entity_symbol_binding_t *binding = new entity_symbol_binding_t(
+    bindings.push_back(std::make_unique<entity_symbol_binding_t>(
       entity_name,
       expect_field(n, "elf_name", entity_name),
       n["optional"] && n["optional"].as<bool>(),
       n["tag_all"] && !n["tag_all"].as<bool>()
-    );
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    bindings.push_back(std::move(u));
+    ));
   } else if (element_name == "range") {
-    entity_range_binding_t *binding = new entity_range_binding_t(
+    bindings.push_back(std::make_unique<entity_range_binding_t>(
       entity_name,
       expect_field(n, "elf_start", entity_name),
       expect_field(n, "elf_end", entity_name),
       n["optional"] && n["optional"].as<bool>()
-    );
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    bindings.push_back(std::move(u));
+    ));
   } else if (element_name == "soc") {
-    entity_soc_binding_t *binding = new entity_soc_binding_t(entity_name, n["optional"] && n["optional"].as<bool>());
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    bindings.push_back(std::move(u));
+    bindings.push_back(std::make_unique<entity_soc_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>()));
   } else if (element_name == "isa") {
-    entity_isa_binding_t *binding = new entity_isa_binding_t(entity_name, n["optional"] && n["optional"].as<bool>());
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    bindings.push_back(std::move(u));
+    bindings.push_back(std::make_unique<entity_isa_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>()));
   } else if (element_name == "image") {
-    entity_image_binding_t *binding = new entity_image_binding_t(entity_name, n["optional"] && n["optional"].as<bool>());
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    bindings.push_back(std::move(u));
+    bindings.push_back(std::make_unique<entity_image_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>()));
   } else {
     throw configuration_exception_t("unexpected kind " + element_name);
   }
