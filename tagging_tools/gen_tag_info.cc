@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
     policy_engine::elf_image_t elf_image(FLAGS_bin);
 
     policy_engine::RangeFile range_file;
-    policy_engine::LLVMMetadataTagger llvm_tagger(err);
+    policy_engine::llvm_metadata_tagger_t llvm_tagger(err);
 
     if (policy_inits["Require"]) {
       if (policy_inits["Require"]["elf"])

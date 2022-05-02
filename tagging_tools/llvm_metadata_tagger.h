@@ -11,7 +11,7 @@
 
 namespace policy_engine {
 
-class LLVMMetadataTagger {
+class llvm_metadata_tagger_t {
 private:
   std::map<std::string, bool> needs_tag_cache;
   reporter_t& err;
@@ -21,7 +21,7 @@ public:
   static const std::map<std::string, uint8_t> tag_specifiers;
   static const std::map<std::string, std::map<std::string, std::string>> policy_map;
 
-  LLVMMetadataTagger(reporter_t& err) : err(err) {}
+  llvm_metadata_tagger_t(reporter_t& err) : err(err) {}
 
   bool policy_needs_tag(const YAML::Node& policy_inits, const std::string& tag);
   void add_code_section_ranges(const elf_image_t& ef, RangeMap& range_map);
