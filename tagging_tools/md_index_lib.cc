@@ -79,17 +79,17 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   env_default = register_index_map.at("ISA.RISCV.Reg.Env");
   register_index_map.erase("ISA.RISCV.Reg.Env");
 
-  std::printf("Metadata entries:\n");
+  err.info("Metadata entries:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {
-    std::printf("%lu: { ", i);
+    err.info("%lu: { ", i);
     for(const auto &m : *metadata_values[i]) {
-      std::printf("%lx ", m);
+      err.info("%lx ", m);
     }
-    std::printf("}\n");
+    err.info("}\n");
   }
 
-  if(save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map,
-                      register_default, csr_default, env_default, tag_filename) == false) {
+  if (save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map,
+                      register_default, csr_default, env_default, tag_filename, err) == false) {
     err.error("Failed to save indexes to tag file\n");
     return 1;
   }

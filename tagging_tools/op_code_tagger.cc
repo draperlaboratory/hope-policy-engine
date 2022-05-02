@@ -5,13 +5,14 @@
 #include <vector>
 #include "elf_loader.h"
 #include "md_code.h"
+#include "reporter.h"
 
 namespace policy_engine {
 
-void tag_op_codes(const std::string& policy_dir, elf_image_t& ef, const std::string& taginfo_file_name) {
+void tag_op_codes(const std::string& policy_dir, elf_image_t& ef, const std::string& taginfo_file_name, reporter_t& err) {
   for (const auto& section : ef.sections)
     if (section.flags & SHF_EXECINSTR)
-      if (md_code(policy_dir, section.address, taginfo_file_name, reinterpret_cast<uint8_t*>(section.data), section.size) != 0)
+      if (md_code(policy_dir, section.address, taginfo_file_name, reinterpret_cast<uint8_t*>(section.data), section.size, err) != 0)
         throw std::runtime_error("md_code failed");
 }
 

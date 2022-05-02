@@ -88,7 +88,7 @@ bool embed_tags_in_elf(
   int ret = system(command_string);
 
   if (remove(section_temp_file))
-    printf("Failed to delete temporary file %s.\n", section_temp_file);
+    err.warning("Failed to delete temporary file %s.\n", section_temp_file);
 
   return (ret == 0);
 }

@@ -108,7 +108,7 @@ void LLVMMetadataTagger::add_code_section_ranges(const elf_image_t& ef, RangeMap
       uint64_t start = ef.sections[i].address;
       uint64_t end = round_up(start + ef.sections[i].size, PTR_SIZE);
       if ((ef.sections[i].flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR)) {
-        std::printf("saw code range = %lx:%lx\n", start, end);
+        err.info("saw code range = %lx:%lx\n", start, end);
         range_map.add_range(start, end);
       }
     }
@@ -119,7 +119,7 @@ void LLVMMetadataTagger::check_and_write_range(RangeFile& range_file, uint64_t s
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
-        std::printf("saw tag %s = %lx:%lx\n", tags.at("name").c_str(), start, end);
+        err.info("saw tag %s = %lx:%lx\n", tags.at("name").c_str(), start, end);
         range_file.write_range(start, end, tags.at("name"));
         range_map.add_range(start, end, tags.at("name"));
       }
@@ -143,13 +143,13 @@ RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, Range
       for (int j = 0; j < 8; j++, i++)
         addr += metadata[i] << (j*8);
       base_address = addr;
-      std::printf("new base address is %lx\n", base_address);
+      err.info("new base address is %lx\n", base_address);
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         address += metadata[i] << (j*8);
       uint8_t tag_specifier = metadata[i++];
-      std::printf("tag is %x at address %lx\n", tag_specifier, address);
+      err.info("tag is %x at address %lx\n", tag_specifier, address);
       check_and_write_range(range_file, address, address + PTR_SIZE, tag_specifier, policy_inits, range_map);
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_RANGE_OP")) {
       uint64_t start_address = base_address, end_address = base_address;
@@ -158,30 +158,30 @@ RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, Range
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
       uint8_t tag_specifier = metadata[i++];
-      std::printf("tag is %x for address range %lx:%lx\n", tag_specifier, start_address, end_address);
+      err.info("tag is %x for address range %lx:%lx\n", tag_specifier, start_address, end_address);
       check_and_write_range(range_file, start_address, end_address, tag_specifier, policy_inits, range_map);
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
-      std::printf("Saw policy symbol!\n");
+      err.info("Saw policy symbol!\n");
       exit(-1);
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
-      std::printf("Saw policy range!\n");
+      err.info("Saw policy range!\n");
       exit(-1);
       i += PTR_SIZE*3; // unreachable?
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL_RANKED")) {
-      std::printf("Saw policy symbol ranked!\n");
+      err.info("Saw policy symbol ranked!\n");
       exit(-1);
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE_RANKED")) {
-      std::printf("Saw policy range ranked!\n");
+      err.info("Saw policy range ranked!\n");
       exit(-1);
       i += PTR_SIZE*5;
     } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK_WEAK_DECL_HACK")) {
-      std::printf("Saw end weak decl tag!\n");
+      err.info("Saw end weak decl tag!\n");
       exit(1);
     } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK")) {
       uint64_t end_address = 0;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
-      std::printf("saw end block tag range = %lx:%lx\n", base_address, base_address + end_address);
+      err.info("saw end block tag range = %lx:%lx\n", base_address, base_address + end_address);
       range_map.add_range(base_address, base_address = end_address, "COMPILER_GENERATED");
     } else if (metadata[i] == metadata_ops.at("DMD_FUNCTION_RANGE")) {
       uint64_t start_address = base_address, end_address = base_address;
@@ -189,10 +189,10 @@ RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, Range
         start_address += metadata[i] << (j*8);
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
-      std::printf("saw function range %lx:%lx\n", start_address, end_address);
+      err.info("saw function range %lx:%lx\n", start_address, end_address);
       range_map.add_range(start_address, end_address, "COMPILER_GENERATED");
     } else {
-      std::printf("Error: found unknown byte in metadata: %x\n", metadata[i]);
+      err.error("found unknown byte in metadata: %x\n", metadata[i]);
       exit(-1);
     }
   }
@@ -205,7 +205,7 @@ RangeMap LLVMMetadataTagger::generate_policy_ranges(elf_image_t& elf_file, Range
       for (uint64_t s = start; s < end; s += PTR_SIZE) {
         uint64_t e = s + PTR_SIZE;
         if (!range_map.contains(range_t{s, e, tags})) {
-          std::printf("llvm.NoCFI range = %lx:%lx\n", s, e);
+          err.info("llvm.NoCFI range = %lx:%lx\n", s, e);
           range_file.write_range(s, e, "llvm.NoCFI");
         }
       }

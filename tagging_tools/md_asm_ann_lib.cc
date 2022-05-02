@@ -31,6 +31,7 @@
 #include <string>
 #include "asm_annotater.h"
 #include "metadata_factory.h"
+#include "reporter.h"
 #include "tag_file.h"
 
 #if defined(__clang__)
@@ -68,7 +69,7 @@ std::string annotater_t::filter(uint64_t addr, std::string line) {
   return line;
 }
 
-int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, const std::string& output_file) {
+int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, reporter_t& err, const std::string& output_file) {
   metadata_memory_map_t md_map;
 
   std::unique_ptr<std::ifstream> asm_in;
@@ -78,7 +79,7 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
   try {
     asm_in = std::make_unique<std::ifstream>(asm_file);
   } catch (...) {
-    fprintf(stderr, "Couldn't open asm file %s\n", asm_file.c_str());
+    err.error("couldn't open asm file %s\n", asm_file.c_str());
     return 1;
   }
 
@@ -86,19 +87,19 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
   try {
     asm_out = std::make_unique<std::ofstream>(fname);
   } catch (...) {
-    fprintf(stderr, "Couldn't open output asm file %s\n", fname.c_str());
+    err.error("couldn't open output asm file %s\n", fname.c_str());
     return 1;
   }
     
   try {
     md_factory = std::make_unique<metadata_factory_t>(policy_dir);
   } catch (...) {
-    fprintf(stderr, "Couldn't load policy information from  %s\n", policy_dir.c_str());
+    err.error("couldn't load policy information from  %s\n", policy_dir.c_str());
     return 1;
   }
 
   if (!load_tags(&md_map, taginfo_file)) {
-    fprintf(stderr, "Couldn't load tags from %s\n", taginfo_file.c_str());
+    err.error("couldn't load tags from %s\n", taginfo_file.c_str());
     return 1;
   }
   annotater_t ann(*md_factory, md_map, *asm_in, *asm_out);

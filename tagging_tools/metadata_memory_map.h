@@ -33,6 +33,7 @@
 #include "metadata.h"
 #include "metadata_cache.h"
 #include "metadata_factory.h"
+#include "reporter.h"
 
 namespace policy_engine {
   
@@ -225,7 +226,7 @@ public:
 };
 
 void init_metadata_renderer(metadata_factory_t* md_factory);
-metadata_factory_t* init(const std::string& policy_dir);
+metadata_factory_t* init(const std::string& policy_dir, reporter_t& err);
 
 } // namespace policy_engine
 

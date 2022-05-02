@@ -93,16 +93,14 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
   }
 
   std::list<std::unique_ptr<entity_binding_t>> bindings;
-  std::printf("parsing %s\n", entity_yaml.c_str());
   load_entity_bindings(entity_yaml, bindings, err);
   for (const std::string& yaml_file : yaml_files) {
-    std::printf("parsing %s\n", yaml_file.c_str());
     load_entity_bindings(yaml_file, bindings, err);
   }
   verify_entity_bindings(md_tool, bindings, err);
 
-  for (auto &e: bindings) {
-    entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
+  for (const auto& e: bindings) {
+    const entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
     if (sb != nullptr) {
       auto sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
       if (sym != img.symtab.end()) {

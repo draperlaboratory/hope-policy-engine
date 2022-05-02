@@ -126,11 +126,11 @@ bool compare_range(range_t& first, range_t& second) {
   return (first.start < second.start);
 }
 
-void coalesce_ranges(std::list<range_t>& ranges) {
+void coalesce_ranges(std::list<range_t>& ranges, reporter_t& err) {
   std::list<range_t>::iterator it = ++ranges.begin();
 
   while(it != ranges.end()) {
-    std::printf("Range: 0x%lx = 0x%lx\n", it->start, it->end);
+    err.info("Range: 0x%lx = 0x%lx\n", it->start, it->end);
 
     auto previous = std::prev(it, 1);
 
@@ -149,7 +149,7 @@ void coalesce_ranges(std::list<range_t>& ranges) {
   }
 }
 
-void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges) {
+void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges, reporter_t& err) {
   std::list<const elf_section_t*> code_sections;
   std::list<const elf_section_t*> data_sections;
 
@@ -168,25 +168,25 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   code_ranges.sort(compare_range);
   data_ranges.sort(compare_range);
 
-  coalesce_ranges(code_ranges);
-  coalesce_ranges(data_ranges);
+  coalesce_ranges(code_ranges, err);
+  coalesce_ranges(data_ranges, err);
 
-  std::printf("Code ranges:\n");
+  err.info("Code ranges:\n");
   if (elf_image.is_64bit()) {
     for (const auto& it : code_ranges)
-      std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+      err.info("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
   } else {
     for (const auto& it : code_ranges)
-      std::printf("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
+      err.info("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
   }
 
-  std::printf("Data ranges:\n");
+  err.info("Data ranges:\n");
   if (elf_image.is_64bit()) {
     for(const auto& it : data_ranges)
-      std::printf("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+      err.info("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
   } else {
     for(const auto& it : data_ranges)
-      std::printf("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
+      err.info("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
   }
 }
 
@@ -218,7 +218,7 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
     }
 
     data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
-    get_address_ranges(elf_image, code_ranges, data_ranges);
+    get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
     for(const auto& it : data_ranges) {
       data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, elf_image.is_64bit())));

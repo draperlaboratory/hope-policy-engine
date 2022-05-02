@@ -21,7 +21,7 @@
 #include "md_range.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
-#include "stdio_reporter.h"
+#include "reporter.h"
 #include "tag_elf_file.h"
 #include "tagging_utils.h"
 
@@ -44,7 +44,7 @@ DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
-  policy_engine::stdio_reporter_t err;
+  policy_engine::reporter_t err;
 
   gflags::SetUsageMessage("Generate tag ranges file from ELF binary");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -89,22 +89,22 @@ int main(int argc, char* argv[]) {
     policy_engine::elf_image_t elf_image(FLAGS_bin);
 
     policy_engine::RangeFile range_file;
-    policy_engine::LLVMMetadataTagger llvm_tagger;
+    policy_engine::LLVMMetadataTagger llvm_tagger(err);
 
     if (policy_inits["Require"]) {
       if (policy_inits["Require"]["elf"])
-        policy_engine::generate_rwx_ranges(elf_image, range_file);
+        policy_engine::generate_rwx_ranges(elf_image, range_file, err);
       if (policy_inits["Require"]["llvm"])
         policy_engine::RangeMap range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
       if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
-        policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits);
+        policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits, err);
       int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
       if (rc != 0)
         err.error("Couldn't add .tag_array to binary\n");
     }
     range_file.finish();
     
-    int range_result = policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file);
+    int range_result = policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file, err);
     if (range_result != 0) {
       err.error("md_range failed");
       exit(range_result);
@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
   // have to reopen the file here because it's been edited and the current copy is corrupt
   policy_engine::elf_image_t elf_image_post(FLAGS_bin);
 
-  tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file);
+  tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, err);
 
   std::vector<std::string> entities(&argv[1], &argv[argc - 1]);
   int entity_result = policy_engine::md_entity(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, entities, err);
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
     exit(llvm_result);
   }
 
-  int asm_ann_result = policy_engine::md_asm_ann(FLAGS_policy_dir, FLAGS_tag_file, asm_file_name);
+  int asm_ann_result = policy_engine::md_asm_ann(FLAGS_policy_dir, FLAGS_tag_file, asm_file_name, err);
   if (asm_ann_result != 0) {
     err.error("md_asm_ann failed");
     exit(asm_ann_result);

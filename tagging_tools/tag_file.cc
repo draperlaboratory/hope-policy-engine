@@ -29,6 +29,7 @@
 #include "tag_file.h"
 #include "uleb.h"
 #include "register_name_map.h"
+#include "reporter.h"
 
 using namespace policy_engine;
 
@@ -75,7 +76,6 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
       fclose(fp);
       return false;
     }
-//    printf("(0x%x, 0x%x): %d meta_t\n", start, end, metadata_count);
     metadata_t *metadata = new metadata_t();
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
@@ -127,7 +127,8 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
                                      metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                                      metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
                                      int32_t register_default, int32_t csr_default, int32_t env_default,
-                                     std::string file_name) {
+                                     std::string file_name,
+                                     reporter_t& err) {
   FILE *fp = fopen(file_name.c_str(), "wb");
 
   if (!fp)
@@ -168,7 +169,7 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
     try {
       register_value = register_name_map.at(register_name);
     } catch(std::out_of_range &oor) {
-      printf("Invalid register name %s\n", register_name.c_str());
+      err.error("Invalid register name %s\n", register_name.c_str());
       return false;
     }
 
@@ -198,7 +199,7 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
     try {
       csr_value = csr_name_map.at(csr_name);
     } catch(std::out_of_range &oor) {
-      printf("Invalid csr name %s\n", csr_name.c_str());
+      err.error("Invalid csr name %s\n", csr_name.c_str());
       return false;
     }
 
@@ -335,7 +336,8 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
                                            metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                                            metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
                                            int32_t &register_default, int32_t &csr_default, int32_t &env_default,
-                                           std::string file_name) {
+                                           std::string file_name,
+                                           reporter_t& err) {
   uint8_t is_64_bit;
   uint32_t code_range_count;
   uint32_t data_range_count;
@@ -445,7 +447,7 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     }
     if(!read_uleb<file_reader_t, uint32_t>(&reader, register_meta)) {
       fclose(fp);
-      printf("Failed here\n");
+      err.error("Failed here\n");
       return false;
     }
 

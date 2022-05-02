@@ -31,18 +31,18 @@
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "platform_types.h"
+#include "reporter.h"
 #include "riscv_isa.h"
 #include "validator_exception.h"
 
 namespace policy_engine {
 
-int md_code(const std::string& policy_dir, uint64_t code_address, const std::string& file_name, uint8_t* bytes, int n) {
+int md_code(const std::string& policy_dir, uint64_t code_address, const std::string& file_name, uint8_t* bytes, int n, reporter_t& err) {
   try {
-    metadata_factory_t* md_factory = init(policy_dir);
+    metadata_factory_t* md_factory = init(policy_dir, err);
     metadata_memory_map_t map;
     if (!load_tags(&map, file_name)) {
-      std::printf("failed read\n");
-      std::fprintf(stderr, "failed to read tags from %s\n", file_name.c_str());
+      err.error("failed to read tags from %s\n", file_name.c_str());
       return 1;
     }
 
@@ -54,7 +54,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       uint32_t opdef;
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
       if(flags == -1) {
-        printf("Failed to decode instruction 0x%x\n", insn);
+        err.warning("Failed to decode instruction 0x%x\n", insn);
         code_address += 4;
         continue;
       }
@@ -62,7 +62,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       metadata_t const* metadata = md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
 
       if (metadata == nullptr) {
-        std::fprintf(stderr, "0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
+        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
       } else {
         map.add_range(code_address, code_address + 4, metadata);
       }
@@ -70,14 +70,14 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
     }
 
     if (!save_tags(&map, file_name)) {
-      std::printf("failed write of tag file\n");
+      err.error("failed write of tag file\n");
       return 1;
     }
     
     free(md_factory);
     return 0;
   } catch (...) {
-    std::printf("something awful happened\n");
+    err.error("something awful happened\n");
     return 1;
   }
 }

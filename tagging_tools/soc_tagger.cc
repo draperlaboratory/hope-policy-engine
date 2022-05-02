@@ -4,11 +4,12 @@
 #include <string>
 #include <utility>
 #include <yaml-cpp/yaml.h>
+#include "reporter.h"
 #include "tagging_utils.h"
 
 namespace policy_engine {
 
-void generate_soc_ranges(std::string soc_file, RangeFile& range_file, YAML::Node policy_inits) {
+void generate_soc_ranges(std::string soc_file, RangeFile& range_file, const YAML::Node& policy_inits, reporter_t& err) {
   YAML::Node soc_cfg = YAML::LoadFile(soc_file);
 
   std::map<std::string, std::pair<uint64_t, uint64_t>> soc_ranges;
@@ -20,7 +21,7 @@ void generate_soc_ranges(std::string soc_file, RangeFile& range_file, YAML::Node
     for (const auto& elem : device.second) {
       std::string name = "SOC." + device.first.as<std::string>() + "." + elem.first.as<std::string>();
       if (soc_ranges.find(name) != soc_ranges.end()) {
-        std::printf("%s: %#lx - %#lx\n", name.c_str(), soc_ranges[name].first, soc_ranges[name].second);
+        err.info("%s: %#lx - %#lx\n", name.c_str(), soc_ranges[name].first, soc_ranges[name].second);
         range_file.write_range(soc_ranges[name].first, soc_ranges[name].second, name);
       }
     }

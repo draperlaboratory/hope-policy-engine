@@ -32,6 +32,7 @@
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "tag_file.h"
+#include "reporter.h"
 #include "validator_exception.h"
 
 namespace policy_engine {
@@ -46,7 +47,7 @@ bool apply_tag(metadata_memory_map_t *map, uint64_t start, uint64_t end, const c
   return true;
 }
 
-bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
+bool load_range_file(metadata_memory_map_t *map, std::string file_name, reporter_t& err) {
   int lineno = 1;
   bool res = true;
   try {
@@ -56,35 +57,35 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name) {
       std::istringstream iss(line);
       std::vector<std::string> tokens {std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
       if (tokens.size() != 3) {
-        std::fprintf(stderr, "%s: %d: bad format - wrong number of items\n", file_name.c_str(), lineno);
+        err.warning("%s: %d: bad format - wrong number of items\n", file_name.c_str(), lineno);
         res = false;
       } else {
         uint64_t start = strtoul(tokens[0].c_str(), 0, 16);
         uint64_t end = strtoul(tokens[1].c_str(), 0, 16);
         if (!apply_tag(map, start, end, tokens[2].c_str())) {
-          std::fprintf(stderr, "%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
+          err.warning("%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
           res = false;
         }
       }
       lineno++;
     }
   } catch (...) {
-    std::fprintf(stderr, "error loading %s\n", file_name.c_str());
+    err.error("error loading %s\n", file_name.c_str());
     return false;
   }
   return res;
 }
 
-int md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name) {
-  md_factory = init(policy_dir);
+int md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err) {
+  md_factory = init(policy_dir, err);
 
   metadata_memory_map_t map;
 
-  if (!load_range_file(&map, range_file_name))
+  if (!load_range_file(&map, range_file_name, err))
     return 1;
 
   if (!save_tags(&map, file_name)) {
-    std::printf("failed write of tag file\n");
+    err.error("failed write of tag file\n");
     return 1;
   }
 
