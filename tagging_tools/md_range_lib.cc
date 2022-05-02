@@ -57,7 +57,7 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name, reporter
       std::istringstream iss(line);
       std::vector<std::string> tokens {std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
       if (tokens.size() != 3) {
-        err.warning("%s: %d: bad format - wrong number of items\n", file_name.c_str(), lineno);
+        err.warning("%s: %d: bad format - wrong number of items\n", file_name, lineno);
         res = false;
       } else {
         uint64_t start = strtoul(tokens[0].c_str(), 0, 16);
@@ -70,7 +70,7 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name, reporter
       lineno++;
     }
   } catch (...) {
-    err.error("error loading %s\n", file_name.c_str());
+    err.error("error loading %s\n", file_name);
     return false;
   }
   return res;

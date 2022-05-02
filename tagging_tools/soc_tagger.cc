@@ -21,7 +21,7 @@ void generate_soc_ranges(std::string soc_file, RangeFile& range_file, const YAML
     for (const auto& elem : device.second) {
       std::string name = "SOC." + device.first.as<std::string>() + "." + elem.first.as<std::string>();
       if (soc_ranges.find(name) != soc_ranges.end()) {
-        err.info("%s: %#lx - %#lx\n", name.c_str(), soc_ranges[name].first, soc_ranges[name].second);
+        err.info("%s: %#lx - %#lx\n", name, soc_ranges[name].first, soc_ranges[name].second);
         range_file.write_range(soc_ranges[name].first, soc_ranges[name].second, name);
       }
     }

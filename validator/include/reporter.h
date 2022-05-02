@@ -39,6 +39,9 @@ private:
   std::FILE* warn;
   std::FILE* out;
 
+  template<class T> T& argument(T& arg) const { return arg; }
+  template<class T> const T* argument(const std::basic_string<T>& arg) const { return arg.c_str(); }
+
 public:
   int errors;
   int warnings;
@@ -49,18 +52,18 @@ public:
   template<class... A>
   void error(const char* fmt, const A&... args) {
     std::fprintf(err, "error: ");
-    std::fprintf(err, fmt, args...);
+    std::fprintf(err, fmt, argument(args)...);
     errors++;
   }
 
   template<class... A>
   void warning(const char* fmt, const A&... args) {
     std::fprintf(warn, "warning: ");
-    std::fprintf(warn, fmt, args...);
+    std::fprintf(warn, fmt, argument(args)...);
     warnings++;
   }
 
-  template<class... A> void info(const char* fmt, const A&... args) { std::fprintf(out, fmt, args...); }
+  template<class... A> void info(const char* fmt, const A&... args) { std::fprintf(out, fmt, argument(args)...); }
 
   void print_summary() {
     if (warnings > 0)

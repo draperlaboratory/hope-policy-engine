@@ -79,7 +79,7 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
   try {
     asm_in = std::make_unique<std::ifstream>(asm_file);
   } catch (...) {
-    err.error("couldn't open asm file %s\n", asm_file.c_str());
+    err.error("couldn't open asm file %s\n", asm_file);
     return 1;
   }
 
@@ -87,19 +87,19 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
   try {
     asm_out = std::make_unique<std::ofstream>(fname);
   } catch (...) {
-    err.error("couldn't open output asm file %s\n", fname.c_str());
+    err.error("couldn't open output asm file %s\n", fname);
     return 1;
   }
     
   try {
     md_factory = std::make_unique<metadata_factory_t>(policy_dir);
   } catch (...) {
-    err.error("couldn't load policy information from  %s\n", policy_dir.c_str());
+    err.error("couldn't load policy information from  %s\n", policy_dir);
     return 1;
   }
 
   if (!load_tags(&md_map, taginfo_file)) {
-    err.error("couldn't load tags from %s\n", taginfo_file.c_str());
+    err.error("couldn't load tags from %s\n", taginfo_file);
     return 1;
   }
   annotater_t ann(*md_factory, md_map, *asm_in, *asm_out);

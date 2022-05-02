@@ -163,13 +163,13 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
   }
 
   for (auto &e: register_index_map) {
-    std::string register_name = e.first.substr(e.first.find_last_of(".")+1).c_str();
+    std::string register_name = e.first.substr(e.first.find_last_of(".") + 1).c_str();
     uint32_t register_value;
     
     try {
       register_value = register_name_map.at(register_name);
     } catch(std::out_of_range &oor) {
-      err.error("Invalid register name %s\n", register_name.c_str());
+      err.error("Invalid register name %s\n", register_name);
       return false;
     }
 
@@ -199,7 +199,7 @@ bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_v
     try {
       csr_value = csr_name_map.at(csr_name);
     } catch(std::out_of_range &oor) {
-      err.error("Invalid csr name %s\n", csr_name.c_str());
+      err.error("Invalid csr name %s\n", csr_name);
       return false;
     }
 

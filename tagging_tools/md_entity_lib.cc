@@ -43,14 +43,14 @@ static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, r
   if (sym != symtab.end()) {
     if (needs_size && sym->size == 0) {
       if (optional)
-        err->warning("symbol %s has zero size.\n", name.c_str());
+        err->warning("symbol %s has zero size.\n", name);
       else {
-        err->error("symbol %s has zero size.\n", name.c_str());
+        err->error("symbol %s has zero size.\n", name);
         sym = symtab.end();
       }
     }
   } else if (!optional)
-    err->error("symbol %s not found\n", name.c_str());
+    err->error("symbol %s not found\n", name);
   return sym;
 }
 
@@ -76,7 +76,7 @@ void verify_entity_bindings(metadata_tool_t& md_tool,
 			     return eb->entity_name == s;
 			   });
     if (it == bindings.end()) {
-      err.warning("Entity %s has no binding\n", s.c_str());
+      err.warning("Entity %s has no binding\n", s);
     }
   }
 }
@@ -111,7 +111,7 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
         else
           end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
         if (!md_tool.apply_tag(sym->address, end_addr, sb->entity_name.c_str())) {
-          err.warning("Unable to apply tag %s\n", sb->entity_name.c_str());
+          err.warning("Unable to apply tag %s\n", sb->entity_name);
         }
       }
     } else {
@@ -121,7 +121,7 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
         auto end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
         if (sym != img.symtab.end() && end != img.symtab.end()) {
           if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
-            err.warning("Unable to apply tag %s\n", rb->entity_name.c_str());
+            err.warning("Unable to apply tag %s\n", rb->entity_name);
           }
         }
       }

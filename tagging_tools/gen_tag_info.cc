@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
   struct stat tag_buf;
   if (stat(FLAGS_tag_file.c_str(), &tag_buf) == 0) {
     if (std::remove(FLAGS_tag_file.c_str()) != 0) {
-      err.error("could not remove %s\n", FLAGS_tag_file.c_str());
+      err.error("could not remove %s\n", FLAGS_tag_file);
       exit(-1);
     }
   }

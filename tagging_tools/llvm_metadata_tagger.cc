@@ -119,7 +119,7 @@ void llvm_metadata_tagger_t::check_and_write_range(RangeFile& range_file, uint64
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
-        err.info("saw tag %s = %lx:%lx\n", tags.at("name").c_str(), start, end);
+        err.info("saw tag %s = %lx:%lx\n", tags.at("name"), start, end);
         range_file.write_range(start, end, tags.at("name"));
         range_map.add_range(start, end, tags.at("name"));
       }

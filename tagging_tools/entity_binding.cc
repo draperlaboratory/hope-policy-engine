@@ -73,7 +73,7 @@ void policy_engine::load_entity_bindings(const std::string& file_name, std::list
     for (const YAML::Node& node : YAML::LoadFile(file_name))
       process_element(node, bindings);
   } catch (const std::exception &e) {
-    err.error("while parsing %s: %s\n", file_name.c_str(), e.what());
+    err.error("while parsing %s: %s\n", file_name, e.what());
   }
 }
 

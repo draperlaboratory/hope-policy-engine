@@ -70,7 +70,7 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<
     name = it->second["name"].as<std::string>();
 
     if (std::find(exclude.begin(), exclude.end(), name) != exclude.end()) {
-      err->info("Excluding %s from SOC ranges\n", name.c_str());
+      err->info("Excluding %s from SOC ranges\n", name);
       continue;
     }
 

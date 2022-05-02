@@ -20,13 +20,13 @@ void generate_rwx_ranges(const elf_image_t& ef, RangeFile& range_file, reporter_
     if (section.flags & SHF_EXECINSTR) {
       range_file.write_range(section.address, end, RWX_X);
       range_file.write_range(section.address, end, RWX_R);
-      err.info("X %s: %#lx - %#lx\n", section.name.c_str(), section.address, end);
+      err.info("X %s: %#lx - %#lx\n", section.name, section.address, end);
     } else if (section.flags & SHF_WRITE) {
       range_file.write_range(section.address, end, RWX_W);
-      err.info("W %s: %#lx - %#lx\n", section.name.c_str(), section.address, end);
+      err.info("W %s: %#lx - %#lx\n", section.name, section.address, end);
     } else if (section.flags & SHF_ALLOC) {
       range_file.write_range(section.address, end, RWX_R);
-      err.info("R %s: %#lx - %#lx\n", section.name.c_str(), section.address, end);
+      err.info("R %s: %#lx - %#lx\n", section.name, section.address, end);
     }
   }
 }
