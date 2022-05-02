@@ -44,28 +44,25 @@ namespace policy_engine {
 class metadata_tool_t {
 //  reporter_t err;
   metadata_cache_t md_cache;
-  metadata_factory_t *md_factory;
+  metadata_factory_t md_factory;
   metadata_memory_map_t md_map;
   public:
   metadata_tool_t(const char *policy_dir) //, reporter_t err)
-    : /* err(err), */md_map(&md_cache) {
-    md_factory = new metadata_factory_t(policy_dir);
-  }
-  ~metadata_tool_t() { delete md_factory; }
+    : md_factory(metadata_factory_t(policy_dir)), md_map(&md_cache) {}
   metadata_t const *lookup_metadata(std::string const &dotted_path) {
-    return md_factory->lookup_metadata(dotted_path);
+    return md_factory.lookup_metadata(dotted_path);
   }
   bool apply_group_tag(uint64_t start, uint64_t end, const char *group,
                        int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3,
                        uint32_t rd, int32_t imm) {
-    metadata_t const *metadata = md_factory->lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
+    metadata_t const *metadata = md_factory.lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
     if (!metadata)
       return false;
     md_map.add_range(start, end, metadata);
     return true;
   }
   bool apply_tag(uint64_t start, uint64_t end, const char *tag_name) {
-    metadata_t const *md = md_factory->lookup_metadata(tag_name);
+    metadata_t const *md = md_factory.lookup_metadata(tag_name);
     if (!md)
       return false;
     md_map.add_range(start, end, md);
@@ -78,9 +75,9 @@ class metadata_tool_t {
     return load_tags(md_map, tag_file_name);
   }
   bool save_tag_info(const char *tag_file_name) {
-    return save_tags(&md_map, tag_file_name);
+    return save_tags(md_map, tag_file_name);
   }
-  metadata_factory_t *factory() { return md_factory; }
+  metadata_factory_t& factory() { return md_factory; }
 };
 
 } // namespace policy_engine

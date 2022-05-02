@@ -36,14 +36,14 @@
 
 namespace policy_engine {
 
-bool exclude_unused_soc(YAML::Node soc, std::list<std::string>& exclude, metadata_factory_t& factory, reporter_t* err) {
+bool exclude_unused_soc(YAML::Node soc, std::list<std::string>& exclude, metadata_factory_t& factory, reporter_t& err) {
   auto soc_map = factory.lookup_metadata_map("SOC");
 
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     std::string name;
 
     if (it->second["name"] == NULL) {
-      err->error("'name' node not present\n");
+      err.error("'name' node not present\n");
       return false;
     }
 
@@ -57,31 +57,31 @@ bool exclude_unused_soc(YAML::Node soc, std::list<std::string>& exclude, metadat
   return true;
 }
 
-bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<std::string>& exclude, reporter_t* err) {
+bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<std::string>& exclude, reporter_t& err) {
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     range_t range;
     std::string name;
 
     if (it->second["name"] == NULL) {
-      err->error("'name' node not present\n");
+      err.error("'name' node not present\n");
       return false;
     }
 
     name = it->second["name"].as<std::string>();
 
     if (std::find(exclude.begin(), exclude.end(), name) != exclude.end()) {
-      err->info("Excluding %s from SOC ranges\n", name);
+      err.info("Excluding %s from SOC ranges\n", name);
       continue;
     }
 
     if (it->second["start"] == NULL) {
-      err->error("'start' node not present\n");
+      err.error("'start' node not present\n");
       return false;
     }
     range.start = it->second["start"].as<uint64_t>();
 
     if (it->second["end"] == NULL) {
-      err->error("'end' node not present\n");
+      err.error("'end' node not present\n");
       return false;
     }
     range.end = it->second["end"].as<uint64_t>();
@@ -207,12 +207,12 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
       return false;
     }
 
-    if (exclude_unused_soc(soc_node["SOC"], soc_exclude, factory,& err) == false) {
+    if (exclude_unused_soc(soc_node["SOC"], soc_exclude, factory, err) == false) {
       err.error("Failed to get SOC ranges\n");
       return 1;
     }
 
-    if (get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude,& err) == false) {
+    if (get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude, err) == false) {
       err.error("Failed to get SOC ranges\n");
       return 1;
     }

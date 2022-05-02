@@ -38,26 +38,26 @@
 
 namespace policy_engine {
 
-static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, reporter_t* err, const std::string& name, bool needs_size, bool optional) {
+static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, reporter_t& err, const std::string& name, bool needs_size, bool optional) {
   auto sym = symtab.find(name);
   if (sym != symtab.end()) {
     if (needs_size && sym->size == 0) {
       if (optional)
-        err->warning("symbol %s has zero size.\n", name);
+        err.warning("symbol %s has zero size.\n", name);
       else {
-        err->error("symbol %s has zero size.\n", name);
+        err.error("symbol %s has zero size.\n", name);
         sym = symtab.end();
       }
     }
   } else if (!optional)
-    err->error("symbol %s not found\n", name);
+    err.error("symbol %s not found\n", name);
   return sym;
 }
 
 // debugging code
 void dump_ents(metadata_tool_t& md_tool) {
   std::list<std::string> ents;
-  md_tool.factory()->enumerate(ents);
+  md_tool.factory().enumerate(ents);
   std::printf("ents:\n");
   for (auto s: ents) {
     std::printf("  %s\n", s.c_str());
@@ -68,7 +68,7 @@ void verify_entity_bindings(metadata_tool_t& md_tool,
 			    std::list<std::unique_ptr<entity_binding_t>>& bindings,
 			    reporter_t& err) {
   std::list<std::string> ents;
-  md_tool.factory()->enumerate(ents);
+  md_tool.factory().enumerate(ents);
   for (auto s: ents) {
     auto it = std::find_if(bindings.begin(), bindings.end(),
 			   [&](std::unique_ptr<entity_binding_t>& peb) {
@@ -102,7 +102,7 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
   for (const auto& e: bindings) {
     const entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
     if (sb != nullptr) {
-      auto sym = get_symbol(img.symtab, &err, sb->elf_name, !sb->is_singularity, sb->optional);
+      auto sym = get_symbol(img.symtab, err, sb->elf_name, !sb->is_singularity, sb->optional);
       if (sym != img.symtab.end()) {
         // go ahead and mark it
         uint64_t end_addr;
@@ -117,8 +117,8 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
     } else {
       entity_range_binding_t* rb = dynamic_cast<entity_range_binding_t*>(e.get());
       if (rb != nullptr) {
-        auto sym = get_symbol(img.symtab, &err, rb->elf_start_name, false, false);
-        auto end = get_symbol(img.symtab, &err, rb->elf_end_name, false, false);
+        auto sym = get_symbol(img.symtab, err, rb->elf_start_name, false, false);
+        auto end = get_symbol(img.symtab, err, rb->elf_end_name, false, false);
         if (sym != img.symtab.end() && end != img.symtab.end()) {
           if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
             err.warning("Unable to apply tag %s\n", rb->entity_name);

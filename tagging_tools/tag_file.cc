@@ -92,13 +92,13 @@ bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& fil
   return true;
 }
 
-bool policy_engine::save_tags(metadata_memory_map_t *map, std::string file_name) {
+bool policy_engine::save_tags(metadata_memory_map_t& map, std::string file_name) {
   FILE *fp = fopen(file_name.c_str(), "wb");
 
   if (!fp)
     return false;
   file_writer_t writer(fp);
-  for (auto &e: *map) {
+  for (auto &e: map) {
     if (!write_uleb<file_writer_t, uint64_t>(&writer, e.first.start)) {
       fclose(fp);
       return false;

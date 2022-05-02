@@ -36,7 +36,7 @@
 namespace policy_engine {
 
 bool load_tags(metadata_memory_map_t& map, const std::string& file_name);
-bool save_tags(metadata_memory_map_t *map, std::string file_name);
+bool save_tags(metadata_memory_map_t& map, std::string file_name);
 bool save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
                       metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
                       metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,

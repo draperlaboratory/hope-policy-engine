@@ -37,15 +37,15 @@
 
 namespace policy_engine {
 
-bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t *map, uint64_t start, uint64_t end, const char *tag_name) {
+bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t start, uint64_t end, const char *tag_name) {
   metadata_t const *md = md_factory.lookup_metadata(tag_name);
   if (!md)
     return false;
-  map->add_range(start, end, md);
+  map.add_range(start, end, md);
   return true;
 }
 
-bool load_range_file(metadata_factory_t& md_factory, metadata_memory_map_t *map, std::string file_name, reporter_t& err) {
+bool load_range_file(metadata_factory_t& md_factory, metadata_memory_map_t& map, std::string file_name, reporter_t& err) {
   int lineno = 1;
   bool res = true;
   try {
@@ -78,10 +78,10 @@ int md_range(const std::string& policy_dir, const std::string& range_file_name, 
   metadata_factory_t md_factory(policy_dir);
   metadata_memory_map_t map;
 
-  if (!load_range_file(md_factory, &map, range_file_name, err))
+  if (!load_range_file(md_factory, map, range_file_name, err))
     return 1;
 
-  if (!save_tags(&map, file_name)) {
+  if (!save_tags(map, file_name)) {
     err.error("failed write of tag file\n");
     return 1;
   }

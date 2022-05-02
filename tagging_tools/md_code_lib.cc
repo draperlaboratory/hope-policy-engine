@@ -69,7 +69,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       code_address += 4;
     }
 
-    if (!save_tags(&map, file_name)) {
+    if (!save_tags(map, file_name)) {
       err.error("failed write of tag file\n");
       return 1;
     }
