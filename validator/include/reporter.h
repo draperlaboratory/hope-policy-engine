@@ -32,9 +32,7 @@
 
 namespace policy_engine {
 
-/**
-   Generic reporter class, allowing error/informational messages to be channeled.
-*/
+/** Generic reporter class, allowing error/informational messages to be channeled. */
 class reporter_t {
 private:
   std::FILE* err;
@@ -46,6 +44,7 @@ public:
   int warnings;
 
   reporter_t(std::FILE* err=stderr, std::FILE* warn=stderr, std::FILE* out=stdout) : errors(0), warnings(0), err(err), warn(warn), out(out) {}
+  ~reporter_t() { print_summary(); }
 
   template<class... A>
   void error(const char* fmt, const A&... args) {
@@ -62,6 +61,13 @@ public:
   }
 
   template<class... A> void info(const char* fmt, const A&... args) { std::fprintf(out, fmt, args...); }
+
+  void print_summary() {
+    if (warnings > 0)
+      std::fprintf(warn, "%d warnings\n", warnings);
+    if (errors > 0)
+      std::fprintf(err, "%d errors\n", errors);
+  }
 };
 
 } // namespace policy_engine
