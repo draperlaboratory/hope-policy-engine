@@ -58,24 +58,20 @@ std::string annotater_t::filter(uint64_t addr, std::string line) {
 int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, reporter_t& err, const std::string& output_file) {
   metadata_memory_map_t md_map;
 
-  std::unique_ptr<std::ifstream> asm_in;
-  std::unique_ptr<std::ofstream> asm_out;
-  std::unique_ptr<metadata_factory_t> md_factory;
-
-  try {
-    asm_in = std::make_unique<std::ifstream>(asm_file);
-  } catch (...) {
+  std::ifstream asm_in(asm_file);
+  if (!asm_in) {
     err.error("couldn't open asm file %s\n", asm_file);
     return 1;
   }
 
   const std::string fname = output_file.empty() ? asm_file + ".tagged" : output_file;
-  try {
-    asm_out = std::make_unique<std::ofstream>(fname);
-  } catch (...) {
+  std::ofstream asm_out(fname);
+  if (!asm_out) {
     err.error("couldn't open output asm file %s\n", fname);
     return 1;
   }
+
+  std::unique_ptr<metadata_factory_t> md_factory;
     
   try {
     md_factory = std::make_unique<metadata_factory_t>(policy_dir);
@@ -88,7 +84,7 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
     err.error("couldn't load tags from %s\n", taginfo_file);
     return 1;
   }
-  annotater_t ann(*md_factory, md_map, *asm_in, *asm_out);
+  annotater_t ann(*md_factory, md_map, asm_in, asm_out);
   ann.execute();
   return 0;
 }
