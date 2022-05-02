@@ -75,7 +75,7 @@ class metadata_tool_t {
     md_map.add_range(start, end, metadata);
   }
   bool load_tag_info(const char *tag_file_name) {
-    return load_tags(&md_map, tag_file_name);
+    return load_tags(md_map, tag_file_name);
   }
   bool save_tag_info(const char *tag_file_name) {
     return save_tags(&md_map, tag_file_name);

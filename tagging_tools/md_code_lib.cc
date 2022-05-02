@@ -41,7 +41,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
   try {
     metadata_factory_t* md_factory = init(policy_dir, err);
     metadata_memory_map_t map;
-    if (!load_tags(&map, file_name)) {
+    if (!load_tags(map, file_name)) {
       err.error("failed to read tags from %s\n", file_name);
       return 1;
     }

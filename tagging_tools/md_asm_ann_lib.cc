@@ -71,7 +71,7 @@ int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, c
 
   metadata_factory_t md_factory(policy_dir);
 
-  if (!load_tags(&md_map, taginfo_file)) {
+  if (!load_tags(md_map, taginfo_file)) {
     err.error("couldn't load tags from %s\n", taginfo_file);
     return 1;
   }

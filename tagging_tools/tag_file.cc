@@ -49,7 +49,7 @@ struct file_writer_t {
   }
 };
 
-bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name) {
+bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& file_name) {
   FILE *fp = fopen(file_name.c_str(), "rb");
 
   if (!fp)
@@ -80,13 +80,13 @@ bool policy_engine::load_tags(metadata_memory_map_t *map, std::string file_name)
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
       if (!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
-	fclose(fp);
-	delete metadata;
-	return false;
+        fclose(fp);
+        delete metadata;
+        return false;
       }
       metadata->insert(meta);
     }
-    map->add_range(start, end, metadata);
+    map.add_range(start, end, metadata);
   }
   fclose(fp);
   return true;

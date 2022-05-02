@@ -98,7 +98,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   std::vector<const metadata_t*> metadata_values;
 
   // Retrieve memory metadata from tag file
-  if (!load_tags(&metadata_memory_map, tag_filename.c_str())) {
+  if (!load_tags(metadata_memory_map, tag_filename.c_str())) {
     err.error("Failed to load tags\n");
     return 1;
   }

@@ -44,7 +44,7 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   ssize_t env_default = -1;
 
   // Retrieve memory metadata from tag file
-  if(load_tags(&metadata_memory_map, tag_filename) == false) {
+  if (load_tags(metadata_memory_map, tag_filename) == false) {
     err.error("Failed to load tags\n");
     return 1;
   }
