@@ -37,23 +37,21 @@
 namespace policy_engine {
 
 class annotater_t : public asm_annotater_t {
+private:
   metadata_factory_t& md_factory;
   metadata_memory_map_t& md_map;
-  public:
-  annotater_t(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, std::istream& in, std::ostream& out) :
-    asm_annotater_t(in, out), md_factory(md_factory), md_map(md_map) { }
-  std::string filter(uint64_t addr, std::string line);
-};
 
-std::string annotater_t::filter(uint64_t addr, std::string line) {
-  metadata_t const* metadata = md_map.get_metadata(addr);
-  if (!metadata)
-    return line;
-  
-  line = asm_annotater_t::pad(line, 80);
-  line += md_factory.render(metadata, true);
-  return line;
-}
+public:
+  annotater_t(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, std::istream& in, std::ostream& out) :
+    asm_annotater_t(in, out), md_factory(md_factory), md_map(md_map) {}
+
+  std::string filter(uint64_t addr, std::string line) {
+    const metadata_t* metadata = md_map.get_metadata(addr);
+    if (!metadata)
+      return line;
+    return asm_annotater_t::pad(line, 80) + md_factory.render(metadata, true);
+  }
+};
 
 int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, reporter_t& err, const std::string& output_file) {
   metadata_memory_map_t md_map;
