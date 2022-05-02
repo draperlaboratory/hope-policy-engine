@@ -31,28 +31,6 @@
 #include "validator_exception.h"
 
 namespace policy_engine {
-
-static metadata_factory_t *factory;
-
-void init_metadata_renderer(metadata_factory_t *md_factory) {
-  factory = md_factory;
-}
-
-metadata_factory_t* init(const std::string& policy_dir, reporter_t& err) {
-  try {
-    metadata_factory_t* md_factory = new metadata_factory_t(policy_dir);
-    init_metadata_renderer(md_factory);
-    return md_factory;
-  } catch (exception_t &e) {
-    err.error("%s\n", e.what());
-  }
-}
-
-std::string render_metadata(metadata_t const *metadata) {
-  if (factory != nullptr)
-    return factory->render(metadata);
-  return "<no renderer>";
-}
   
 void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, metadata_t const *metadata) {
   /* this is a meaningless call */

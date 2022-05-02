@@ -225,9 +225,6 @@ public:
   iterator end() { return iterator(this, false); }
 };
 
-void init_metadata_renderer(metadata_factory_t* md_factory);
-metadata_factory_t* init(const std::string& policy_dir, reporter_t& err);
-
 } // namespace policy_engine
 
 #endif

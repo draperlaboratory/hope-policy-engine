@@ -37,17 +37,15 @@
 
 namespace policy_engine {
 
-metadata_factory_t* md_factory;
-
-bool apply_tag(metadata_memory_map_t *map, uint64_t start, uint64_t end, const char *tag_name) {
-  metadata_t const *md = md_factory->lookup_metadata(tag_name);
+bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t *map, uint64_t start, uint64_t end, const char *tag_name) {
+  metadata_t const *md = md_factory.lookup_metadata(tag_name);
   if (!md)
     return false;
   map->add_range(start, end, md);
   return true;
 }
 
-bool load_range_file(metadata_memory_map_t *map, std::string file_name, reporter_t& err) {
+bool load_range_file(metadata_factory_t& md_factory, metadata_memory_map_t *map, std::string file_name, reporter_t& err) {
   int lineno = 1;
   bool res = true;
   try {
@@ -62,7 +60,7 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name, reporter
       } else {
         uint64_t start = strtoul(tokens[0].c_str(), 0, 16);
         uint64_t end = strtoul(tokens[1].c_str(), 0, 16);
-        if (!apply_tag(map, start, end, tokens[2].c_str())) {
+        if (!apply_tag(md_factory, map, start, end, tokens[2].c_str())) {
           err.warning("%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
           res = false;
         }
@@ -77,11 +75,10 @@ bool load_range_file(metadata_memory_map_t *map, std::string file_name, reporter
 }
 
 int md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err) {
-  md_factory = init(policy_dir, err);
-
+  metadata_factory_t md_factory(policy_dir);
   metadata_memory_map_t map;
 
-  if (!load_range_file(&map, range_file_name, err))
+  if (!load_range_file(md_factory, &map, range_file_name, err))
     return 1;
 
   if (!save_tags(&map, file_name)) {
@@ -89,7 +86,6 @@ int md_range(const std::string& policy_dir, const std::string& range_file_name, 
     return 1;
   }
 
-  free(md_factory);
   return 0;
 }
 

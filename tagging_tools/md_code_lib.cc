@@ -39,7 +39,7 @@ namespace policy_engine {
 
 int md_code(const std::string& policy_dir, uint64_t code_address, const std::string& file_name, uint8_t* bytes, int n, reporter_t& err) {
   try {
-    metadata_factory_t* md_factory = init(policy_dir, err);
+    metadata_factory_t md_factory(policy_dir);
     metadata_memory_map_t map;
     if (!load_tags(map, file_name)) {
       err.error("failed to read tags from %s\n", file_name);
@@ -53,13 +53,13 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       const char* name;
       uint32_t opdef;
       int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
-      if(flags == -1) {
+      if (flags == -1) {
         err.warning("Failed to decode instruction 0x%x\n", insn);
         code_address += 4;
         continue;
       }
 
-      metadata_t const* metadata = md_factory->lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
+      const metadata_t* metadata = md_factory.lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
 
       if (metadata == nullptr) {
         err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
@@ -73,8 +73,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       err.error("failed write of tag file\n");
       return 1;
     }
-    
-    free(md_factory);
+
     return 0;
   } catch (...) {
     err.error("something awful happened\n");
