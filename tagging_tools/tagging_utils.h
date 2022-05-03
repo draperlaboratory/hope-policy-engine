@@ -35,11 +35,11 @@ public:
   }
 };
 
-class RangeMap {
+class range_map_t {
 private:
   std::vector<range_t> range_map;
 public:
-  RangeMap() {}
+  range_map_t() {}
 
   bool contains(const range_t& key);
   range_t& operator [](int i);

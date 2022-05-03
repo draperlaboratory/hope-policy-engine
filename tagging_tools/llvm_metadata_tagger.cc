@@ -102,7 +102,7 @@ bool llvm_metadata_tagger_t::policy_needs_tag(const YAML::Node& policy_inits, co
   return true;
 }
 
-void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, RangeMap& range_map) {
+void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, range_map_t& range_map) {
   for (int i = 0; i < ef.sections.size(); i++) {
     if (ef.sections[i].flags & SHF_ALLOC) {
       uint64_t start = ef.sections[i].address;
@@ -115,7 +115,7 @@ void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, Rang
   }
 }
 
-void llvm_metadata_tagger_t::check_and_write_range(RangeFile& range_file, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits, RangeMap& range_map) {
+void llvm_metadata_tagger_t::check_and_write_range(RangeFile& range_file, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits, range_map_t& range_map) {
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
@@ -127,7 +127,7 @@ void llvm_metadata_tagger_t::check_and_write_range(RangeFile& range_file, uint64
   }
 }
 
-RangeMap llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, RangeFile& range_file, const YAML::Node& policy_inits) {
+range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, RangeFile& range_file, const YAML::Node& policy_inits) {
   auto metadata_section = std::find_if(elf_file.sections.begin(), elf_file.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
   if (metadata_section == elf_file.sections.end())
     throw std::runtime_error("No metadata found in ELF file!");
@@ -135,7 +135,7 @@ RangeMap llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, R
   if (metadata[0] != metadata_ops.at("DMD_SET_BASE_ADDRESS_OP"))
     throw std::runtime_error("Invalid metadata found in ELF file!");
 
-  RangeMap range_map;
+  range_map_t range_map;
   for (int i = 0; i < metadata_section->size; i++) {
     uint64_t base_address;
     if (metadata[i] == metadata_ops.at("DMD_SET_BASE_ADDRESS_OP")) {
@@ -199,7 +199,7 @@ RangeMap llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, R
   free(metadata);
 
   if (policy_inits["Require"]["llvm"].as<std::string>().find("NoCFI") != std::string::npos) {
-    RangeMap code_range_map;
+    range_map_t code_range_map;
     add_code_section_ranges(elf_file, code_range_map);
     for (auto& [ start, end, tags ] : code_range_map) {
       for (uint64_t s = start; s < end; s += PTR_SIZE) {

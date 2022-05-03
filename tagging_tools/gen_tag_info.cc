@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
       if (policy_inits["Require"]["elf"])
         policy_engine::generate_rwx_ranges(elf_image, range_file, err);
       if (policy_inits["Require"]["llvm"])
-        policy_engine::RangeMap range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
+        policy_engine::range_map_t range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
       if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
         policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits, err);
       int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
