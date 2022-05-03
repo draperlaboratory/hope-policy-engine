@@ -1,9 +1,8 @@
 #ifndef OPGROUP_RULE_H
 #define OPGROUP_RULE_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
-
 #include "metadata.h"
 
 namespace policy_engine {
