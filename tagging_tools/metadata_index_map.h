@@ -30,15 +30,16 @@ private:
 public:
   using iterator = typename decltype(index_map)::iterator;
 
+  std::vector<const metadata_t*> metadata;
+
   metadata_index_map_t() {}
 
-  metadata_index_map_t(M& metadata_map, std::vector<const metadata_t *>& metadata_values) {
+  metadata_index_map_t(M& metadata_map) {
     for (const auto& [ key, value ] : metadata_map) {
-      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(),
-                                   [&value](const metadata_t* v){ return *v == *value; });
-      index_map[key] = std::distance(metadata_values.begin(), it);
-      if (it == metadata_values.end())
-        metadata_values.push_back(value);
+      const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](const metadata_t* v){ return *v == *value; });
+      index_map[key] = std::distance(metadata.begin(), it);
+      if (it == metadata.end())
+        metadata.push_back(value);
     }
   }
 

@@ -41,7 +41,7 @@ namespace policy_engine {
 static const std::string riscv_prefix = "riscv64-unknown-elf-";
 
 void save_tags_to_temp(
-  std::vector<const metadata_t*>& metadata_values,
+  const std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   elf_image_t& img, std::string new_elf_name, char tempfile[],
   bool is_64_bit, reporter_t& err
@@ -71,7 +71,7 @@ void save_tags_to_temp(
 }
 
 bool embed_tags_in_elf(
-  std::vector<const metadata_t*>& metadata_values,
+  const std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   elf_image_t& old_elf, std::string new_elf_name, bool update, bool is_64_bit,
   reporter_t& err
@@ -95,7 +95,6 @@ bool embed_tags_in_elf(
 
 int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, bool is_64_bit, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
-  std::vector<const metadata_t*> metadata_values;
 
   // Retrieve memory metadata from tag file
   if (!load_tags(metadata_memory_map, tag_filename.c_str())) {
@@ -107,7 +106,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   metadata_factory_t metadata_factory(policy_dir);
 
   // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
-  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map, metadata_values);
+  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
   const char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
@@ -116,7 +115,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), elf_filename.c_str());
   int ret = system(command_string);
 
-  if (!embed_tags_in_elf(metadata_values, memory_index_map, img, elf_filename, ret == 0, is_64_bit, err)) {
+  if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, is_64_bit, err)) {
     err.error("Failed to save indexes to tag file\n");
     return 1;
   }

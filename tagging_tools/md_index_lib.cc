@@ -56,9 +56,12 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");
 
   // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
-  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map, metadata_values);
-  metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(*register_map, metadata_values);
-  metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(*csr_map, metadata_values);
+  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
+  metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
+  metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(*register_map);
+  metadata_values.insert(metadata_values.end(), register_index_map.metadata.begin(), register_index_map.metadata.end());
+  metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(*csr_map);
+  metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
 
   // Separate the default entries from those corresponding to actual registers/CSRs
   try {
