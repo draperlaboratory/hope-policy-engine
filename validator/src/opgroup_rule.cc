@@ -1,3 +1,4 @@
+#include <array>
 #include "opgroup_rule.h"
 #include "riscv_isa.h"
 
@@ -11,7 +12,7 @@ opgroup_rule_t::add_operand_rule(std::vector<uint32_t> values,
   rule.values = values;
   rule.match = match;
 
-  this->rules.push_back(rule);
+  rules.push_back(rule);
 }
 
 static bool
@@ -45,42 +46,12 @@ operand_rule_match(operand_rule_t &rule, uint32_t value) {
 }
 
 bool opgroup_rule_t::matches(int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3, uint32_t rd, int32_t imm) {
-  std::vector<operand_rule_t>::iterator it = this->rules.begin();
-
-  if ((flags & HAS_RD) != 0) {
-    if ((operand_rule_match(*it, rd) == false) || (it == this->rules.end())) {
-      return false;
-    }
-    it++;
-  }
-
-  if ((flags & HAS_RS1) != 0) {
-    if ((operand_rule_match(*it, rs1) == false) || (it == this->rules.end())) {
-      return false;
-    } 
-    it++;
-  }
-
-  if ((flags & HAS_RS2) != 0) {
-    if ((operand_rule_match(*it, rs2) == false) || (it == this->rules.end())) {
-      return false;
-    } 
-    it++;
-  }
-
-  if ((flags & HAS_RS3) != 0) {
-    if ((operand_rule_match(*it, rs3) == false) || (it == this->rules.end())) {
-      return false;
-    } 
-    it++;
-  }
-
-  if ((flags & HAS_IMM) != 0) {
-    if ((operand_rule_match(*it, imm) == false) || (it == this->rules.end())) {
-      return false;
-    } 
-    it++;
-  }
-
+  static constexpr int NUM_FIELDS = 5;
+  std::array<int32_t, NUM_FIELDS> fields{rd, rs1, rs2, rs3, imm};
+  std::array<uint32_t, NUM_FIELDS> field_flags{HAS_RD, HAS_RS1, HAS_RS2, HAS_RS3, HAS_IMM};
+  for (int i = 0; i < NUM_FIELDS; i++)
+    if (flags & field_flags[i])
+      if (i >= rules.size() || !operand_rule_match(rules[i], fields[i]))
+        return false;
   return true;
 }
