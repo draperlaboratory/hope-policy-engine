@@ -48,26 +48,27 @@ range_t& RangeMap::operator [](int i) {
 void RangeMap::add_range(uint64_t start, uint64_t end, const std::string& tag) {
   for(auto& [ s, e, tags ] : range_map)
     if (s == start && e == end)
-      tags->push_back(tag);
-  auto tags = new std::vector<std::string>();
-  tags->push_back(tag);
+      tags.push_back(tag);
+  std::vector<std::string> tags;
+  tags.push_back(tag);
   range_map.push_back(range_t{start, end, tags});
 }
 
 const std::vector<std::string> empty;
 
-const std::vector<std::string>* RangeMap::get_tags(uint64_t addr) {
-  for (auto& [ start, end, tags ] : range_map)
-    if (addr >= start && addr <= end)
-      return tags;
-  return &empty;
+const std::vector<std::string>& RangeMap::get_tags(uint64_t addr) {
+  for (const auto& range : range_map) {
+    if (addr >= range.start && addr <= range.end)
+      return range.tags;
+  }
+  return empty;
 }
 
-std::vector<std::pair<uint64_t, uint64_t>>* RangeMap::get_ranges(const std::string& tag) {
-  auto ranges = new std::vector<std::pair<uint64_t, uint64_t>>();
+std::vector<std::pair<uint64_t, uint64_t>> RangeMap::get_ranges(const std::string& tag) {
+  std::vector<std::pair<uint64_t, uint64_t>> ranges;
   for (auto& [ start, end, tags ] : range_map) {
-    if (std::find(tags->begin(), tags->end(), tag) != tags->end() || tags->empty() && tag.empty())
-      ranges->push_back(std::make_pair(start, end));
+    if (std::find(tags.begin(), tags.end(), tag) != tags.end() || tags.empty() && tag.empty())
+      ranges.push_back(std::make_pair(start, end));
   }
   return ranges;
 }
