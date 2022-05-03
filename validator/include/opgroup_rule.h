@@ -23,16 +23,15 @@ struct operand_rule_t {
 };
 
 class opgroup_rule_t {
-  private:
-    std::vector<operand_rule_t> rules;
-    metadata_t *metadata;
-    
-  public:
-    opgroup_rule_t(metadata_t *metadata);
-    void add_operand_rule(std::vector<uint32_t> values,
-                          operand_rule_match_t match);
-    metadata_t *match(int32_t flags, uint32_t rs1, uint32_t rs2,
-               uint32_t rs3, uint32_t rd, int32_t imm);
+private:
+  std::vector<operand_rule_t> rules;
+  
+public:
+  const metadata_t* metadata;
+
+  opgroup_rule_t(metadata_t* metadata) : metadata(metadata) {}
+  void add_operand_rule(std::vector<uint32_t> values, operand_rule_match_t match);
+  bool matches(int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3, uint32_t rd, int32_t imm);
 };
 
 } // namespace policy_engine

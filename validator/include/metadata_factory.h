@@ -66,27 +66,25 @@ class metadata_factory_t {
 
   static std::vector<std::string> split_dotted_name(const std::string &name);
 
-  private:
+private:
   void update_rule_map(std::string key, YAML::Node &node);
 
-  public:
+public:
   metadata_factory_t(std::string policy_dir);
   metadata_t const *lookup_metadata(std::string dotted_path);
   std::map<std::string, metadata_t const *> *lookup_metadata_map(std::string dotted_path);
 
-  metadata_t const *lookup_group_metadata(std::string const &opgroup,
+  const metadata_t* lookup_group_metadata(std::string const &opgroup,
                                           int32_t flags, uint32_t rs1, uint32_t rs2,
                                           uint32_t rs3, uint32_t rd, int32_t imm) {
-    metadata_t *metadata;
-    auto const &it_opgroup_rule = opgroup_rule_map.find(opgroup);
+    metadata_t* metadata;
+    const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
     if (it_opgroup_rule != opgroup_rule_map.end()) {
-      metadata = it_opgroup_rule->second->match(flags, rs1, rs2, rs3, rd, imm);
-      if (metadata != nullptr) {
-        return metadata;
-      }
+      if (it_opgroup_rule->second->matches(flags, rs1, rs2, rs3, rd, imm))
+        return it_opgroup_rule->second->metadata;
     }
 
-    auto const &it_group = group_map.find(opgroup);
+    const auto& it_group = group_map.find(opgroup);
     if (it_group == group_map.end()) {
       return nullptr;
     }
