@@ -15,11 +15,11 @@ struct range_t {
   std::vector<std::string> tags;
 };
 
-class RangeFile {
+class range_file_t {
 private:
   std::ofstream file;
 public:
-  RangeFile() : name("ranges") {
+  range_file_t() : name("ranges") {
     file = std::ofstream(name);
   }
 
@@ -29,7 +29,7 @@ public:
   void done();
   void print();
 
-  ~RangeFile() {
+  ~range_file_t() {
     if (file.is_open())
       file.close();
   }

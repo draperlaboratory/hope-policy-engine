@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
   { // open a new scope so that the ELF image cleans up properly before reopening it
     policy_engine::elf_image_t elf_image(FLAGS_bin);
 
-    policy_engine::RangeFile range_file;
+    policy_engine::range_file_t range_file;
     policy_engine::llvm_metadata_tagger_t llvm_tagger(err);
 
     if (policy_inits["Require"]) {

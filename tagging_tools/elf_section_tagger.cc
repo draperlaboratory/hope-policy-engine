@@ -12,7 +12,7 @@ static const std::string RWX_X = "elf.Section.SHF_EXECINSTR";
 static const std::string RWX_R = "elf.Section.SHF_ALLOC";
 static const std::string RWX_W = "elf.Section.SHF_WRITE";
 
-void generate_rwx_ranges(const elf_image_t& ef, RangeFile& range_file, reporter_t& err) {
+void generate_rwx_ranges(const elf_image_t& ef, range_file_t& range_file, reporter_t& err) {
   for (const auto& section : ef.sections) {
     uint64_t end = section.address + section.size;
     if (end % 4 != 0)

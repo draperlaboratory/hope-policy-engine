@@ -13,20 +13,20 @@
 
 namespace policy_engine {
 
-size_t RangeFile::write_range(uint64_t start, uint64_t end, const std::string& tag) {
+size_t range_file_t::write_range(uint64_t start, uint64_t end, const std::string& tag) {
   char buf[tag.length() + 48];
   size_t size = std::sprintf(buf, "0x%016lx 0x%016lx %s\n", start, end, tag.c_str());
   file << buf;
   return size;
 }
 
-void RangeFile::finish() {
+void range_file_t::finish() {
   file.close();
 }
 
-void RangeFile::done() {}
+void range_file_t::done() {}
 
-void RangeFile::print() {
+void range_file_t::print() {
   std::ifstream file(name);
   std::string line;
   while (std::getline(file, line))

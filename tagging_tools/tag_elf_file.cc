@@ -21,7 +21,7 @@ std::string check_output(const std::string& cmd) {
   return proc_stdout;
 }
 
-int generate_tag_array(const std::string& elfname, RangeFile& range_file, const std::string& policy_name, YAML::Node policy_meta_info, bool rv64) {
+int generate_tag_array(const std::string& elfname, range_file_t& range_file, const std::string& policy_name, YAML::Node policy_meta_info, bool rv64) {
   std::string tag_array_filename = "tag_array";
   std::ofstream tag_array_file(tag_array_filename, std::ios::binary);
   int length = policy_meta_info["MaxBit"].as<int>();

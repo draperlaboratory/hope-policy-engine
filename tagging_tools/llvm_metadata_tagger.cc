@@ -115,7 +115,7 @@ void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, rang
   }
 }
 
-void llvm_metadata_tagger_t::check_and_write_range(RangeFile& range_file, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits, range_map_t& range_map) {
+void llvm_metadata_tagger_t::check_and_write_range(range_file_t& range_file, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits, range_map_t& range_map) {
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
@@ -127,7 +127,7 @@ void llvm_metadata_tagger_t::check_and_write_range(RangeFile& range_file, uint64
   }
 }
 
-range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, RangeFile& range_file, const YAML::Node& policy_inits) {
+range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, range_file_t& range_file, const YAML::Node& policy_inits) {
   auto metadata_section = std::find_if(elf_file.sections.begin(), elf_file.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
   if (metadata_section == elf_file.sections.end())
     throw std::runtime_error("No metadata found in ELF file!");
