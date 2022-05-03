@@ -107,7 +107,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   metadata_factory_t metadata_factory(policy_dir);
 
   // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
-  auto memory_index_map = metadata_index_map_t<metadata_memory_map_t, range_t>(&metadata_memory_map, &metadata_values);
+  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map, metadata_values);
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
   const char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
