@@ -35,7 +35,7 @@ public:
 
   metadata_index_map_t() {}
 
-  metadata_index_map_t(M& metadata_map) {
+  metadata_index_map_t(const M& metadata_map) {
     for (const auto& [ key, value ] : metadata_map) {
       const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](std::shared_ptr<const metadata_t> v){ return *v == *value; });
       index_map[key] = std::distance(metadata.begin(), it);
@@ -44,9 +44,9 @@ public:
     }
   }
 
-  iterator begin()        { return index_map.begin(); }
-  iterator end()          { return index_map.end(); }
-  size_t size()           { return index_map.size(); }
+  iterator begin() { return index_map.begin(); }
+  iterator end() { return index_map.end(); }
+  size_t size() { return index_map.size(); }
 
   void insert(const std::pair<K, int>& p) { index_map.insert(p); }
   int& at(const K& k) { return index_map.at(k); }
