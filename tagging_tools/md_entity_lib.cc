@@ -69,12 +69,8 @@ void verify_entity_bindings(metadata_tool_t& md_tool,
 			    reporter_t& err) {
   std::list<std::string> ents;
   md_tool.factory().enumerate(ents);
-  for (auto s: ents) {
-    auto it = std::find_if(bindings.begin(), bindings.end(),
-			   [&](std::unique_ptr<entity_binding_t>& peb) {
-			     entity_binding_t const* eb = dynamic_cast<entity_binding_t const*>(peb.get());
-			     return eb->entity_name == s;
-			   });
+  for (const auto& s : ents) {
+    auto it = std::find_if(bindings.begin(), bindings.end(), [&](std::unique_ptr<entity_binding_t>& peb) { return peb->entity_name == s; });
     if (it == bindings.end()) {
       err.warning("Entity %s has no binding\n", s);
     }
