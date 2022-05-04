@@ -32,7 +32,7 @@
 
 namespace policy_engine {
   
-void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, metadata_t const *metadata) {
+void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
   /* this is a meaningless call */
   if (start >= end)
     return;

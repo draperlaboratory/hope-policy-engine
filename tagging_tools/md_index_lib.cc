@@ -24,6 +24,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include "metadata_index_map.h"
@@ -38,7 +39,7 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   metadata_memory_map_t metadata_memory_map;
   metadata_register_map_t *register_map;
   metadata_register_map_t *csr_map;
-  std::vector<const metadata_t *> metadata_values;
+  std::vector<std::shared_ptr<metadata_t>> metadata_values;
   ssize_t register_default = -1;
   ssize_t csr_default = -1;
   ssize_t env_default = -1;

@@ -27,6 +27,7 @@
 #ifndef METADATA_CACHE_H
 #define METADATA_CACHE_H
 
+#include <memory>
 #include <unordered_map>
 #include "metadata.h"
 
@@ -34,11 +35,11 @@ namespace policy_engine {
 
 class metadata_cache_t {
   private:
-  std::unordered_map<const metadata_t, metadata_t const *, metadata_t::hasher_t, metadata_t::equal_t> map;
+  std::unordered_map<metadata_t, std::shared_ptr<metadata_t>, metadata_t::hasher_t, metadata_t::equal_t> map;
   public:
-  metadata_t const *canonize(metadata_t const *md) {
+  std::shared_ptr<metadata_t> canonize(std::shared_ptr<const metadata_t> md) {
     if (map.find(*md) == map.end()) {
-      map[*md] = new metadata_t(*md);
+      map[*md] = std::make_shared<metadata_t>(*md);
     }
     return map[*md];
   }

@@ -27,9 +27,9 @@
 #ifndef METADATA_MEMORY_MAP_H
 #define METADATA_MEMORY_MAP_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <memory>
 #include <vector>
-
 #include "metadata.h"
 #include "metadata_cache.h"
 #include "metadata_factory.h"
@@ -51,15 +51,15 @@ class metadata_memory_map_t {
 
     metadata_cache_t *md_cache;
     range_t range;
-    std::vector<metadata_t const *> mem;
+    std::vector<std::shared_ptr<metadata_t>> mem;
 
     mem_region_t(metadata_memory_map_t *map) : range({0,0}){ md_cache = map->md_cache; }
 
     static const int stride = sizeof(uint32_t); // platform word size
 
     /* expose iterator of inner vector */
-    using iterator = std::vector<metadata_t const *>::iterator;
-    using const_iterator = std::vector<metadata_t const *>::const_iterator;
+    using iterator = typename decltype(mem)::iterator;
+    using const_iterator = typename decltype(mem)::const_iterator;
     
     iterator begin()        { return mem.begin(); }
     iterator end()          { return mem.end(); }
@@ -70,36 +70,34 @@ class metadata_memory_map_t {
     uint64_t itr_to_addr(const_iterator itr) { return index_to_addr(itr - cbegin()); }
     uint64_t index_to_addr(size_t idx) { return range.start + (idx * stride); }
     size_t addr_to_index(uint64_t addr) { return (addr - range.start) / stride; }
-    metadata_t const *getaddr(uint64_t addr) { return mem[addr_to_index(addr)]; }
+    std::shared_ptr<metadata_t> getaddr(uint64_t addr) { return mem[addr_to_index(addr)]; }
     bool contains(uint64_t addr) { return (addr >= range.start) && (addr <= range.end); }
     size_t size() { return mem.size(); }
     
-    void add_range(uint64_t start, uint64_t end, metadata_t const *metadata) {
+    void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
       if (range.start == range.end) {
         range.start = start;
         assert(mem.size() == 0); // first range added
       }
       else if (start < range.start) {
         // inserting before the existing base - have to insert a bit
-        int n_insert = (range.start - start) / stride;
+        int n_insert = (range.start - start)/stride;
         mem.insert(mem.begin(), n_insert, nullptr);
         range.start = start;
       }
     
-      int s = (start - range.start) / stride;
-      int e = (end - range.start) / stride;
+      int s = (start - range.start)/stride;
+      int e = (end - range.start)/stride;
     
       if (e > mem.size()) {
         mem.resize(e, nullptr);
         range.end = index_to_addr(e);
       }
 
-      metadata_t md;
       while (s < e) {
-        md = *metadata;
-        if ( mem[s] )
-          md.insert(mem[s]);
-        mem[s++] = md_cache->canonize(&md);
+        if (mem[s])
+          metadata->insert(mem[s]);
+        mem[s++] = md_cache->canonize(metadata);
       }
     }
   };
@@ -110,11 +108,11 @@ class metadata_memory_map_t {
   std::vector<mem_region_t> mrs;
 
 public:
-  void add_range(uint64_t start, uint64_t end, metadata_t const *metadata);
-  metadata_t const *get_metadata(uint64_t addr) {
+  void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
+  std::shared_ptr<metadata_t> get_metadata(uint64_t addr) {
 
-    for ( auto &mr : mrs ) {
-      if ( mr.contains(addr) )
+    for (auto &mr : mrs) {
+      if (mr.contains(addr))
         return mr.getaddr(addr);
     }
     return nullptr;
@@ -136,7 +134,7 @@ public:
     std::vector<mem_region_t> &mrs;
     std::vector<mem_region_t>::iterator it;
     
-    typedef std::pair<range_t, metadata_t const *> result_type_t;      
+    typedef std::pair<range_t, std::shared_ptr<metadata_t>> result_type_t;      
     result_type_t current;
 
     void advance() {

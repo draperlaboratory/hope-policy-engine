@@ -27,15 +27,15 @@
 #ifndef METADATA_FACTORY_H
 #define METADATA_FACTORY_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstdio>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
-#include <stdio.h>
-
-#include "policy_types.h" // meta_t
 #include "metadata.h"
 #include "opgroup_rule.h"
+#include "policy_types.h"
 
 namespace policy_engine {
 
@@ -45,16 +45,17 @@ struct entity_init_t {
 };
 
 class metadata_factory_t {
+private:
   std::unordered_map<meta_t, std::string> reverse_encoding_map; // for rendering
   std::unordered_map<meta_t, std::string> abbrev_reverse_encoding_map; // for rendering
   std::unordered_map<std::string, meta_t> encoding_map;
-  std::unordered_map<std::string, metadata_t const *> path_map;
-  std::unordered_map<std::string, metadata_t const *> group_map;
-  std::unordered_map<std::string, opgroup_rule_t *> opgroup_rule_map;
+  std::unordered_map<std::string, std::shared_ptr<metadata_t>> path_map;
+  std::unordered_map<std::string, std::shared_ptr<metadata_t>> group_map;
+  std::unordered_map<std::string, opgroup_rule_t> opgroup_rule_map;
 
   std::map<std::string, entity_init_t> entity_initializers;
 
-  std::string abbreviate(std::string const &dotted_string);
+  std::string abbreviate(const std::string& dotted_string);
 
   void init_entity_initializers(YAML::Node const &reqsAST, std::string prefix);
   void update_entity_initializers(YAML::Node const &metaAST, std::string prefix);
@@ -66,22 +67,20 @@ class metadata_factory_t {
 
   static std::vector<std::string> split_dotted_name(const std::string &name);
 
-private:
   void update_rule_map(std::string key, YAML::Node &node);
 
 public:
   metadata_factory_t(std::string policy_dir);
-  metadata_t const *lookup_metadata(std::string dotted_path);
-  std::map<std::string, metadata_t const *> *lookup_metadata_map(std::string dotted_path);
+  std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
+  std::map<std::string, std::shared_ptr<metadata_t>> *lookup_metadata_map(std::string dotted_path);
 
-  const metadata_t* lookup_group_metadata(std::string const &opgroup,
+  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string &opgroup,
                                           int32_t flags, uint32_t rs1, uint32_t rs2,
                                           uint32_t rs3, uint32_t rd, int32_t imm) {
-    metadata_t* metadata;
     const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
     if (it_opgroup_rule != opgroup_rule_map.end()) {
-      if (it_opgroup_rule->second->matches(flags, rs1, rs2, rs3, rd, imm))
-        return it_opgroup_rule->second->metadata;
+      if (it_opgroup_rule->second.matches(flags, rs1, rs2, rs3, rd, imm))
+        return it_opgroup_rule->second.metadata;
     }
 
     const auto& it_group = group_map.find(opgroup);
@@ -91,8 +90,8 @@ public:
     return it_group->second;
   }
 
-  std::string render(meta_t meta, bool abbrev = false);
-  std::string render(metadata_t const *metadata, bool abbrev = false);
+  std::string render(meta_t meta, bool abbrev = false) const;
+  std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev = false) const;
   void enumerate(std::list<std::string> &elts) {
     for (auto const &p: entity_initializers) {
       elts.push_back(p.first);

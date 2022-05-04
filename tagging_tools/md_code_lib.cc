@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 #include <string>
 #include "tag_file.h"
 #include "metadata_factory.h"
@@ -59,7 +60,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
         continue;
       }
 
-      const metadata_t* metadata = md_factory.lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
+      std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
 
       if (metadata == nullptr) {
         err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);

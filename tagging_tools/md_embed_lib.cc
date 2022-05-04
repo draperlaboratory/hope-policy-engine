@@ -25,11 +25,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
 #include <sstream>
 #include <string>
 #include <unistd.h>
 #include "elf_loader.h"
+#include "metadata.h"
 #include "metadata_factory.h"
 #include "metadata_index_map.h"
 #include "metadata_register_map.h"
@@ -41,7 +43,7 @@ namespace policy_engine {
 static const std::string riscv_prefix = "riscv64-unknown-elf-";
 
 void save_tags_to_temp(
-  const std::vector<const metadata_t*>& metadata_values,
+  const std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   elf_image_t& img, std::string new_elf_name, char tempfile[],
   bool is_64_bit, reporter_t& err
@@ -71,7 +73,7 @@ void save_tags_to_temp(
 }
 
 bool embed_tags_in_elf(
-  const std::vector<const metadata_t*>& metadata_values,
+  const std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   elf_image_t& old_elf, std::string new_elf_name, bool update, bool is_64_bit,
   reporter_t& err

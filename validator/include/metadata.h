@@ -27,13 +27,12 @@
 #ifndef METADATA_H
 #define METADATA_H
 
-#include <assert.h>
-#include <stdint.h>
-
+#include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <iterator>
+#include <memory>
 #include <set>
-
 #include "policy_types.h"
 
 namespace policy_engine {
@@ -55,14 +54,11 @@ class metadata_t {
     }
   };
   
- metadata_t() : hash(0) { }
+  metadata_t() : hash(0) { }
 
   size_t size() const { return tags.size(); }
 
-  bool operator ==(const metadata_t &rhs) const {
-    return tags == rhs.tags;
-  }
-
+  bool operator ==(const metadata_t &rhs) const { return tags == rhs.tags; }
   bool operator !=(const metadata_t &rhs) const { return !(*this == rhs); }
 
   void insert(const meta_t &rhs) {
@@ -70,7 +66,7 @@ class metadata_t {
     tags.insert(rhs);
   }
 
-  void insert(const metadata_t *rhs) {
+  template<class P> void insert(const P rhs) {
     hash += rhs->hash;
     tags.insert(rhs->begin(), rhs->end());
   }

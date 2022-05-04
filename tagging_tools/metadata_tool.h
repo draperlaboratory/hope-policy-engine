@@ -28,6 +28,8 @@
 #define METADATA_TOOL_H
 
 #include <cstdint>
+#include <memory>
+#include "metadata.h"
 #include "metadata_cache.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
@@ -36,11 +38,11 @@
 namespace policy_engine {
 
 /**
-   Metadata utilities commonly have to set up the same basic sets of
-   objects in order to reach some basic level of function.  This class
-   aggregates a baseline set of required objects, and sets them up for
-   use by tools that want to create/update metadata.
-*/
+ * Metadata utilities commonly have to set up the same basic sets of
+ * objects in order to reach some basic level of function.  This class
+ * aggregates a baseline set of required objects, and sets them up for
+ * use by tools that want to create/update metadata.
+ */
 class metadata_tool_t {
 //  reporter_t err;
   metadata_cache_t md_cache;
@@ -49,26 +51,26 @@ class metadata_tool_t {
   public:
   metadata_tool_t(const char *policy_dir) //, reporter_t err)
     : md_factory(metadata_factory_t(policy_dir)), md_map(&md_cache) {}
-  metadata_t const *lookup_metadata(std::string const &dotted_path) {
+  std::shared_ptr<metadata_t> lookup_metadata(std::string const &dotted_path) {
     return md_factory.lookup_metadata(dotted_path);
   }
   bool apply_group_tag(uint64_t start, uint64_t end, const char *group,
                        int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3,
                        uint32_t rd, int32_t imm) {
-    metadata_t const *metadata = md_factory.lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
+    std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
     if (!metadata)
       return false;
     md_map.add_range(start, end, metadata);
     return true;
   }
   bool apply_tag(uint64_t start, uint64_t end, const char *tag_name) {
-    metadata_t const *md = md_factory.lookup_metadata(tag_name);
+    std::shared_ptr<metadata_t> md = md_factory.lookup_metadata(tag_name);
     if (!md)
       return false;
     md_map.add_range(start, end, md);
     return true;
   }
-  void apply_tag(uint64_t start, uint64_t end, metadata_t const *metadata) {
+  void apply_tag(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
     md_map.add_range(start, end, metadata);
   }
   bool load_tag_info(const char *tag_file_name) {

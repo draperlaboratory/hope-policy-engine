@@ -30,6 +30,7 @@
 #include <memory>
 #include <string>
 #include "asm_annotater.h"
+#include "metadata.h"
 #include "metadata_factory.h"
 #include "reporter.h"
 #include "tag_file.h"
@@ -46,7 +47,7 @@ public:
     asm_annotater_t(in, out), md_factory(md_factory), md_map(md_map) {}
 
   std::string filter(uint64_t addr, std::string line) {
-    const metadata_t* metadata = md_map.get_metadata(addr);
+    std::shared_ptr<const metadata_t> metadata = md_map.get_metadata(addr);
     if (!metadata)
       return line;
     return asm_annotater_t::pad(line, 80) + md_factory.render(metadata, true);

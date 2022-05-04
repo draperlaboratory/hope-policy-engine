@@ -27,6 +27,7 @@
 #ifndef TAG_FILE_H
 #define TAG_FILE_H
 
+#include <memory>
 #include <string>
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
@@ -37,7 +38,7 @@ namespace policy_engine {
 
 bool load_tags(metadata_memory_map_t& map, const std::string& file_name);
 bool save_tags(metadata_memory_map_t& map, std::string file_name);
-bool save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
+bool save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &metadata_values,
                       metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
                       metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                       metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
@@ -49,7 +50,7 @@ bool write_headers(std::list<range_t> &code_ranges,
                    bool is_64_bit, std::string tag_filename);
 bool load_firmware_tag_file(std::list<range_t> &code_ranges,
                             std::list<range_t> &data_ranges,
-                            std::vector<const metadata_t *> &metadata_values,
+                            std::vector<std::shared_ptr<metadata_t>> &metadata_values,
                             metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
                             metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                             metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,

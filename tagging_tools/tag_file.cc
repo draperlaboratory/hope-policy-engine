@@ -24,12 +24,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-
-#include "tag_file.h"
-#include "uleb.h"
+#include <cstdio>
+#include <memory>
+#include <string>
 #include "register_name_map.h"
 #include "reporter.h"
+#include "tag_file.h"
+#include "uleb.h"
 
 using namespace policy_engine;
 
@@ -76,12 +77,11 @@ bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& fil
       fclose(fp);
       return false;
     }
-    metadata_t *metadata = new metadata_t();
+    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
       if (!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
         fclose(fp);
-        delete metadata;
         return false;
       }
       metadata->insert(meta);
@@ -122,7 +122,7 @@ bool policy_engine::save_tags(metadata_memory_map_t& map, std::string file_name)
   return true;
 }
 
-bool policy_engine::save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
+bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &metadata_values,
                                      metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
                                      metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                                      metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
@@ -331,7 +331,7 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
 
 bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
                                            std::list<range_t> &data_ranges,
-                                           std::vector<const metadata_t *> &metadata_values,
+                                           std::vector<std::shared_ptr<metadata_t>> &metadata_values,
                                            metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
                                            metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
                                            metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
@@ -414,12 +414,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
       return false;
     }
 
-    metadata_t *metadata = new metadata_t();
+    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
     for(size_t j = 0; j < metadata_count; j++) {
       meta_t meta;
       if(!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
         fclose(fp);
-        delete metadata;
         return false;
       }
       metadata->insert(meta);

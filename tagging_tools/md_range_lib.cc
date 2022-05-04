@@ -26,6 +26,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include "metadata_cache.h"
@@ -38,7 +39,7 @@
 namespace policy_engine {
 
 bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t start, uint64_t end, const char *tag_name) {
-  metadata_t const *md = md_factory.lookup_metadata(tag_name);
+  std::shared_ptr<metadata_t> md = md_factory.lookup_metadata(tag_name);
   if (!md)
     return false;
   map.add_range(start, end, md);

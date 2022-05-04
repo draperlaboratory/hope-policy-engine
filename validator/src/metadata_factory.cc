@@ -24,14 +24,18 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <linux/limits.h>
-#include <string.h>
-#include <stdio.h>
-#include <sstream>
+#include <cstring>
+#include <cstdio>
 #include <exception>
-
-#include "validator_exception.h"
+#include <linux/limits.h>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <yaml-cpp/yaml.h>
 #include "metadata_factory.h"
+#include "opgroup_rule.h"
+#include "policy_types.h"
+#include "validator_exception.h"
 
 using namespace policy_engine;
 
@@ -54,7 +58,6 @@ void metadata_factory_t::init_entity_initializers(YAML::Node const &reqsAST, std
         init.meta_names.push_back(name);
       }
       entity_initializers[prefix] = init;
-//      printf("adding: %s\n", prefix.c_str());
     } else {
       init_entity_initializers(it->second, prefix == "" ? key : prefix + "." + key);
     }
@@ -62,15 +65,15 @@ void metadata_factory_t::init_entity_initializers(YAML::Node const &reqsAST, std
 }
 
 void metadata_factory_t::update_entity_initializers(YAML::Node const &metaAST, std::string prefix) {
-  YAML::Node metadata = metaAST; //[0]; //["Metadata"];
+  YAML::Node metadata = metaAST;
   // for each node in Metadata
   for (YAML::const_iterator seq_it = metadata.begin(); seq_it != metadata.end(); ++seq_it) {
-          YAML::Node metadata_node = *seq_it;
-          std::string mname = metadata_node["name"].as<std::string>();
-          entity_init_t init;
-          init.entity_name = mname;
-          init.meta_names.push_back(mname);
-          entity_initializers[mname] = init;
+    YAML::Node metadata_node = *seq_it;
+    std::string mname = metadata_node["name"].as<std::string>();
+    entity_init_t init;
+    init.entity_name = mname;
+    init.meta_names.push_back(mname);
+    entity_initializers[mname] = init;
   }
 }
 
@@ -108,8 +111,7 @@ static void dump_node(YAML::Node node) {
   }
 }
 
-metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
-  metadata_t *metadata = nullptr;
+std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
   auto const &path_map_iter = path_map.find(dotted_path);
   if (path_map_iter != path_map.end()) {
     return path_map_iter->second;
@@ -117,31 +119,19 @@ metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
 
   auto const &entity_init_iter = entity_initializers.find(dotted_path);
   if (entity_init_iter != entity_initializers.end()) {
-          std::vector<std::string> const &meta_names = entity_init_iter->second.meta_names;
-          metadata = new metadata_t();
-          for (auto name: meta_names) {
-                  metadata->insert(encoding_map[name]);
-          }
-          path_map[dotted_path] = metadata;
-          return metadata;
-  }
-  return NULL;
-#if 0
-  std::vector<std::string> path = split_dotted_name(dotted_path);
-  
-  std::vector<std::string> md;
-  if (meta_tree.find_metadata(path, md)) {
-    metadata = new metadata_t();
-    for (auto name: md)
+    const std::vector<std::string>& meta_names = entity_init_iter->second.meta_names;
+    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
+    for (auto name: meta_names) {
       metadata->insert(encoding_map[name]);
+    }
     path_map[dotted_path] = metadata;
+    return path_map[dotted_path];
   }
-  return metadata;
-#endif
+  return nullptr;
 }
 
-std::map<std::string, metadata_t const *> *metadata_factory_t::lookup_metadata_map(std::string dotted_path) {
-  std::map<std::string, metadata_t const *> *results = new std::map<std::string, metadata_t const *>();
+std::map<std::string, std::shared_ptr<metadata_t>> *metadata_factory_t::lookup_metadata_map(std::string dotted_path) {
+  std::map<std::string, std::shared_ptr<metadata_t>> *results = new std::map<std::string, std::shared_ptr<metadata_t>>();
 
   for (auto &it : entity_initializers) {
     if (it.first.rfind(dotted_path) == 0) {
@@ -163,26 +153,20 @@ static const std::unordered_map<std::string, operand_rule_match_t> operand_match
 void metadata_factory_t::update_rule_map(std::string key, YAML::Node &node) {
   std::string name;
   YAML::Node operand_rules;
-  metadata_t *metadata;
-  opgroup_rule_t *opgroup_rule;
-
-  metadata = new metadata_t();
-
+  std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
   for (const auto &it : node) {
     name = it.first.as<std::string>();
     operand_rules = it.second;
   }
-
   metadata->insert(encoding_map[name]);
-
-  opgroup_rule = new opgroup_rule_t(metadata);
+  opgroup_rule_t opgroup_rule(metadata);
 
   for (size_t i = 0; i < operand_rules.size(); i++) {
     std::vector<uint32_t> values;
     operand_rule_match_t match = OPERAND_RULE_UNKNOWN;
 
     if (operand_rules[i].IsScalar()) {
-      opgroup_rule->add_operand_rule(values, OPERAND_RULE_ANY);
+      opgroup_rule.add_operand_rule(values, OPERAND_RULE_ANY);
       continue;
     }
 
@@ -208,7 +192,7 @@ void metadata_factory_t::update_rule_map(std::string key, YAML::Node &node) {
       }
     }
 
-    opgroup_rule->add_operand_rule(values, match);
+    opgroup_rule.add_operand_rule(values, match);
   }
 
   opgroup_rule_map[key] = opgroup_rule;
@@ -218,7 +202,7 @@ void metadata_factory_t::init_group_map(YAML::Node &node) {
   node = node["Groups"];
 
   for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
-    metadata_t *metadata = new metadata_t();
+    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
     std::string key = it->first.as<std::string>();
 
     YAML::Node instruction_node = it->second;
@@ -266,7 +250,7 @@ metadata_factory_t::metadata_factory_t(std::string policy_dir)
   init_group_map(groupAST);
 }
 
-std::string metadata_factory_t::render(meta_t meta, bool abbrev) {
+std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
   if (abbrev) {
     auto const &iter = abbrev_reverse_encoding_map.find(meta);
     if (iter == abbrev_reverse_encoding_map.end())
@@ -282,7 +266,7 @@ std::string metadata_factory_t::render(meta_t meta, bool abbrev) {
   }
 }
 
-std::string metadata_factory_t::render(metadata_t const *metadata, bool abbrev) {
+std::string metadata_factory_t::render(std::shared_ptr<const metadata_t> metadata, bool abbrev) const {
   std::ostringstream os;
   bool first = true;
   for (auto &meta: *metadata) {
