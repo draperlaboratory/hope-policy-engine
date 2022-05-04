@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include "metadata.h"
 #include "metadata_cache.h"
 #include "metadata_factory.h"
@@ -44,42 +45,36 @@ namespace policy_engine {
  * use by tools that want to create/update metadata.
  */
 class metadata_tool_t {
-//  reporter_t err;
+private:
   metadata_cache_t md_cache;
-  metadata_factory_t md_factory;
   metadata_memory_map_t md_map;
-  public:
-  metadata_tool_t(const char *policy_dir) //, reporter_t err)
-    : md_factory(metadata_factory_t(policy_dir)), md_map(&md_cache) {}
-  std::shared_ptr<metadata_t> lookup_metadata(std::string const &dotted_path) {
-    return md_factory.lookup_metadata(dotted_path);
-  }
-  bool apply_group_tag(uint64_t start, uint64_t end, const char *group,
+
+public:
+  metadata_factory_t factory;
+
+  metadata_tool_t(const std::string& policy_dir) : factory(metadata_factory_t(policy_dir)), md_map(&md_cache) {}
+
+  bool apply_group_tag(uint64_t start, uint64_t end, const std::string& group,
                        int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3,
                        uint32_t rd, int32_t imm) {
-    std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
+    std::shared_ptr<metadata_t> metadata = factory.lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
     if (!metadata)
       return false;
     md_map.add_range(start, end, metadata);
     return true;
   }
-  bool apply_tag(uint64_t start, uint64_t end, const char *tag_name) {
-    std::shared_ptr<metadata_t> md = md_factory.lookup_metadata(tag_name);
+
+  bool apply_tag(uint64_t start, uint64_t end, const std::string& tag_name) {
+    std::shared_ptr<metadata_t> md = factory.lookup_metadata(tag_name);
     if (!md)
       return false;
     md_map.add_range(start, end, md);
     return true;
   }
-  void apply_tag(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
-    md_map.add_range(start, end, metadata);
-  }
-  bool load_tag_info(const char *tag_file_name) {
-    return load_tags(md_map, tag_file_name);
-  }
-  bool save_tag_info(const char *tag_file_name) {
-    return save_tags(md_map, tag_file_name);
-  }
-  metadata_factory_t& factory() { return md_factory; }
+
+  void apply_tag(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) { md_map.add_range(start, end, metadata); }
+  bool load_tag_info(const std::string& tag_file_name) { return load_tags(md_map, tag_file_name); }
+  bool save_tag_info(const std::string& tag_file_name) { return save_tags(md_map, tag_file_name); }
 };
 
 } // namespace policy_engine
