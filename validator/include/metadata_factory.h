@@ -36,6 +36,7 @@
 #include "metadata.h"
 #include "opgroup_rule.h"
 #include "policy_types.h"
+#include "riscv_isa.h"
 
 namespace policy_engine {
 
@@ -74,12 +75,10 @@ public:
   std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
   std::map<std::string, std::shared_ptr<metadata_t>> *lookup_metadata_map(std::string dotted_path);
 
-  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string &opgroup,
-                                          int32_t flags, uint32_t rs1, uint32_t rs2,
-                                          uint32_t rs3, uint32_t rd, int32_t imm) {
+  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string &opgroup, const decoded_instruction_t& inst) {
     const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
     if (it_opgroup_rule != opgroup_rule_map.end()) {
-      if (it_opgroup_rule->second.matches(flags, rs1, rs2, rs3, rd, imm))
+      if (it_opgroup_rule->second.matches(inst))
         return it_opgroup_rule->second.metadata;
     }
 

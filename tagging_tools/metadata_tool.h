@@ -34,6 +34,7 @@
 #include "metadata_cache.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
+#include "riscv_isa.h"
 #include "tag_file.h"
 
 namespace policy_engine {
@@ -54,10 +55,8 @@ public:
 
   metadata_tool_t(const std::string& policy_dir) : factory(metadata_factory_t(policy_dir)), md_map(&md_cache) {}
 
-  bool apply_group_tag(uint64_t start, uint64_t end, const std::string& group,
-                       int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3,
-                       uint32_t rd, int32_t imm) {
-    std::shared_ptr<metadata_t> metadata = factory.lookup_group_metadata(group, flags, rs1, rs2, rs3, rd, imm);
+  bool apply_group_tag(uint64_t start, uint64_t end, const std::string& group, const decoded_instruction_t& inst) {
+    std::shared_ptr<metadata_t> metadata = factory.lookup_group_metadata(group, inst);
     if (!metadata)
       return false;
     md_map.add_range(start, end, metadata);

@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include "metadata.h"
+#include "riscv_isa.h"
 
 namespace policy_engine {
 
@@ -32,7 +33,7 @@ public:
   opgroup_rule_t() {}
   opgroup_rule_t(std::shared_ptr<metadata_t> metadata) : metadata(metadata) {}
   void add_operand_rule(std::vector<uint32_t> values, operand_rule_match_t match);
-  bool matches(int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3, uint32_t rd, int32_t imm);
+  bool matches(const decoded_instruction_t& inst);
 };
 
 } // namespace policy_engine

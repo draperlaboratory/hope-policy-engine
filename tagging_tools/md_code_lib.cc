@@ -56,7 +56,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
         continue;
       }
 
-      std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(inst.name, inst.flags, inst.rs1, inst.rs2, inst.rs3, inst.rd, inst.imm);
+      std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(inst.name, inst);
 
       if (metadata == nullptr) {
         err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, inst.bits, inst.name);

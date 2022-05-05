@@ -22,12 +22,12 @@ static bool operand_rule_match(operand_rule_t &rule, uint32_t value) {
   }
 }
 
-bool opgroup_rule_t::matches(int32_t flags, uint32_t rs1, uint32_t rs2, uint32_t rs3, uint32_t rd, int32_t imm) {
+bool opgroup_rule_t::matches(const decoded_instruction_t& inst) {
   static constexpr int NUM_FIELDS = 5;
-  std::array<int32_t, NUM_FIELDS> fields{rd, rs1, rs2, rs3, imm};
+  std::array<int32_t, NUM_FIELDS> fields{inst.rd, inst.rs1, inst.rs2, inst.rs3, inst.imm};
   std::array<uint32_t, NUM_FIELDS> field_flags{HAS_RD, HAS_RS1, HAS_RS2, HAS_RS3, HAS_IMM};
   for (int i = 0; i < NUM_FIELDS; i++)
-    if (flags & field_flags[i])
+    if (inst.flags & field_flags[i])
       if (i >= rules.size() || !operand_rule_match(rules[i], fields[i]))
         return false;
   return true;
