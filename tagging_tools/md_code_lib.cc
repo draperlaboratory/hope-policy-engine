@@ -48,22 +48,17 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
     }
 
     for (int i = 0; i < n/sizeof(insn_bits_t); i++) {
-      insn_bits_t insn = reinterpret_cast<insn_bits_t*>(bytes)[i];
-      uint32_t rs1, rs2, rs3, rd;
-      int32_t imm;
-      const char* name;
-      uint32_t opdef;
-      int32_t flags = decode(insn, &rs1, &rs2, &rs3, &rd, &imm, &name, &opdef);
-      if (flags == -1) {
-        err.warning("Failed to decode instruction 0x%x\n", insn);
+      decoded_instruction_t inst = decode(reinterpret_cast<insn_bits_t*>(bytes)[i]);
+      if (!inst) {
+        err.warning("Failed to decode instruction 0x%x\n", inst.bits);
         code_address += 4;
         continue;
       }
 
-      std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(name, flags, rs1, rs2, rs3, rd, imm);
+      std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(inst.name, inst.flags, inst.rs1, inst.rs2, inst.rs3, inst.rd, inst.imm);
 
       if (metadata == nullptr) {
-        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, insn, name);
+        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, inst.bits, inst.name);
       } else {
         map.add_range(code_address, code_address + 4, metadata);
       }
