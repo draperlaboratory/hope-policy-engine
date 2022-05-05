@@ -132,8 +132,8 @@ public:
     using iterator_category = std::forward_iterator_tag;
     using value_type = std::remove_cv<MMap>;
     using difference_type = std::ptrdiff_t;
-    using pointer = result_type_t*;
-    using reference = result_type_t&;
+    using pointer = const result_type_t*;
+    using reference = const result_type_t&;
 
   private:
     MMap* map;
