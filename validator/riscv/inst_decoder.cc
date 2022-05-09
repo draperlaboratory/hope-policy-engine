@@ -123,6 +123,17 @@ static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, i
   .flags=HAS_RS1 | HAS_RS2 | HAS_IMM | flags
 }; }
 
+static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, int rd, int imm, flags_t flags=0) { return decoded_instruction_t {
+  .name=name,
+  .op=op,
+  .rd=rd,
+  .rs1=-1,
+  .rs2=-1,
+  .rs3=-1,
+  .imm=imm,
+  .flags=HAS_RD | HAS_IMM | flags
+}; }
+
 static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7, int rd, int rs1, int rs2) {
   uint8_t f5 = f7 >> 2;
   switch (code) {
@@ -408,6 +419,16 @@ static decoded_instruction_t decode_s_type(uint8_t code, uint8_t f3, int rs1, in
   }
 }
 
+static decoded_instruction_t decode_u_type(uint8_t code, int rd, int u_imm) {
+  int j_imm = (u_imm & 0xff000) | ((u_imm & 0x100000) >> 9) | ((u_imm & 0x7fe00000) >> 20) | (u_imm >> 30 ? (-1 & ~0xfffff) : 0);
+  switch (code) {
+    case 0x17: return u_type_inst("auipc", RISCV_AUIPC, rd, u_imm);
+    case 0x37: return u_type_inst("lui", RISCV_LUI, rd, u_imm);
+    case 0x6f: return u_type_inst("jal", RISCV_JAL, rd, j_imm);
+    default: return invalid_inst;
+  }
+}
+
 decoded_instruction_t decode(insn_bits_t bits) {
   uint8_t opcode = bits & 0x7f;
   uint8_t f3 = (bits & 0x7000) >> 12;
@@ -418,6 +439,7 @@ decoded_instruction_t decode(insn_bits_t bits) {
   int rs3 = (bits & 0xf8000000) >> 27;
   int i_imm = static_cast<int>(bits) >> 20;
   int s_imm = (f7 << 25) | rd;
+  int u_imm = static_cast<int>(bits) & ~0xfff;
 
   if (decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2))
     return r;
@@ -425,12 +447,9 @@ decoded_instruction_t decode(insn_bits_t bits) {
     return i;
   if (decoded_instruction_t s = decode_s_type(opcode, f3, rs1, rs2, s_imm))
     return s;
+  if (decoded_instruction_t u = decode_u_type(opcode, rd, u_imm))
+    return u;
 
-  switch (bits & 0x7f) {
-    case 0x6f: return inst_rd("jal", RISCV_JAL, rd, HAS_RD);
-    case 0x37: return inst_rd("lui", RISCV_LUI, rd, HAS_RD);
-    case 0x17: return inst_rd("auipc", RISCV_AUIPC, rd, HAS_RD);
-  }
   switch (bits & 0x707f) {
     case 0x000f: return inst("fence", RISCV_FENCE, 0);
     case 0x100f: return inst("fence.i", RISCV_FENCE_I, 0);
