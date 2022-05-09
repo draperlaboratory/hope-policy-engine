@@ -66,17 +66,6 @@ static decoded_instruction_t inst_rd_rs1(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t inst_all_regs(const std::string& name, uint32_t op, int rd, int rs1, int rs2, int rs3, uint32_t flags) { return decoded_instruction_t{
-  .name=name,
-  .op=op,
-  .rd=rd,
-  .rs1=rs1,
-  .rs2=rs2,
-  .rs3=rs3,
-  .imm=0,
-  .flags=flags
-}; }
-
 static const decoded_instruction_t invalid_inst{.name=""};
 
 static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, flags_t flags=0) { return decoded_instruction_t{
@@ -88,6 +77,17 @@ static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, i
   .rs3=-1,
   .imm=0,
   .flags=HAS_RD | HAS_RS1 | HAS_RS2 | flags
+}; }
+
+static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, int rs3, flags_t flags=0) { return decoded_instruction_t {
+  .name=name,
+  .op=op,
+  .rd=rd,
+  .rs1=rs1,
+  .rs2=rs2,
+  .rs3=rs3,
+  .imm=0,
+  .flags=HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3 | flags
 }; }
 
 static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, flags_t flags=0) { return decoded_instruction_t{
@@ -329,6 +329,36 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
   }
 }
 
+static decoded_instruction_t decode_r4_type(uint8_t code, uint8_t fmt, int rd, int rs1, int rs2, int rs3) {
+  switch (code) {
+    case 0x43: switch (fmt) {
+      case 0x0: return r4_type_inst("fmadd.s", RISCV_FMADD_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fmadd.d", RISCV_FMADD_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fmadd.q", RISCV_FMADD_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    case 0x47: switch (fmt) {
+      case 0x0: return r4_type_inst("fmsub.s", RISCV_FMSUB_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fmsub.d", RISCV_FMSUB_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fmsub.q", RISCV_FMSUB_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    case 0x4b: switch (fmt) {
+      case 0x0: return r4_type_inst("fnmsub.s", RISCV_FNMSUB_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fnmsub.d", RISCV_FNMSUB_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fnmsub.q", RISCV_FNMSUB_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    case 0x4f: switch (fmt) {
+      case 0x0: return r4_type_inst("fnmadd.s", RISCV_FNMADD_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fnmadd.d", RISCV_FNMADD_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fnmadd.q", RISCV_FNMADD_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
 static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int rs1, int imm) {
   // decode as if for RV64; for RV32, MSB of shamt should always be 0
   uint8_t shamt = imm & 0x3f;
@@ -433,6 +463,7 @@ decoded_instruction_t decode(insn_bits_t bits) {
   uint8_t opcode = bits & 0x7f;
   uint8_t f3 = (bits & 0x7000) >> 12;
   uint8_t f7 = (bits & 0xfe000000) >> 25;
+  uint8_t fmt = (bits & 0x6000000) >> 25;
   int rd = (bits & 0xf80) >> 7;
   int rs1 = (bits & 0xf8000) >> 15;
   int rs2 = (bits & 0x1f00000) >> 20;
@@ -443,6 +474,8 @@ decoded_instruction_t decode(insn_bits_t bits) {
 
   if (decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2))
     return r;
+  if (decoded_instruction_t r4 = decode_r4_type(opcode, fmt, rd, rs1, rs2, rs3))
+    return r4;
   if (decoded_instruction_t i = decode_i_type(opcode, f3, rd, rs1, i_imm))
     return i;
   if (decoded_instruction_t s = decode_s_type(opcode, f3, rs1, rs2, s_imm))
@@ -453,20 +486,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
   switch (bits & 0x707f) {
     case 0x000f: return inst("fence", RISCV_FENCE, 0);
     case 0x100f: return inst("fence.i", RISCV_FENCE_I, 0);
-  }
-  switch (bits & 0x600007f) {
-    case 0x0000043: return inst_all_regs("fmadd.s", RISCV_FMADD_S, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x0000047: return inst_all_regs("fmsub.s", RISCV_FMSUB_S, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x000004b: return inst_all_regs("fnmsub.s", RISCV_FNMSUB_S, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x000004f: return inst_all_regs("fnmadd.s", RISCV_FNMADD_S, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x2000043: return inst_all_regs("fmadd.d", RISCV_FMADD_D, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x2000047: return inst_all_regs("fmsub.d", RISCV_FMSUB_D, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x200004b: return inst_all_regs("fnmsub.d", RISCV_FNMSUB_D, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x200004f: return inst_all_regs("fnmadd.d", RISCV_FNMADD_D, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x6000043: return inst_all_regs("fmadd.q", RISCV_FMADD_Q, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x6000047: return inst_all_regs("fmsub.q", RISCV_FMSUB_Q, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x600004b: return inst_all_regs("fnmsub.q", RISCV_FNMSUB_Q, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
-    case 0x600004f: return inst_all_regs("fnmadd.q", RISCV_FNMADD_Q, rd, rs1, rs2, rs3, HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3);
   }
   switch (bits & 0xf800707f) {
     case 0x1000202f: return inst_rd_rs1("lr.w", RISCV_LR_W, rd, rs1, HAS_RD | HAS_RS1 | HAS_LOAD);
