@@ -48,10 +48,11 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       return 1;
     }
 
+    insn_bits_t* bits = reinterpret_cast<insn_bits_t*>(bytes);
     for (int i = 0; i < n/sizeof(insn_bits_t); i++) {
-      decoded_instruction_t inst = decode(reinterpret_cast<insn_bits_t*>(bytes)[i]);
+      decoded_instruction_t inst = decode(bits[i]);
       if (!inst) {
-        err.warning("Failed to decode instruction 0x%x\n", inst.bits);
+        err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits[i], code_address);
         code_address += 4;
         continue;
       }
@@ -59,7 +60,7 @@ int md_code(const std::string& policy_dir, uint64_t code_address, const std::str
       std::shared_ptr<metadata_t> metadata = md_factory.lookup_group_metadata(inst.name, inst);
 
       if (metadata == nullptr) {
-        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, inst.bits, inst.name);
+        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
       } else {
         map.add_range(code_address, code_address + 4, metadata);
       }

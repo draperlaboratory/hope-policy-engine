@@ -46,7 +46,6 @@ static constexpr int HAS_CSR_LOAD  = 0x80;
 static constexpr int HAS_CSR_STORE = 0x100;
 
 struct decoded_instruction_t {
-  const insn_bits_t bits; // raw instruction bits
   const std::string name; // instruction name
   const uint32_t op;      // opcode defined in inst_decode.h
   const int rd;           // register id

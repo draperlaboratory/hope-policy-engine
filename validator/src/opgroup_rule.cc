@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdint>
 #include <vector>
+#include <utility>
 #include "opgroup_rule.h"
 #include "riscv_isa.h"
 
@@ -24,11 +25,16 @@ static bool operand_rule_match(operand_rule_t &rule, uint32_t value) {
 
 bool opgroup_rule_t::matches(const decoded_instruction_t& inst) {
   static constexpr int NUM_FIELDS = 5;
-  std::array<int32_t, NUM_FIELDS> fields{inst.rd, inst.rs1, inst.rs2, inst.rs3, inst.imm};
-  std::array<uint32_t, NUM_FIELDS> field_flags{HAS_RD, HAS_RS1, HAS_RS2, HAS_RS3, HAS_IMM};
+  const std::array<std::pair<bool, int>, NUM_FIELDS> fields{
+    std::make_pair((inst.flags & HAS_RD) != 0, inst.rd),
+    std::make_pair((inst.flags & HAS_RS1) != 0, inst.rs1),
+    std::make_pair((inst.flags & HAS_RS2) != 0, inst.rs2),
+    std::make_pair((inst.flags & HAS_RS3) != 0, inst.rs3),
+    std::make_pair((inst.flags & HAS_IMM) != 0, inst.imm)
+  };
   for (int i = 0; i < NUM_FIELDS; i++)
-    if (inst.flags & field_flags[i])
-      if (i >= rules.size() || !operand_rule_match(rules[i], fields[i]))
+    if (fields[i].first)
+      if (i >= rules.size() || !operand_rule_match(rules[i], fields[i].second))
         return false;
   return true;
 }
