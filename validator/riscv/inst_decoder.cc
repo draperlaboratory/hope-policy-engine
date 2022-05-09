@@ -123,6 +123,17 @@ static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, i
   .flags=HAS_RD | HAS_RS1 | HAS_RS2 | flags
 }; }
 
+static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, uint32_t flags=0) { return decoded_instruction_t{
+  .name=name,
+  .op=op,
+  .rd=rd,
+  .rs1=rs1,
+  .rs2=-1,
+  .rs3=-1,
+  .imm=imm,
+  .flags=HAS_RD | HAS_RS1 | HAS_IMM | flags
+}; }
+
 static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7, int rd, int rs1, int rs2) {
   uint8_t f5 = f7 >> 2;
   switch (code) {
@@ -318,6 +329,57 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
   }
 }
 
+static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int rs1, int imm) {
+  // decode as if for RV64; for RV32, MSB of shamt should always be 0
+  uint8_t shamt = imm & 0x3f;
+  uint8_t f6 = static_cast<unsigned int>(imm) >> 6;
+  switch (code) {
+    case 0x03: switch (f3) {
+      case 0x0: return i_type_inst("lb", RISCV_LB, rd, rs1, imm, HAS_LOAD);
+      case 0x1: return i_type_inst("lh", RISCV_LH, rd, rs1, imm, HAS_LOAD);
+      case 0x2: return i_type_inst("lw", RISCV_LW, rd, rs1, imm, HAS_LOAD);
+      case 0x3: return i_type_inst("ld", RISCV_LD, rd, rs1, imm, HAS_LOAD);
+      case 0x4: return i_type_inst("lbu", RISCV_LBU, rd, rs1, imm, HAS_LOAD);
+      case 0x5: return i_type_inst("lhu", RISCV_LHU, rd, rs1, imm, HAS_LOAD);
+      case 0x6: return i_type_inst("lwu", RISCV_LWU, rd, rs1, imm, HAS_LOAD);
+      default: return invalid_inst;
+    }
+    case 0x07: switch (f3) {
+      case 0x2: return i_type_inst("flw", RISCV_FLW, rd, rs1, imm, HAS_LOAD);
+      case 0x3: return i_type_inst("fld", RISCV_FLD, rd, rs1, imm, HAS_LOAD);
+      case 0x4: return i_type_inst("flq", RISCV_FLQ, rd, rs1, imm, HAS_LOAD);
+      default: return invalid_inst;
+    }
+    case 0x13: switch (f3) {
+      case 0x0: return i_type_inst("addi", RISCV_ADDI, rd, rs1, imm);
+      case 0x1: return i_type_inst("slli", RISCV_SLLI, rd, rs1, shamt);
+      case 0x2: return i_type_inst("slti", RISCV_SLTI, rd, rs1, imm);
+      case 0x3: return i_type_inst("sltiu", RISCV_SLTIU, rd, rs1, imm);
+      case 0x4: return i_type_inst("xori", RISCV_XORI, rd, rs1, imm);
+      case 0x5: switch (f6) {
+        case 0x00: return i_type_inst("srli", RISCV_SRLI, rd, rs1, shamt);
+        case 0x10: return i_type_inst("srai", RISCV_SRAI, rd, rs1, shamt);
+        default: return invalid_inst;
+      }
+      case 0x6: return i_type_inst("ori", RISCV_ORI, rd, rs1, imm);
+      case 0x7: return i_type_inst("andi", RISCV_ANDI, rd, rs1, imm);
+      default: return invalid_inst;
+    }
+    case 0x1b: switch (f3) {
+      case 0x0: return i_type_inst("addiw", RISCV_ADDIW, rd, rs1, imm);
+      case 0x1: return i_type_inst("slliw", RISCV_SLLIW, rd, rs1, shamt);
+      case 0x5: switch (f6) {
+        case 0x00: return i_type_inst("srliw", RISCV_SRLIW, rd, rs1, shamt);
+        case 0x10: return i_type_inst("sraiw", RISCV_SRAIW, rd, rs1, shamt);
+        default: return invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    case 0x67: return i_type_inst("jalr", RISCV_JALR, rd, rs1, imm);
+    default: return invalid_inst;
+  }
+}
+
 decoded_instruction_t decode(insn_bits_t bits) {
   uint8_t opcode = bits & 0x7f;
   uint8_t f3 = (bits & 0x7000) >> 12;
@@ -326,10 +388,12 @@ decoded_instruction_t decode(insn_bits_t bits) {
   int rs1 = (bits & 0xf8000) >> 15;
   int rs2 = (bits & 0x1f00000) >> 20;
   int rs3 = (bits & 0xf8000000) >> 27;
+  int i_imm = static_cast<int>(bits) >> 20;
 
-  decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2);
-  if (r)
+  if (decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2))
     return r;
+  if (decoded_instruction_t i = decode_i_type(opcode, f3, rd, rs1, i_imm))
+    return i;
 
   switch (bits & 0x7f) {
     case 0x6f: return inst_rd("jal", RISCV_JAL, rd, HAS_RD);
@@ -343,81 +407,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
     case 0x5063: return inst_rs1_rs2("bge", RISCV_BGE, rs1, rs2, HAS_RS1 | HAS_RS2);
     case 0x6063: return inst_rs1_rs2("bltu", RISCV_BLTU, rs1, rs2, HAS_RS1 | HAS_RS2);
     case 0x7063: return inst_rs1_rs2("bgeu", RISCV_BGEU, rs1, rs2, HAS_RS1 | HAS_RS2);
-    case 0x0067: return inst_rd_rs1_imm(
-      "jalr", RISCV_JALR, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x0013: return inst_rd_rs1_imm(
-      "addi", RISCV_ADDI, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x2013: return inst_rd_rs1_imm(
-      "slti", RISCV_SLTI, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x3013: return inst_rd_rs1_imm(
-      "sltiu", RISCV_SLTIU, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x4013: return inst_rd_rs1_imm(
-      "xori", RISCV_XORI, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x6013: return inst_rd_rs1_imm(
-      "ori", RISCV_ORI, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x7013: return inst_rd_rs1_imm(
-      "andi", RISCV_ANDI, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x001b: return inst_rd_rs1_imm(
-      "addiw", RISCV_ADDIW, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM
-    );
-    case 0x0003: return inst_rd_rs1_imm(
-      "lb", RISCV_LB, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x1003: return inst_rd_rs1_imm(
-      "lh", RISCV_LH, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x2003: return inst_rd_rs1_imm(
-      "lw", RISCV_LW, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x3003: return inst_rd_rs1_imm(
-      "ld", RISCV_LD, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x4003: return inst_rd_rs1_imm(
-      "lbu", RISCV_LBU, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x5003: return inst_rd_rs1_imm(
-      "lhu", RISCV_LHU, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x6003: return inst_rd_rs1_imm(
-      "lwu", RISCV_LWU, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
     case 0x0023: return inst_rs1_rs2_imm(
       "sb", RISCV_SB, rs1, rs2,
       ((bits & 0x80000000) ? ((bits & 0xFE000000) >> 20) | 0xFFFFF000 : (bits & 0xFE000000) >> 20) | ((bits & 0x00000F80) >> 7),
@@ -470,21 +459,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
       (bits & 0xfff00000) >> 20,
       HAS_RD | HAS_RS1 | HAS_IMM | (rs1 ? HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_LOAD)
     );
-    case 0x2007: return inst_rd_rs1_imm(
-      "flw", RISCV_FLW, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x3007: return inst_rd_rs1_imm(
-      "fld", RISCV_FLD, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
-    case 0x4007: return inst_rd_rs1_imm(
-      "flq", RISCV_FLQ, rd, rs1,
-      (bits & 0x80000000) ? ((bits & 0xFFF00000) >> 20) | 0xFFFFF000 : (bits & 0xFFF00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | HAS_LOAD
-    );
     case 0x2027: return inst_rs1_rs2_imm(
       "fsw", RISCV_FSW, rs1, rs2,
       ((bits & 0x80000000) ? ((bits & 0xFE000000) >> 20) | 0xFFFFF000 : (bits & 0xFE000000) >> 20) | ((bits & 0x00000F80) >> 7),
@@ -517,19 +491,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
   }
   switch (bits & 0xf800707f) {
     case 0x1000202f: return inst_rd_rs1("lr.w", RISCV_LR_W, rd, rs1, HAS_RD | HAS_RS1 | HAS_LOAD);
-  }
-  switch (bits & 0xfc00707f) {
-    case 0x00001013: return inst_rd_rs1("slli", RISCV_SLLI, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x00005013: return inst_rd_rs1("srli", RISCV_SRLI, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x40005013: return inst_rd_rs1("srai", RISCV_SRAI, rd, rs1, HAS_RD | HAS_RS1);
-  }
-  switch (bits & 0xfe00007f) {
-    
-  }
-  switch (bits & 0xfe00707f) {
-    case 0x0000101b: return inst_rd_rs1("slliw", RISCV_SLLIW, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x0000501b: return inst_rd_rs1("srliw", RISCV_SRLIW, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x4000501b: return inst_rd_rs1("sraiw", RISCV_SRAIW, rd, rs1, HAS_RD | HAS_RS1);
   }
   switch (bits & 0xfe007fff) {
     case 0x12000073: return inst_rs1_rs2("sfence.vma", RISCV_SFENCE_VMA, rs1, rs2, HAS_RS1 | HAS_RS2);
