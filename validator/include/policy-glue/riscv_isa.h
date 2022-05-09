@@ -35,15 +35,17 @@
 
 namespace policy_engine {
 
-static constexpr int HAS_RS1       = 0x1;
-static constexpr int HAS_RS2       = 0x2;
-static constexpr int HAS_RS3       = 0x4;
-static constexpr int HAS_RD        = 0x8;
-static constexpr int HAS_IMM       = 0x10;
-static constexpr int HAS_LOAD      = 0x20;
-static constexpr int HAS_STORE     = 0x40;
-static constexpr int HAS_CSR_LOAD  = 0x80;
-static constexpr int HAS_CSR_STORE = 0x100;
+using flags_t = uint32_t;
+
+static constexpr flags_t HAS_RS1       = 0x1;
+static constexpr flags_t HAS_RS2       = 0x2;
+static constexpr flags_t HAS_RS3       = 0x4;
+static constexpr flags_t HAS_RD        = 0x8;
+static constexpr flags_t HAS_IMM       = 0x10;
+static constexpr flags_t HAS_LOAD      = 0x20;
+static constexpr flags_t HAS_STORE     = 0x40;
+static constexpr flags_t HAS_CSR_LOAD  = 0x80;
+static constexpr flags_t HAS_CSR_STORE = 0x100;
 
 struct decoded_instruction_t {
   const std::string name; // instruction name
@@ -53,7 +55,7 @@ struct decoded_instruction_t {
   const int rs2;          // register id
   const int rs3;          // register id
   const int imm;          // signed immediate value
-  const uint32_t flags;   // fields only valid when HAS_* flag is set
+  const flags_t flags;   // fields only valid when HAS_* flag is set
 
   explicit operator bool() const { return !name.empty(); }
 };

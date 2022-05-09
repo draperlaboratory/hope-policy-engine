@@ -77,17 +77,6 @@ static decoded_instruction_t inst_rs1_rs2(const std::string& name, uint32_t op, 
   .flags=flags
 }; }
 
-static decoded_instruction_t inst_rd_rs1_imm(const std::string& name, uint32_t op, int rd, int rs1, int imm, uint32_t flags) { return decoded_instruction_t{
-  .name=name,
-  .op=op,
-  .rd=rd,
-  .rs1=rs1,
-  .rs2=-1,
-  .rs3=-1,
-  .imm=imm,
-  .flags=flags
-}; }
-
 static decoded_instruction_t inst_rs1_rs2_imm(const std::string& name, uint32_t op, int rs1, int rs2, int imm, uint32_t flags) { return decoded_instruction_t{
   .name=name,
   .op=op,
@@ -132,6 +121,17 @@ static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, i
   .rs3=-1,
   .imm=imm,
   .flags=HAS_RD | HAS_RS1 | HAS_IMM | flags
+}; }
+
+static decoded_instruction_t csr_inst(const std::string& name, uint32_t op, int rd, int rs1, uint16_t csr) { return decoded_instruction_t{
+  .name=name,
+  .op=op,
+  .rd=rd,
+  .rs1=rs1,
+  .rs2=-1,
+  .rs3=-1,
+  .imm=csr,
+  .flags=(rd ? HAS_RD : 0) | (rs1 >= 0 ? HAS_RS1 : 0) | HAS_IMM | (rd ? (HAS_CSR_LOAD | HAS_CSR_STORE) : HAS_CSR_STORE)
 }; }
 
 static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7, int rd, int rs1, int rs2) {
@@ -333,6 +333,7 @@ static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int
   // decode as if for RV64; for RV32, MSB of shamt should always be 0
   uint8_t shamt = imm & 0x3f;
   uint8_t f6 = static_cast<unsigned int>(imm) >> 6;
+  uint16_t csr = static_cast<uint16_t>(imm) & 0xfff;
   switch (code) {
     case 0x03: switch (f3) {
       case 0x0: return i_type_inst("lb", RISCV_LB, rd, rs1, imm, HAS_LOAD);
@@ -376,6 +377,15 @@ static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int
       default: return invalid_inst;
     }
     case 0x67: return i_type_inst("jalr", RISCV_JALR, rd, rs1, imm);
+    case 0x73: switch (f3) {
+      case 0x1: return csr_inst("csrrw", RISCV_CSRRW, rd, rs1, csr);
+      case 0x2: return csr_inst("csrrs", RISCV_CSRRS, rd, rs1, csr);
+      case 0x3: return csr_inst("csrrc", RISCV_CSRRC, rd, rs1, csr);
+      case 0x5: return csr_inst("csrrwi", RISCV_CSRRWI, rd, -1, csr);
+      case 0x6: return csr_inst("csrrsi", RISCV_CSRRSI, rd, -1, csr);
+      case 0x7: return csr_inst("csrrci", RISCV_CSRRCI, rd, -1, csr);
+      default: return invalid_inst;
+    }
     default: return invalid_inst;
   }
 }
@@ -429,36 +439,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
     );
     case 0x000f: return inst("fence", RISCV_FENCE, 0);
     case 0x100f: return inst("fence.i", RISCV_FENCE_I, 0);
-    case 0x1073: return inst_rd_rs1_imm(
-      "csrrw", RISCV_CSRRW, rd, rs1,
-      (bits & 0xfff00000) >> 20,
-      HAS_RS1 | HAS_IMM | (rd ? HAS_RD | HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_STORE)
-    );
-    case 0x2073: return inst_rd_rs1_imm(
-      "csrrs", RISCV_CSRRS, rd, rs1,
-      (bits & 0xfff00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | (rs1 ? HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_LOAD)
-    );
-    case 0x3073: return inst_rd_rs1_imm(
-      "csrrc", RISCV_CSRRC, rd, rs1,
-      (bits & 0xfff00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_RS2 | (rs1 ? HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_LOAD)
-    );
-    case 0x5073: return inst_rd_rs1_imm(
-      "csrrwi", RISCV_CSRRWI, rd, rs1,
-      (bits & 0xfff00000) >> 20,
-      HAS_RS1 | HAS_IMM | (rd ? HAS_RD | HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_STORE)
-    );
-    case 0x6073: return inst_rd_rs1_imm(
-      "csrrsi", RISCV_CSRRSI, rd, rs1,
-      (bits & 0xfff00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | (rs1 ? HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_LOAD)
-    );
-    case 0x7073: return inst_rd_rs1_imm(
-      "csrrci", RISCV_CSRRCI, rd, rs1,
-      (bits & 0xfff00000) >> 20,
-      HAS_RD | HAS_RS1 | HAS_IMM | (rs1 ? HAS_CSR_LOAD | HAS_CSR_STORE : HAS_CSR_LOAD)
-    );
     case 0x2027: return inst_rs1_rs2_imm(
       "fsw", RISCV_FSW, rs1, rs2,
       ((bits & 0x80000000) ? ((bits & 0xFE000000) >> 20) | 0xFFFFF000 : (bits & 0xFE000000) >> 20) | ((bits & 0x00000F80) >> 7),
