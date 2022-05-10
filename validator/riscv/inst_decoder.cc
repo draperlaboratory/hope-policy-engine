@@ -55,17 +55,6 @@ static decoded_instruction_t inst_rd(const std::string& name, uint32_t op, int r
   .flags=flags
 }; }
 
-static decoded_instruction_t inst_rd_rs1(const std::string& name, uint32_t op, int rd, int rs1, uint32_t flags) { return decoded_instruction_t{
-  .name=name,
-  .op=op,
-  .rd=rd,
-  .rs1=rs1,
-  .rs2=-1,
-  .rs3=-1,
-  .imm=0,
-  .flags=flags
-}; }
-
 static const decoded_instruction_t invalid_inst{.name=""};
 
 static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, flags_t flags=0) { return decoded_instruction_t{
@@ -88,6 +77,17 @@ static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, 
   .rs3=rs3,
   .imm=0,
   .flags=HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3 | flags
+}; }
+
+static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, int rd, int rs1, flags_t flags=0) { return decoded_instruction_t{
+  .name=name,
+  .op=op,
+  .rd=rd,
+  .rs1=rs1,
+  .rs2=-1,
+  .rs3=-1,
+  .imm=0,
+  .flags=HAS_RD | HAS_RS1 | flags
 }; }
 
 static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, flags_t flags=0) { return decoded_instruction_t{
@@ -136,6 +136,7 @@ static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, i
 
 static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7, int rd, int rs1, int rs2) {
   uint8_t f5 = f7 >> 2;
+  uint8_t fmt = f7 & 0x3;
   switch (code) {
     case 0x33: switch (f3) {
       case 0x0: switch (f7) {
@@ -270,7 +271,105 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
         case 0x2: return r_type_inst("feq.q", RISCV_FEQ_Q, rd, rs1, rs2);
         default: return invalid_inst;
       }
-      default: return invalid_inst;
+      default: switch (f5) {
+        case 0x08: switch (fmt) {
+          case 0x0: switch (rs2) {
+            case 0x01: return fp_conv_inst("fcvt.s.d", RISCV_FCVT_S_D, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.d.s", RISCV_FCVT_D_S, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.s.q", RISCV_FCVT_S_Q, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x1: switch (rs2) {
+            case 0x03: return fp_conv_inst("fcvt.d.q", RISCV_FCVT_D_Q, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x3: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.q.s", RISCV_FCVT_Q_S, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.q.d", RISCV_FCVT_Q_D, rd, rs1);
+            default: return invalid_inst;
+          }
+          default: return invalid_inst;
+        }
+        case 0x0b: switch (fmt) {
+          case 0x0: return fp_conv_inst("fsqrt.s", RISCV_FSQRT_S, rd, rs1);
+          case 0x1: return fp_conv_inst("fsqrt.d", RISCV_FSQRT_D, rd, rs1);
+          case 0x3: return fp_conv_inst("fsqrt.q", RISCV_FSQRT_Q, rd, rs1);
+          default: return invalid_inst;
+        }
+        case 0x18: switch (fmt) {
+          case 0x0: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.w.s", RISCV_FCVT_W_S, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.wu.s", RISCV_FCVT_WU_S, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.l.s", RISCV_FCVT_L_S, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.lu.s", RISCV_FCVT_LU_S, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x1: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.w.d", RISCV_FCVT_W_D, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.wu.d", RISCV_FCVT_WU_D, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.l.d", RISCV_FCVT_L_D, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.lu.d", RISCV_FCVT_LU_D, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x3: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.w.q", RISCV_FCVT_W_Q, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.wu.q", RISCV_FCVT_WU_Q, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.l.q", RISCV_FCVT_L_Q, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.lu.q", RISCV_FCVT_LU_Q, rd, rs1);
+            default: return invalid_inst;
+          }
+          default: return invalid_inst;
+        }
+        case 0x1a: switch (fmt) {
+          case 0x0: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.s.w", RISCV_FCVT_S_W, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.s.wu", RISCV_FCVT_S_WU, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.s.l", RISCV_FCVT_S_L, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.s.lu", RISCV_FCVT_S_LU, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x1: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.d.w", RISCV_FCVT_D_W, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.d.wu", RISCV_FCVT_D_WU, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.d.l", RISCV_FCVT_D_L, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.d.lu", RISCV_FCVT_D_LU, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x3: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.q.w", RISCV_FCVT_Q_W, rd, rs1);
+            case 0x01: return fp_conv_inst("fcvt.q.wu", RISCV_FCVT_Q_WU, rd, rs1);
+            case 0x02: return fp_conv_inst("fcvt.q.l", RISCV_FCVT_Q_L, rd, rs1);
+            case 0x03: return fp_conv_inst("fcvt.q.lu", RISCV_FCVT_Q_LU, rd, rs1);
+            default: return invalid_inst;
+          }
+          default: return invalid_inst;
+        }
+        case 0x1c: switch (fmt) {
+          case 0x0: switch (f3) {
+            case 0x0: return fp_conv_inst("fmv.x.w", RISCV_FMV_X_W, rd, rs1);
+            case 0x1: return fp_conv_inst("fclass.s", RISCV_FCLASS_S, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x1: switch (f3) {
+            case 0x0: return fp_conv_inst("fmv.x.d", RISCV_FMV_X_D, rd, rs1);
+            case 0x1: return fp_conv_inst("fclass.d", RISCV_FCLASS_D, rd, rs1);
+            default: return invalid_inst;
+          }
+          case 0x3: switch (f3) {
+            case 0x0: return fp_conv_inst("fmv.x.q", RISCV_FMV_X_Q, rd, rs1);
+            case 0x1: return fp_conv_inst("fclass.q", RISCV_FCLASS_Q, rd, rs1);
+            default: return invalid_inst;
+          }
+          default: return invalid_inst;
+        }
+        case 0x1e: switch (fmt) {
+          case 0x0: return fp_conv_inst("fmv.w.x", RISCV_FMV_W_X, rd, rs1);
+          case 0x1: return fp_conv_inst("fmv.d.x", RISCV_FMV_D_X, rd, rs1);
+          case 0x3: return fp_conv_inst("fmv.q.x", RISCV_FMV_Q_X, rd, rs1);
+          default: return invalid_inst;
+        }
+        default: return invalid_inst;
+      }
     }
     case 0x2f: switch (f5) {
       case 0x00: switch (f3) {
@@ -329,7 +428,9 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
   }
 }
 
-static decoded_instruction_t decode_r4_type(uint8_t code, uint8_t fmt, int rd, int rs1, int rs2, int rs3) {
+static decoded_instruction_t decode_r4_type(uint8_t code, uint8_t f7, int rd, int rs1, int rs2) {
+  int rs3 = f7 >> 2;
+  uint8_t fmt = f7 & 0x3;
   switch (code) {
     case 0x43: switch (fmt) {
       case 0x0: return r4_type_inst("fmadd.s", RISCV_FMADD_S, rd, rs1, rs2, rs3);
@@ -463,18 +564,16 @@ decoded_instruction_t decode(insn_bits_t bits) {
   uint8_t opcode = bits & 0x7f;
   uint8_t f3 = (bits & 0x7000) >> 12;
   uint8_t f7 = (bits & 0xfe000000) >> 25;
-  uint8_t fmt = (bits & 0x6000000) >> 25;
   int rd = (bits & 0xf80) >> 7;
   int rs1 = (bits & 0xf8000) >> 15;
   int rs2 = (bits & 0x1f00000) >> 20;
-  int rs3 = (bits & 0xf8000000) >> 27;
   int i_imm = static_cast<int>(bits) >> 20;
   int s_imm = (f7 << 25) | rd;
   int u_imm = static_cast<int>(bits) & ~0xfff;
 
   if (decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2))
     return r;
-  if (decoded_instruction_t r4 = decode_r4_type(opcode, fmt, rd, rs1, rs2, rs3))
+  if (decoded_instruction_t r4 = decode_r4_type(opcode, f7, rd, rs1, rs2))
     return r4;
   if (decoded_instruction_t i = decode_i_type(opcode, f3, rd, rs1, i_imm))
     return i;
@@ -488,7 +587,17 @@ decoded_instruction_t decode(insn_bits_t bits) {
     case 0x100f: return inst("fence.i", RISCV_FENCE_I, 0);
   }
   switch (bits & 0xf800707f) {
-    case 0x1000202f: return inst_rd_rs1("lr.w", RISCV_LR_W, rd, rs1, HAS_RD | HAS_RS1 | HAS_LOAD);
+    case 0x1000202f: return decoded_instruction_t{
+      .name="lr.w",
+      .op=RISCV_LR_W,
+      .rd=rd,
+      .rs1=rs1,
+      .rs2=-1,
+      .rs3=-1,
+      .imm=0,
+      .flags=HAS_RD | HAS_RS1 | HAS_LOAD
+    };
+    // lr.d
   }
   switch (bits & 0xfe007fff) {
     case 0x12000073: return decoded_instruction_t{
@@ -501,52 +610,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
       .imm=0,
       .flags=HAS_RS1 | HAS_RS2
     };
-  }
-  switch (bits & 0xfff0007f) {
-    case 0x58000053: return inst_rd_rs1("fsqrt.s", RISCV_FSQRT_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x40100053: return inst_rd_rs1("fcvt.s.d", RISCV_FCVT_S_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x40200053: return inst_rd_rs1("fcvt.d.s", RISCV_FCVT_D_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x5a000053: return inst_rd_rs1("fsqrt.d", RISCV_FSQRT_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x40300053: return inst_rd_rs1("fcvt.s.q", RISCV_FCVT_S_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x46000053: return inst_rd_rs1("fcvt.q.s", RISCV_FCVT_Q_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x42300053: return inst_rd_rs1("fcvt.d.q", RISCV_FCVT_D_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x46100053: return inst_rd_rs1("fcvt.q.d", RISCV_FCVT_Q_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0x5e000053: return inst_rd_rs1("fsqrt.q", RISCV_FSQRT_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc0000053: return inst_rd_rs1("fcvt.w.s", RISCV_FCVT_W_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc0100053: return inst_rd_rs1("fcvt.wu.s", RISCV_FCVT_WU_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc0200053: return inst_rd_rs1("fcvt.l.s", RISCV_FCVT_L_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc0300053: return inst_rd_rs1("fcvt.lu.s", RISCV_FCVT_LU_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc2000053: return inst_rd_rs1("fcvt.w.d", RISCV_FCVT_W_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc2100053: return inst_rd_rs1("fcvt.wu.d", RISCV_FCVT_WU_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc2200053: return inst_rd_rs1("fcvt.l.d", RISCV_FCVT_L_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc2300053: return inst_rd_rs1("fcvt.lu.d", RISCV_FCVT_LU_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc6000053: return inst_rd_rs1("fcvt.w.q", RISCV_FCVT_W_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc6100053: return inst_rd_rs1("fcvt.wu.q", RISCV_FCVT_WU_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc6200053: return inst_rd_rs1("fcvt.l.q", RISCV_FCVT_L_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xc6300053: return inst_rd_rs1("fcvt.lu.q", RISCV_FCVT_LU_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd0000053: return inst_rd_rs1("fcvt.s.w", RISCV_FCVT_S_W, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd0100053: return inst_rd_rs1("fcvt.s.wu", RISCV_FCVT_S_WU, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd0200053: return inst_rd_rs1("fcvt.s.l", RISCV_FCVT_S_L, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd0300053: return inst_rd_rs1("fcvt.s.lu", RISCV_FCVT_S_LU, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd2000053: return inst_rd_rs1("fcvt.d.w", RISCV_FCVT_D_W, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd2100053: return inst_rd_rs1("fcvt.d.wu", RISCV_FCVT_D_WU, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd2200053: return inst_rd_rs1("fcvt.d.l", RISCV_FCVT_D_L, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd2300053: return inst_rd_rs1("fcvt.d.lu", RISCV_FCVT_D_LU, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd6000053: return inst_rd_rs1("fcvt.q.w", RISCV_FCVT_Q_W, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd6100053: return inst_rd_rs1("fcvt.q.wu", RISCV_FCVT_Q_WU, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd6200053: return inst_rd_rs1("fcvt.q.l", RISCV_FCVT_Q_L, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xd6300053: return inst_rd_rs1("fcvt.q.lu", RISCV_FCVT_Q_LU, rd, rs1, HAS_RD | HAS_RS1);
-  }
-  switch (bits & 0xfff0707f) {
-    case 0xe0000053: return inst_rd_rs1("fmv.x.w", RISCV_FMV_X_W, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xe0001053: return inst_rd_rs1("fclass.s", RISCV_FCLASS_S, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xe2000053: return inst_rd_rs1("fmv.x.d", RISCV_FMV_X_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xe2001053: return inst_rd_rs1("fclass.d", RISCV_FCLASS_D, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xe6000053: return inst_rd_rs1("fmv.x.q", RISCV_FMV_X_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xe6001053: return inst_rd_rs1("fclass.q", RISCV_FCLASS_Q, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xf0000053: return inst_rd_rs1("fmv.w.x", RISCV_FMV_W_X, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xf2000053: return inst_rd_rs1("fmv.d.x", RISCV_FMV_D_X, rd, rs1, HAS_RD | HAS_RS1);
-    case 0xf6000053: return inst_rd_rs1("fmv.q.x", RISCV_FMV_Q_X, rd, rs1, HAS_RD | HAS_RS1);
   }
   switch (bits) {
     case 0x73: return inst("ecall", RISCV_ECALL, 0);
