@@ -229,6 +229,20 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
         case 0x3: // amoswap.d
         default: return invalid_inst;
       }
+      case 0x02: switch (f3) {
+        case 0x2: return decoded_instruction_t{
+          .name="lr.w",
+          .op=RISCV_LR_W,
+          .rd=rd,
+          .rs1=rs1,
+          .rs2=-1,
+          .rs3=-1,
+          .imm=0,
+          .flags=HAS_RD | HAS_RS1 | HAS_LOAD
+        }; // not quite R-type, but grouped with other AMO instructions
+        case 0x3: // lr.d
+        default: return invalid_inst;
+      }
       case 0x03: switch (f3) {
         case 0x2: return r_type_inst("sc.w", RISCV_SC_W, rd, rs1, rs2);
         case 0x3: // sc.d
@@ -630,20 +644,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
     return fp;
   if (decoded_instruction_t sys = decode_system(opcode, f7, f3, rs1, rs2))
     return sys;
-
-  switch (bits & 0xf800707f) {
-    case 0x1000202f: return decoded_instruction_t{
-      .name="lr.w",
-      .op=RISCV_LR_W,
-      .rd=rd,
-      .rs1=rs1,
-      .rs2=-1,
-      .rs3=-1,
-      .imm=0,
-      .flags=HAS_RD | HAS_RS1 | HAS_LOAD
-    };
-    // lr.d
-  }
   return invalid_inst;
 }
 
