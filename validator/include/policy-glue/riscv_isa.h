@@ -29,33 +29,30 @@
 #define RISCV_ISA_H
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
+#include "option.h"
 #include "platform_types.h"
 #include "policy_meta_set.h"
 
 namespace policy_engine {
 
-using flags_t = uint32_t;
+using flags_t = uint8_t;
 
-static constexpr flags_t HAS_RS1       = 0x1;
-static constexpr flags_t HAS_RS2       = 0x2;
-static constexpr flags_t HAS_RS3       = 0x4;
-static constexpr flags_t HAS_RD        = 0x8;
-static constexpr flags_t HAS_IMM       = 0x10;
-static constexpr flags_t HAS_LOAD      = 0x20;
-static constexpr flags_t HAS_STORE     = 0x40;
-static constexpr flags_t HAS_CSR_LOAD  = 0x80;
-static constexpr flags_t HAS_CSR_STORE = 0x100;
+static constexpr flags_t HAS_LOAD      = 0x1;
+static constexpr flags_t HAS_STORE     = 0x2;
+static constexpr flags_t HAS_CSR_LOAD  = 0x4;
+static constexpr flags_t HAS_CSR_STORE = 0x8;
 
 struct decoded_instruction_t {
-  const std::string name; // instruction name
-  const uint32_t op;      // opcode defined in inst_decode.h
-  const int rd;           // register id
-  const int rs1;          // register id
-  const int rs2;          // register id
-  const int rs3;          // register id
-  const int imm;          // signed immediate value
-  const flags_t flags;   // fields only valid when HAS_* flag is set
+  const std::string name;  // instruction name
+  const uint32_t op;       // opcode defined in inst_decode.h
+  const option<int> rd;    // register id
+  const option<int> rs1;   // register id
+  const option<int> rs2;   // register id
+  const option<int> rs3;   // register id
+  const option<int> imm;   // signed immediate value
+  const flags_t flags = 0; // fields only valid when HAS_* flag is set
 
   explicit operator bool() const { return !name.empty(); }
 };

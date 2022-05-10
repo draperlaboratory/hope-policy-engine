@@ -28,32 +28,11 @@
 #include <string>
 #include <unordered_map>
 #include "inst_decoder.h"
+#include "option.h"
 #include "platform_types.h"
 #include "riscv_isa.h"
 
 namespace policy_engine {
-
-static decoded_instruction_t inst(const std::string& name, uint32_t op, uint32_t flags) { return decoded_instruction_t{
-  .name=name,
-  .op=op,
-  .rd=-1,
-  .rs1=-1,
-  .rs2=-1,
-  .rs3=-1,
-  .imm=0,
-  .flags=flags
-}; }
-
-static decoded_instruction_t inst_rd(const std::string& name, uint32_t op, int rd, uint32_t flags) { return decoded_instruction_t{
-  .name=name,
-  .op=op,
-  .rd=rd,
-  .rs1=-1,
-  .rs2=-1,
-  .rs3=-1,
-  .imm=0,
-  .flags=flags
-}; }
 
 static const decoded_instruction_t invalid_inst{.name=""};
 
@@ -63,9 +42,9 @@ static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, i
   .rd=rd,
   .rs1=rs1,
   .rs2=rs2,
-  .rs3=-1,
-  .imm=0,
-  .flags=HAS_RD | HAS_RS1 | HAS_RS2 | flags
+  .rs3=none<int>(),
+  .imm=none<int>(),
+  .flags=flags
 }; }
 
 static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, int rs3, flags_t flags=0) { return decoded_instruction_t {
@@ -75,8 +54,8 @@ static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, 
   .rs1=rs1,
   .rs2=rs2,
   .rs3=rs3,
-  .imm=0,
-  .flags=HAS_RD | HAS_RS1 | HAS_RS2 | HAS_RS3 | flags
+  .imm=none<int>(),
+  .flags=flags
 }; }
 
 static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, int rd, int rs1, flags_t flags=0) { return decoded_instruction_t{
@@ -84,10 +63,10 @@ static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, 
   .op=op,
   .rd=rd,
   .rs1=rs1,
-  .rs2=-1,
-  .rs3=-1,
-  .imm=0,
-  .flags=HAS_RD | HAS_RS1 | flags
+  .rs2=none<int>(),
+  .rs3=none<int>(),
+  .imm=none<int>(),
+  .flags=flags
 }; }
 
 static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, flags_t flags=0) { return decoded_instruction_t{
@@ -95,53 +74,53 @@ static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, i
   .op=op,
   .rd=rd,
   .rs1=rs1,
-  .rs2=-1,
-  .rs3=-1,
+  .rs2=none<int>(),
+  .rs3=none<int>(),
   .imm=imm,
-  .flags=HAS_RD | HAS_RS1 | HAS_IMM | flags
+  .flags=flags
 }; }
 
 static decoded_instruction_t csr_inst(const std::string& name, uint32_t op, int rd, int rs1, uint16_t csr) { return decoded_instruction_t{
   .name=name,
   .op=op,
-  .rd=rd,
-  .rs1=rs1,
-  .rs2=-1,
-  .rs3=-1,
+  .rd=when(rd != 0, rd),
+  .rs1=when(rs1 >= 0, rs1),
+  .rs2=none<int>(),
+  .rs3=none<int>(),
   .imm=csr,
-  .flags=(rd ? HAS_RD : 0) | (rs1 >= 0 ? HAS_RS1 : 0) | HAS_IMM | (rd ? (HAS_CSR_LOAD | HAS_CSR_STORE) : HAS_CSR_STORE)
+  .flags=(rd != 0 ? (HAS_CSR_LOAD | HAS_CSR_STORE) : HAS_CSR_STORE)
 }; }
 
 static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, int rs1, int rs2, int imm, flags_t flags=0) { return decoded_instruction_t{
   .name=name,
   .op=op,
-  .rd=-1,
+  .rd=none<int>(),
   .rs1=rs1,
   .rs2=rs2,
-  .rs3=-1,
+  .rs3=none<int>(),
   .imm=imm,
-  .flags=HAS_RS1 | HAS_RS2 | HAS_IMM | flags
+  .flags=flags
 }; }
 
 static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, int rd, int imm, flags_t flags=0) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=rd,
-  .rs1=-1,
-  .rs2=-1,
-  .rs3=-1,
+  .rs1=none<int>(),
+  .rs2=none<int>(),
+  .rs3=none<int>(),
   .imm=imm,
-  .flags=HAS_RD | HAS_IMM | flags
+  .flags=flags
 }; }
 
 static decoded_instruction_t system_inst(const std::string& name, uint32_t op, flags_t flags=0) { return decoded_instruction_t {
   .name=name,
   .op=op,
-  .rd=-1,
-  .rs1=-1,
-  .rs2=-1,
-  .rs3=-1,
-  .imm=0,
+  .rd=none<int>(),
+  .rs1=none<int>(),
+  .rs2=none<int>(),
+  .rs3=none<int>(),
+  .imm=none<int>(),
   .flags=flags
 }; }
 
@@ -235,10 +214,10 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
           .op=RISCV_LR_W,
           .rd=rd,
           .rs1=rs1,
-          .rs2=-1,
-          .rs3=-1,
-          .imm=0,
-          .flags=HAS_RD | HAS_RS1 | HAS_LOAD
+          .rs2=none<int>(),
+          .rs3=none<int>(),
+          .imm=none<int>(),
+          .flags=HAS_LOAD
         }; // not quite R-type, but grouped with other AMO instructions
         case 0x3: // lr.d
         default: return invalid_inst;
@@ -607,12 +586,11 @@ static decoded_instruction_t decode_system(uint8_t code, uint8_t f7, uint8_t f3,
         case 0x09: return decoded_instruction_t{
           .name="sfence.vma",
           .op=RISCV_SFENCE_VMA,
-          .rd=-1,
+          .rd=none<int>(),
           .rs1=rs1,
           .rs2=rs2,
-          .rs3=-1,
-          .imm=0,
-          .flags=HAS_RS1 | HAS_RS2
+          .rs3=none<int>(),
+          .imm=none<int>()
         };
         default: return invalid_inst;
       }
