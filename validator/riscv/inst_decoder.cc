@@ -200,12 +200,12 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
     case 0x2f: switch (f5) {
       case 0x00: switch (f3) {
         case 0x2: return r_type_inst("amoadd.w", RISCV_AMOADD_W, rd, rs1, rs2);
-        case 0x3: // amoadd.d
+        case 0x3: return r_type_inst("amoadd.d", RISCV_AMOADD_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x01: switch (f3) {
         case 0x2: return r_type_inst("amoswap.w", RISCV_AMOSWAP_W, rd, rs1, rs2);
-        case 0x3: // amoswap.d
+        case 0x3: return r_type_inst("amoswap.d", RISCV_AMOSWAP_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x02: switch (f3) {
@@ -219,47 +219,56 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
           .imm=none<int>(),
           .flags=has_load
         }; // not quite R-type, but grouped with other AMO instructions
-        case 0x3: // lr.d
+        case 0x3: return decoded_instruction_t{
+          .name="lr.d",
+          .op=RISCV_LR_D,
+          .rd=rd,
+          .rs1=rs1,
+          .rs2=none<int>(),
+          .rs3=none<int>(),
+          .imm=none<int>(),
+          .flags=has_load
+        }; // not quite R-type, but grouped with other AMO instructions
         default: return invalid_inst;
       }
       case 0x03: switch (f3) {
         case 0x2: return r_type_inst("sc.w", RISCV_SC_W, rd, rs1, rs2);
-        case 0x3: // sc.d
+        case 0x3: return r_type_inst("sc.d", RISCV_SC_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x04: switch (f3) {
         case 0x2: return r_type_inst("amoxor.w", RISCV_AMOXOR_W, rd, rs1, rs2);
-        case 0x3: // amoxor.d
+        case 0x3: return r_type_inst("amoxor.d", RISCV_AMOXOR_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x08: switch (f3) {
         case 0x2: return r_type_inst("amoor.w", RISCV_AMOOR_W, rd, rs1, rs2);
-        case 0x3: // amoor.d
+        case 0x3: return r_type_inst("ammor.d", RISCV_AMOOR_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x0c: switch (f3) {
         case 0x2: return r_type_inst("amoand.w", RISCV_AMOAND_W, rd, rs1, rs2);
-        case 0x3: // amoand.d
+        case 0x3: return r_type_inst("amoand.d", RISCV_AMOAND_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x10: switch (f3) {
         case 0x2: return r_type_inst("amomin.w", RISCV_AMOMIN_W, rd, rs1, rs2);
-        case 0x3: // amomin.d
+        case 0x3: return r_type_inst("amomin.d", RISCV_AMOMIN_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x14: switch (f3) {
         case 0x2: return r_type_inst("amomax.w", RISCV_AMOMAX_W, rd, rs1, rs2);
-        case 0x3: // amomax.d
+        case 0x3: return r_type_inst("amomax.d", RISCV_AMOMAX_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x18: switch (f3) {
         case 0x2: return r_type_inst("amominu.w", RISCV_AMOMINU_W, rd, rs1, rs2);
-        case 0x3: // amominu.d
+        case 0x3: return r_type_inst("amominu.d", RISCV_AMOMINU_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       case 0x1c: switch (f3) {
         case 0x2: return r_type_inst("amomaxu.w", RISCV_AMOMAXU_W, rd, rs1, rs2);
-        case 0x3: // amomaxu.d
+        case 0x3: return r_type_inst("amomaxu.d", RISCV_AMOMAXU_D, rd, rs1, rs2);
         default: return invalid_inst;
       }
       default: return invalid_inst;
