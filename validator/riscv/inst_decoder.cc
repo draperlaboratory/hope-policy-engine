@@ -573,7 +573,8 @@ static decoded_instruction_t decode_fp(uint8_t code, int f7, int f3, int rd, int
   }
 }
 
-static decoded_instruction_t decode_system(uint8_t code, uint16_t f12, uint8_t f3) {
+static decoded_instruction_t decode_system(uint8_t code, uint8_t f7, uint8_t f3, int rs1, int rs2) {
+  uint16_t f12 = f7 << 5 | (rs2 & 0x1f);
   switch (code) {
     case 0x0f: switch (f3) {
       case 0x0: return system_inst("fence", RISCV_FENCE);
@@ -588,7 +589,19 @@ static decoded_instruction_t decode_system(uint8_t code, uint16_t f12, uint8_t f
       case 0x105: return system_inst("wfi", RISCV_WFI);
       case 0x302: return system_inst("mret", RISCV_MRET);
       case 0x7b2: return system_inst("dret", RISCV_DRET);
-      default: return invalid_inst;
+      default: switch (f7) {
+        case 0x09: return decoded_instruction_t{
+          .name="sfence.vma",
+          .op=RISCV_SFENCE_VMA,
+          .rd=-1,
+          .rs1=rs1,
+          .rs2=rs2,
+          .rs3=-1,
+          .imm=0,
+          .flags=HAS_RS1 | HAS_RS2
+        };
+        default: return invalid_inst;
+      }
     }
     default: return invalid_inst;
   }
@@ -615,7 +628,7 @@ decoded_instruction_t decode(insn_bits_t bits) {
     return u;
   if (decoded_instruction_t fp = decode_fp(opcode, f7, f3, rd, rs1, rs2))
     return fp;
-  if (decoded_instruction_t sys = decode_system(opcode, f7 << 5 | rs2, f3))
+  if (decoded_instruction_t sys = decode_system(opcode, f7, f3, rs1, rs2))
     return sys;
 
   switch (bits & 0xf800707f) {
@@ -630,18 +643,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
       .flags=HAS_RD | HAS_RS1 | HAS_LOAD
     };
     // lr.d
-  }
-  switch (bits & 0xfe007fff) {
-    case 0x12000073: return decoded_instruction_t{
-      .name="sfence.vma",
-      .op=RISCV_SFENCE_VMA,
-      .rd=-1,
-      .rs1=rs1,
-      .rs2=rs2,
-      .rs3=-1,
-      .imm=0,
-      .flags=HAS_RS1 | HAS_RS2
-    };
   }
   return invalid_inst;
 }
