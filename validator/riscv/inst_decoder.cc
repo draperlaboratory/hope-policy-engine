@@ -36,7 +36,7 @@ namespace policy_engine {
 
 static const decoded_instruction_t invalid_inst{.name=""};
 
-static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, flags_t flags=flags_t{}) { return decoded_instruction_t{
+static decoded_instruction_t r_type_inst(const std::string& name, op_t op, int rd, int rs1, int rs2, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=rd,
@@ -47,7 +47,7 @@ static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, int rs3, flags_t flags=flags_t{}) { return decoded_instruction_t {
+static decoded_instruction_t r4_type_inst(const std::string& name, op_t op, int rd, int rs1, int rs2, int rs3, flags_t flags=flags_t{}) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=rd,
@@ -58,7 +58,7 @@ static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, 
   .flags=flags
 }; }
 
-static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, int rd, int rs1, flags_t flags=flags_t{}) { return decoded_instruction_t{
+static decoded_instruction_t fp_conv_inst(const std::string& name, op_t op, int rd, int rs1, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=rd,
@@ -69,7 +69,7 @@ static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, 
   .flags=flags
 }; }
 
-static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t{
+static decoded_instruction_t i_type_inst(const std::string& name, op_t op, int rd, int rs1, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=rd,
@@ -80,7 +80,7 @@ static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t csr_inst(const std::string& name, uint32_t op, int rd, int rs1, uint16_t csr) { return decoded_instruction_t{
+static decoded_instruction_t csr_inst(const std::string& name, op_t op, int rd, int rs1, uint16_t csr) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=when(rd != 0, rd),
@@ -91,7 +91,7 @@ static decoded_instruction_t csr_inst(const std::string& name, uint32_t op, int 
   .flags=(rd != 0 ? (has_csr_load | has_csr_store) : has_csr_store)
 }; }
 
-static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, int rs1, int rs2, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t{
+static decoded_instruction_t s_type_inst(const std::string& name, op_t op, int rs1, int rs2, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=none<int>(),
@@ -102,7 +102,7 @@ static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, int rd, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t {
+static decoded_instruction_t u_type_inst(const std::string& name, op_t op, int rd, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=rd,
@@ -113,7 +113,7 @@ static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t system_inst(const std::string& name, uint32_t op, flags_t flags=flags_t{}) { return decoded_instruction_t {
+static decoded_instruction_t system_inst(const std::string& name, op_t op, flags_t flags=flags_t{}) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=none<int>(),

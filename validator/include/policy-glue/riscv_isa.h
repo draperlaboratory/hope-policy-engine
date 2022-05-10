@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include "inst_decoder.h"
 #include "option.h"
 #include "platform_types.h"
 #include "policy_meta_set.h"
@@ -58,7 +59,7 @@ static const flags_t has_csr_store{false, false, false, true};
 
 struct decoded_instruction_t {
   const std::string name; // instruction name
-  const uint32_t op;      // opcode defined in inst_decode.h
+  const op_t op;          // opcode defined in inst_decoder.h
   const option<int> rd;   // register id
   const option<int> rs1;  // register id
   const option<int> rs2;  // register id
