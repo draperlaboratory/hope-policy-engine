@@ -224,20 +224,16 @@ void metadata_factory_t::init_group_map(YAML::Node &node) {
   }
 }
 
-YAML::Node metadata_factory_t::load_yaml(const char *yml_file) {
-  char path_buff[PATH_MAX];
+YAML::Node metadata_factory_t::load_yaml(const std::string& yml_file) {
+  const std::string path = policy_dir + "/" + yml_file;
   try {
-    strcpy(path_buff, policy_dir.c_str());
-    strcat(path_buff, "/");
-    strcat(path_buff, yml_file);
-    return YAML::LoadFile(path_buff);
-  } catch (std::exception &e) {
-    throw configuration_exception_t(std::string("while parsing ") + path_buff + std::string(": ") + e.what());
+    return YAML::LoadFile(path);
+  } catch (const std::exception& e) {
+    throw configuration_exception_t("while parsing " + path + ": " + e.what());
   }
 }
 
-metadata_factory_t::metadata_factory_t(std::string policy_dir)
-  : policy_dir(policy_dir) {
+metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_dir(policy_dir) {
   // load up all the requirements for initialization
   YAML::Node reqsAST = load_yaml("policy_init.yml");
   // load up the individual tag encodings

@@ -58,20 +58,20 @@ private:
 
   std::string abbreviate(const std::string& dotted_string);
 
-  void init_entity_initializers(YAML::Node const &reqsAST, std::string prefix);
-  void update_entity_initializers(YAML::Node const &metaAST, std::string prefix);
-  void init_encoding_map(YAML::Node &rawEnc);
-  void init_group_map(YAML::Node &groupAST);
-  YAML::Node load_yaml(const char *yml_file);
+  void init_entity_initializers(YAML::Node const& reqsAST, std::string prefix);
+  void update_entity_initializers(YAML::Node const& metaAST, std::string prefix);
+  void init_encoding_map(YAML::Node& rawEnc);
+  void init_group_map(YAML::Node& groupAST);
+  YAML::Node load_yaml(const std::string& yml_file);
   
-  std::string policy_dir;
+  const std::string policy_dir;
 
   static std::vector<std::string> split_dotted_name(const std::string &name);
 
   void update_rule_map(std::string key, YAML::Node &node);
 
 public:
-  metadata_factory_t(std::string policy_dir);
+  metadata_factory_t(const std::string& policy_dir);
   std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
   std::map<std::string, std::shared_ptr<metadata_t>> *lookup_metadata_map(std::string dotted_path);
 
