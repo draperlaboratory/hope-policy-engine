@@ -37,22 +37,34 @@
 
 namespace policy_engine {
 
-using flags_t = uint8_t;
+struct flags_t {
+  bool has_load = false;
+  bool has_store = false;
+  bool has_csr_load = false;
+  bool has_csr_store = false;
 
-static constexpr flags_t HAS_LOAD      = 0x1;
-static constexpr flags_t HAS_STORE     = 0x2;
-static constexpr flags_t HAS_CSR_LOAD  = 0x4;
-static constexpr flags_t HAS_CSR_STORE = 0x8;
+  flags_t operator |(const flags_t& other) const { return flags_t{
+    .has_load=has_load || other.has_load,
+    .has_store=has_store || other.has_store,
+    .has_csr_load=has_csr_load || other.has_csr_load,
+    .has_csr_store=has_csr_store || other.has_csr_store
+  }; }
+};
+
+static const flags_t has_load{true, false, false, false};
+static const flags_t has_store{false, true, false, false};
+static const flags_t has_csr_load{false, false, true, false};
+static const flags_t has_csr_store{false, false, false, true};
 
 struct decoded_instruction_t {
-  const std::string name;  // instruction name
-  const uint32_t op;       // opcode defined in inst_decode.h
-  const option<int> rd;    // register id
-  const option<int> rs1;   // register id
-  const option<int> rs2;   // register id
-  const option<int> rs3;   // register id
-  const option<int> imm;   // signed immediate value
-  const flags_t flags = 0; // fields only valid when HAS_* flag is set
+  const std::string name; // instruction name
+  const uint32_t op;      // opcode defined in inst_decode.h
+  const option<int> rd;   // register id
+  const option<int> rs1;  // register id
+  const option<int> rs2;  // register id
+  const option<int> rs3;  // register id
+  const option<int> imm;  // signed immediate value
+  const flags_t flags;
 
   explicit operator bool() const { return !name.empty(); }
 };

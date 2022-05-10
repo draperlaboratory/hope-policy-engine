@@ -36,7 +36,7 @@ namespace policy_engine {
 
 static const decoded_instruction_t invalid_inst{.name=""};
 
-static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, flags_t flags=0) { return decoded_instruction_t{
+static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=rd,
@@ -47,7 +47,7 @@ static decoded_instruction_t r_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, int rs3, flags_t flags=0) { return decoded_instruction_t {
+static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int rs2, int rs3, flags_t flags=flags_t{}) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=rd,
@@ -58,7 +58,7 @@ static decoded_instruction_t r4_type_inst(const std::string& name, uint32_t op, 
   .flags=flags
 }; }
 
-static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, int rd, int rs1, flags_t flags=0) { return decoded_instruction_t{
+static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, int rd, int rs1, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=rd,
@@ -69,7 +69,7 @@ static decoded_instruction_t fp_conv_inst(const std::string& name, uint32_t op, 
   .flags=flags
 }; }
 
-static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, flags_t flags=0) { return decoded_instruction_t{
+static decoded_instruction_t i_type_inst(const std::string& name, uint32_t op, int rd, int rs1, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=rd,
@@ -88,10 +88,10 @@ static decoded_instruction_t csr_inst(const std::string& name, uint32_t op, int 
   .rs2=none<int>(),
   .rs3=none<int>(),
   .imm=csr,
-  .flags=(rd != 0 ? (HAS_CSR_LOAD | HAS_CSR_STORE) : HAS_CSR_STORE)
+  .flags=(rd != 0 ? (has_csr_load | has_csr_store) : has_csr_store)
 }; }
 
-static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, int rs1, int rs2, int imm, flags_t flags=0) { return decoded_instruction_t{
+static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, int rs1, int rs2, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
   .op=op,
   .rd=none<int>(),
@@ -102,7 +102,7 @@ static decoded_instruction_t s_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, int rd, int imm, flags_t flags=0) { return decoded_instruction_t {
+static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, int rd, int imm, flags_t flags=flags_t{}) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=rd,
@@ -113,7 +113,7 @@ static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, i
   .flags=flags
 }; }
 
-static decoded_instruction_t system_inst(const std::string& name, uint32_t op, flags_t flags=0) { return decoded_instruction_t {
+static decoded_instruction_t system_inst(const std::string& name, uint32_t op, flags_t flags=flags_t{}) { return decoded_instruction_t {
   .name=name,
   .op=op,
   .rd=none<int>(),
@@ -217,7 +217,7 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
           .rs2=none<int>(),
           .rs3=none<int>(),
           .imm=none<int>(),
-          .flags=HAS_LOAD
+          .flags=has_load
         }; // not quite R-type, but grouped with other AMO instructions
         case 0x3: // lr.d
         default: return invalid_inst;
@@ -275,19 +275,19 @@ static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int
   uint16_t csr = static_cast<uint16_t>(imm) & 0xfff;
   switch (code) {
     case 0x03: switch (f3) {
-      case 0x0: return i_type_inst("lb", RISCV_LB, rd, rs1, imm, HAS_LOAD);
-      case 0x1: return i_type_inst("lh", RISCV_LH, rd, rs1, imm, HAS_LOAD);
-      case 0x2: return i_type_inst("lw", RISCV_LW, rd, rs1, imm, HAS_LOAD);
-      case 0x3: return i_type_inst("ld", RISCV_LD, rd, rs1, imm, HAS_LOAD);
-      case 0x4: return i_type_inst("lbu", RISCV_LBU, rd, rs1, imm, HAS_LOAD);
-      case 0x5: return i_type_inst("lhu", RISCV_LHU, rd, rs1, imm, HAS_LOAD);
-      case 0x6: return i_type_inst("lwu", RISCV_LWU, rd, rs1, imm, HAS_LOAD);
+      case 0x0: return i_type_inst("lb", RISCV_LB, rd, rs1, imm, has_load);
+      case 0x1: return i_type_inst("lh", RISCV_LH, rd, rs1, imm, has_load);
+      case 0x2: return i_type_inst("lw", RISCV_LW, rd, rs1, imm, has_load);
+      case 0x3: return i_type_inst("ld", RISCV_LD, rd, rs1, imm, has_load);
+      case 0x4: return i_type_inst("lbu", RISCV_LBU, rd, rs1, imm, has_load);
+      case 0x5: return i_type_inst("lhu", RISCV_LHU, rd, rs1, imm, has_load);
+      case 0x6: return i_type_inst("lwu", RISCV_LWU, rd, rs1, imm, has_load);
       default: return invalid_inst;
     }
     case 0x07: switch (f3) {
-      case 0x2: return i_type_inst("flw", RISCV_FLW, rd, rs1, imm, HAS_LOAD);
-      case 0x3: return i_type_inst("fld", RISCV_FLD, rd, rs1, imm, HAS_LOAD);
-      case 0x4: return i_type_inst("flq", RISCV_FLQ, rd, rs1, imm, HAS_LOAD);
+      case 0x2: return i_type_inst("flw", RISCV_FLW, rd, rs1, imm, has_load);
+      case 0x3: return i_type_inst("fld", RISCV_FLD, rd, rs1, imm, has_load);
+      case 0x4: return i_type_inst("flq", RISCV_FLQ, rd, rs1, imm, has_load);
       default: return invalid_inst;
     }
     case 0x13: switch (f3) {
@@ -333,16 +333,16 @@ static decoded_instruction_t decode_s_type(uint8_t code, uint8_t f3, int rs1, in
   int b_imm = ((s_imm & 0x1) << 11) | (s_imm & 0x7fe) | ((s_imm & 0x800) ? ~0x7ff : 0);
   switch (code) {
     case 0x23: switch (f3) {
-      case 0x0: return s_type_inst("sb", RISCV_SB, rs1, rs2, s_imm, HAS_STORE);
-      case 0x1: return s_type_inst("sh", RISCV_SH, rs1, rs2, s_imm, HAS_STORE);
-      case 0x2: return s_type_inst("sw", RISCV_SW, rs1, rs2, s_imm, HAS_STORE);
-      case 0x3: return s_type_inst("sd", RISCV_SD, rs1, rs2, s_imm, HAS_STORE);
+      case 0x0: return s_type_inst("sb", RISCV_SB, rs1, rs2, s_imm, has_store);
+      case 0x1: return s_type_inst("sh", RISCV_SH, rs1, rs2, s_imm, has_store);
+      case 0x2: return s_type_inst("sw", RISCV_SW, rs1, rs2, s_imm, has_store);
+      case 0x3: return s_type_inst("sd", RISCV_SD, rs1, rs2, s_imm, has_store);
       default: return invalid_inst;
     }
     case 0x27: switch (f3) {
-      case 0x2: return s_type_inst("fsw", RISCV_FSW, rs1, rs2, s_imm, HAS_STORE);
-      case 0x3: return s_type_inst("fsd", RISCV_FSD, rs1, rs2, s_imm, HAS_STORE);
-      case 0x4: return s_type_inst("fsq", RISCV_FSQ, rs1, rs2, s_imm, HAS_STORE);
+      case 0x2: return s_type_inst("fsw", RISCV_FSW, rs1, rs2, s_imm, has_store);
+      case 0x3: return s_type_inst("fsd", RISCV_FSD, rs1, rs2, s_imm, has_store);
+      case 0x4: return s_type_inst("fsq", RISCV_FSQ, rs1, rs2, s_imm, has_store);
       default: return invalid_inst;
     }
     case 0x63: switch (f3) {
