@@ -134,6 +134,17 @@ static decoded_instruction_t u_type_inst(const std::string& name, uint32_t op, i
   .flags=HAS_RD | HAS_IMM | flags
 }; }
 
+static decoded_instruction_t system_inst(const std::string& name, uint32_t op, flags_t flags=0) { return decoded_instruction_t {
+  .name=name,
+  .op=op,
+  .rd=-1,
+  .rs1=-1,
+  .rs2=-1,
+  .rs3=-1,
+  .imm=0,
+  .flags=flags
+}; }
+
 static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7, int rd, int rs1, int rs2) {
   uint8_t f5 = f7 >> 2;
   uint8_t fmt = f7 & 0x3;
@@ -562,6 +573,27 @@ static decoded_instruction_t decode_fp(uint8_t code, int f7, int f3, int rd, int
   }
 }
 
+static decoded_instruction_t decode_system(uint8_t code, uint16_t f12, uint8_t f3) {
+  switch (code) {
+    case 0x0f: switch (f3) {
+      case 0x0: return system_inst("fence", RISCV_FENCE);
+      case 0x1: return system_inst("fence.i", RISCV_FENCE_I);
+      default: return invalid_inst;
+    }
+    case 0x73: switch (f12) {
+      case 0x000: return system_inst("ecall", RISCV_ECALL);
+      case 0x001: return system_inst("ebreak", RISCV_EBREAK);
+      case 0x002: return system_inst("uret", RISCV_URET);
+      case 0x102: return system_inst("sret", RISCV_SRET);
+      case 0x105: return system_inst("wfi", RISCV_WFI);
+      case 0x302: return system_inst("mret", RISCV_MRET);
+      case 0x7b2: return system_inst("dret", RISCV_DRET);
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
 decoded_instruction_t decode(insn_bits_t bits) {
   uint8_t opcode = bits & 0x7f;
   uint8_t f3 = (bits & 0x7000) >> 12;
@@ -583,11 +615,9 @@ decoded_instruction_t decode(insn_bits_t bits) {
     return u;
   if (decoded_instruction_t fp = decode_fp(opcode, f7, f3, rd, rs1, rs2))
     return fp;
+  if (decoded_instruction_t sys = decode_system(opcode, f7 << 5 | rs2, f3))
+    return sys;
 
-  switch (bits & 0x707f) {
-    case 0x000f: return inst("fence", RISCV_FENCE, 0);
-    case 0x100f: return inst("fence.i", RISCV_FENCE_I, 0);
-  }
   switch (bits & 0xf800707f) {
     case 0x1000202f: return decoded_instruction_t{
       .name="lr.w",
@@ -612,15 +642,6 @@ decoded_instruction_t decode(insn_bits_t bits) {
       .imm=0,
       .flags=HAS_RS1 | HAS_RS2
     };
-  }
-  switch (bits) {
-    case 0x73: return inst("ecall", RISCV_ECALL, 0);
-    case 0x100073: return inst("ebreak", RISCV_EBREAK, 0);
-    case 0x200073: return inst("uret", RISCV_URET, 0);
-    case 0x10200073: return inst("sret", RISCV_SRET, 0);
-    case 0x30200073: return inst("mret", RISCV_MRET, 0);
-    case 0x7b200073: return inst("dret", RISCV_DRET, 0);
-    case 0x10500073: return inst("wfi", RISCV_WFI, 0);
   }
   return invalid_inst;
 }
