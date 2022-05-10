@@ -207,6 +207,193 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
       }
       default: return invalid_inst;
     }
+    case 0x2f: switch (f5) {
+      case 0x00: switch (f3) {
+        case 0x2: return r_type_inst("amoadd.w", RISCV_AMOADD_W, rd, rs1, rs2);
+        case 0x3: // amoadd.d
+        default: return invalid_inst;
+      }
+      case 0x01: switch (f3) {
+        case 0x2: return r_type_inst("amoswap.w", RISCV_AMOSWAP_W, rd, rs1, rs2);
+        case 0x3: // amoswap.d
+        default: return invalid_inst;
+      }
+      case 0x03: switch (f3) {
+        case 0x2: return r_type_inst("sc.w", RISCV_SC_W, rd, rs1, rs2);
+        case 0x3: // sc.d
+        default: return invalid_inst;
+      }
+      case 0x04: switch (f3) {
+        case 0x2: return r_type_inst("amoxor.w", RISCV_AMOXOR_W, rd, rs1, rs2);
+        case 0x3: // amoxor.d
+        default: return invalid_inst;
+      }
+      case 0x08: switch (f3) {
+        case 0x2: return r_type_inst("amoor.w", RISCV_AMOOR_W, rd, rs1, rs2);
+        case 0x3: // amoor.d
+        default: return invalid_inst;
+      }
+      case 0x0c: switch (f3) {
+        case 0x2: return r_type_inst("amoand.w", RISCV_AMOAND_W, rd, rs1, rs2);
+        case 0x3: // amoand.d
+        default: return invalid_inst;
+      }
+      case 0x10: switch (f3) {
+        case 0x2: return r_type_inst("amomin.w", RISCV_AMOMIN_W, rd, rs1, rs2);
+        case 0x3: // amomin.d
+        default: return invalid_inst;
+      }
+      case 0x14: switch (f3) {
+        case 0x2: return r_type_inst("amomax.w", RISCV_AMOMAX_W, rd, rs1, rs2);
+        case 0x3: // amomax.d
+        default: return invalid_inst;
+      }
+      case 0x18: switch (f3) {
+        case 0x2: return r_type_inst("amominu.w", RISCV_AMOMINU_W, rd, rs1, rs2);
+        case 0x3: // amominu.d
+        default: return invalid_inst;
+      }
+      case 0x1c: switch (f3) {
+        case 0x2: return r_type_inst("amomaxu.w", RISCV_AMOMAXU_W, rd, rs1, rs2);
+        case 0x3: // amomaxu.d
+        default: return invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int rs1, int imm) {
+  // decode as if for RV64; for RV32, MSB of shamt should always be 0
+  uint8_t shamt = imm & 0x3f;
+  uint8_t f6 = static_cast<unsigned int>(imm) >> 6;
+  uint16_t csr = static_cast<uint16_t>(imm) & 0xfff;
+  switch (code) {
+    case 0x03: switch (f3) {
+      case 0x0: return i_type_inst("lb", RISCV_LB, rd, rs1, imm, HAS_LOAD);
+      case 0x1: return i_type_inst("lh", RISCV_LH, rd, rs1, imm, HAS_LOAD);
+      case 0x2: return i_type_inst("lw", RISCV_LW, rd, rs1, imm, HAS_LOAD);
+      case 0x3: return i_type_inst("ld", RISCV_LD, rd, rs1, imm, HAS_LOAD);
+      case 0x4: return i_type_inst("lbu", RISCV_LBU, rd, rs1, imm, HAS_LOAD);
+      case 0x5: return i_type_inst("lhu", RISCV_LHU, rd, rs1, imm, HAS_LOAD);
+      case 0x6: return i_type_inst("lwu", RISCV_LWU, rd, rs1, imm, HAS_LOAD);
+      default: return invalid_inst;
+    }
+    case 0x07: switch (f3) {
+      case 0x2: return i_type_inst("flw", RISCV_FLW, rd, rs1, imm, HAS_LOAD);
+      case 0x3: return i_type_inst("fld", RISCV_FLD, rd, rs1, imm, HAS_LOAD);
+      case 0x4: return i_type_inst("flq", RISCV_FLQ, rd, rs1, imm, HAS_LOAD);
+      default: return invalid_inst;
+    }
+    case 0x13: switch (f3) {
+      case 0x0: return i_type_inst("addi", RISCV_ADDI, rd, rs1, imm);
+      case 0x1: return i_type_inst("slli", RISCV_SLLI, rd, rs1, shamt);
+      case 0x2: return i_type_inst("slti", RISCV_SLTI, rd, rs1, imm);
+      case 0x3: return i_type_inst("sltiu", RISCV_SLTIU, rd, rs1, imm);
+      case 0x4: return i_type_inst("xori", RISCV_XORI, rd, rs1, imm);
+      case 0x5: switch (f6) {
+        case 0x00: return i_type_inst("srli", RISCV_SRLI, rd, rs1, shamt);
+        case 0x10: return i_type_inst("srai", RISCV_SRAI, rd, rs1, shamt);
+        default: return invalid_inst;
+      }
+      case 0x6: return i_type_inst("ori", RISCV_ORI, rd, rs1, imm);
+      case 0x7: return i_type_inst("andi", RISCV_ANDI, rd, rs1, imm);
+      default: return invalid_inst;
+    }
+    case 0x1b: switch (f3) {
+      case 0x0: return i_type_inst("addiw", RISCV_ADDIW, rd, rs1, imm);
+      case 0x1: return i_type_inst("slliw", RISCV_SLLIW, rd, rs1, shamt);
+      case 0x5: switch (f6) {
+        case 0x00: return i_type_inst("srliw", RISCV_SRLIW, rd, rs1, shamt);
+        case 0x10: return i_type_inst("sraiw", RISCV_SRAIW, rd, rs1, shamt);
+        default: return invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    case 0x67: return i_type_inst("jalr", RISCV_JALR, rd, rs1, imm);
+    case 0x73: switch (f3) {
+      case 0x1: return csr_inst("csrrw", RISCV_CSRRW, rd, rs1, csr);
+      case 0x2: return csr_inst("csrrs", RISCV_CSRRS, rd, rs1, csr);
+      case 0x3: return csr_inst("csrrc", RISCV_CSRRC, rd, rs1, csr);
+      case 0x5: return csr_inst("csrrwi", RISCV_CSRRWI, rd, -1, csr);
+      case 0x6: return csr_inst("csrrsi", RISCV_CSRRSI, rd, -1, csr);
+      case 0x7: return csr_inst("csrrci", RISCV_CSRRCI, rd, -1, csr);
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_s_type(uint8_t code, uint8_t f3, int rs1, int rs2, int s_imm) {
+  int b_imm = ((s_imm & 0x1) << 11) | (s_imm & 0x7fe) | ((s_imm & 0x800) ? ~0x7ff : 0);
+  switch (code) {
+    case 0x23: switch (f3) {
+      case 0x0: return s_type_inst("sb", RISCV_SB, rs1, rs2, s_imm, HAS_STORE);
+      case 0x1: return s_type_inst("sh", RISCV_SH, rs1, rs2, s_imm, HAS_STORE);
+      case 0x2: return s_type_inst("sw", RISCV_SW, rs1, rs2, s_imm, HAS_STORE);
+      case 0x3: return s_type_inst("sd", RISCV_SD, rs1, rs2, s_imm, HAS_STORE);
+      default: return invalid_inst;
+    }
+    case 0x27: switch (f3) {
+      case 0x2: return s_type_inst("fsw", RISCV_FSW, rs1, rs2, s_imm, HAS_STORE);
+      case 0x3: return s_type_inst("fsd", RISCV_FSD, rs1, rs2, s_imm, HAS_STORE);
+      case 0x4: return s_type_inst("fsq", RISCV_FSQ, rs1, rs2, s_imm, HAS_STORE);
+      default: return invalid_inst;
+    }
+    case 0x63: switch (f3) {
+      case 0x0: return s_type_inst("beq", RISCV_BEQ, rs1, rs2, b_imm);
+      case 0x1: return s_type_inst("bne", RISCV_BNE, rs1, rs2, b_imm);
+      case 0x4: return s_type_inst("blt", RISCV_BLT, rs1, rs2, b_imm);
+      case 0x5: return s_type_inst("bge", RISCV_BGE, rs1, rs2, b_imm);
+      case 0x6: return s_type_inst("bltu", RISCV_BLTU, rs1, rs2, b_imm);
+      case 0x7: return s_type_inst("bgeu", RISCV_BGEU, rs1, rs2, b_imm);
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_u_type(uint8_t code, int rd, int u_imm) {
+  int j_imm = (u_imm & 0xff000) | ((u_imm & 0x100000) >> 9) | ((u_imm & 0x7fe00000) >> 20) | (u_imm >> 30 ? (-1 & ~0xfffff) : 0);
+  switch (code) {
+    case 0x17: return u_type_inst("auipc", RISCV_AUIPC, rd, u_imm);
+    case 0x37: return u_type_inst("lui", RISCV_LUI, rd, u_imm);
+    case 0x6f: return u_type_inst("jal", RISCV_JAL, rd, j_imm);
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_fp(uint8_t code, int f7, int f3, int rd, int rs1, int rs2) {
+  int f5 = f7 >> 2;
+  const int& rs3 = f5;
+  int fmt = f7 & 0x3;
+
+  switch (code) {
+    case 0x43: switch (fmt) {
+      case 0x0: return r4_type_inst("fmadd.s", RISCV_FMADD_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fmadd.d", RISCV_FMADD_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fmadd.q", RISCV_FMADD_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    case 0x47: switch (fmt) {
+      case 0x0: return r4_type_inst("fmsub.s", RISCV_FMSUB_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fmsub.d", RISCV_FMSUB_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fmsub.q", RISCV_FMSUB_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    case 0x4b: switch (fmt) {
+      case 0x0: return r4_type_inst("fnmsub.s", RISCV_FNMSUB_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fnmsub.d", RISCV_FNMSUB_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fnmsub.q", RISCV_FNMSUB_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
+    case 0x4f: switch (fmt) {
+      case 0x0: return r4_type_inst("fnmadd.s", RISCV_FNMADD_S, rd, rs1, rs2, rs3);
+      case 0x1: return r4_type_inst("fnmadd.d", RISCV_FNMADD_D, rd, rs1, rs2, rs3);
+      case 0x3: return r4_type_inst("fnmadd.q", RISCV_FNMADD_Q, rd, rs1, rs2, rs3);
+      default: return invalid_inst;
+    }
     case 0x53: switch (f7) {
       case 0x00: return r_type_inst("fadd.s", RISCV_FADD_S, rd, rs1, rs2);
       case 0x01: return r_type_inst("fadd.d", RISCV_FADD_D, rd, rs1, rs2);
@@ -371,191 +558,6 @@ static decoded_instruction_t decode_r_type(uint8_t code, uint8_t f3, uint8_t f7,
         default: return invalid_inst;
       }
     }
-    case 0x2f: switch (f5) {
-      case 0x00: switch (f3) {
-        case 0x2: return r_type_inst("amoadd.w", RISCV_AMOADD_W, rd, rs1, rs2);
-        case 0x3: // amoadd.d
-        default: return invalid_inst;
-      }
-      case 0x01: switch (f3) {
-        case 0x2: return r_type_inst("amoswap.w", RISCV_AMOSWAP_W, rd, rs1, rs2);
-        case 0x3: // amoswap.d
-        default: return invalid_inst;
-      }
-      case 0x03: switch (f3) {
-        case 0x2: return r_type_inst("sc.w", RISCV_SC_W, rd, rs1, rs2);
-        case 0x3: // sc.d
-        default: return invalid_inst;
-      }
-      case 0x04: switch (f3) {
-        case 0x2: return r_type_inst("amoxor.w", RISCV_AMOXOR_W, rd, rs1, rs2);
-        case 0x3: // amoxor.d
-        default: return invalid_inst;
-      }
-      case 0x08: switch (f3) {
-        case 0x2: return r_type_inst("amoor.w", RISCV_AMOOR_W, rd, rs1, rs2);
-        case 0x3: // amoor.d
-        default: return invalid_inst;
-      }
-      case 0x0c: switch (f3) {
-        case 0x2: return r_type_inst("amoand.w", RISCV_AMOAND_W, rd, rs1, rs2);
-        case 0x3: // amoand.d
-        default: return invalid_inst;
-      }
-      case 0x10: switch (f3) {
-        case 0x2: return r_type_inst("amomin.w", RISCV_AMOMIN_W, rd, rs1, rs2);
-        case 0x3: // amomin.d
-        default: return invalid_inst;
-      }
-      case 0x14: switch (f3) {
-        case 0x2: return r_type_inst("amomax.w", RISCV_AMOMAX_W, rd, rs1, rs2);
-        case 0x3: // amomax.d
-        default: return invalid_inst;
-      }
-      case 0x18: switch (f3) {
-        case 0x2: return r_type_inst("amominu.w", RISCV_AMOMINU_W, rd, rs1, rs2);
-        case 0x3: // amominu.d
-        default: return invalid_inst;
-      }
-      case 0x1c: switch (f3) {
-        case 0x2: return r_type_inst("amomaxu.w", RISCV_AMOMAXU_W, rd, rs1, rs2);
-        case 0x3: // amomaxu.d
-        default: return invalid_inst;
-      }
-      default: return invalid_inst;
-    }
-    default: return invalid_inst;
-  }
-}
-
-static decoded_instruction_t decode_r4_type(uint8_t code, uint8_t f7, int rd, int rs1, int rs2) {
-  int rs3 = f7 >> 2;
-  uint8_t fmt = f7 & 0x3;
-  switch (code) {
-    case 0x43: switch (fmt) {
-      case 0x0: return r4_type_inst("fmadd.s", RISCV_FMADD_S, rd, rs1, rs2, rs3);
-      case 0x1: return r4_type_inst("fmadd.d", RISCV_FMADD_D, rd, rs1, rs2, rs3);
-      case 0x3: return r4_type_inst("fmadd.q", RISCV_FMADD_Q, rd, rs1, rs2, rs3);
-      default: return invalid_inst;
-    }
-    case 0x47: switch (fmt) {
-      case 0x0: return r4_type_inst("fmsub.s", RISCV_FMSUB_S, rd, rs1, rs2, rs3);
-      case 0x1: return r4_type_inst("fmsub.d", RISCV_FMSUB_D, rd, rs1, rs2, rs3);
-      case 0x3: return r4_type_inst("fmsub.q", RISCV_FMSUB_Q, rd, rs1, rs2, rs3);
-      default: return invalid_inst;
-    }
-    case 0x4b: switch (fmt) {
-      case 0x0: return r4_type_inst("fnmsub.s", RISCV_FNMSUB_S, rd, rs1, rs2, rs3);
-      case 0x1: return r4_type_inst("fnmsub.d", RISCV_FNMSUB_D, rd, rs1, rs2, rs3);
-      case 0x3: return r4_type_inst("fnmsub.q", RISCV_FNMSUB_Q, rd, rs1, rs2, rs3);
-      default: return invalid_inst;
-    }
-    case 0x4f: switch (fmt) {
-      case 0x0: return r4_type_inst("fnmadd.s", RISCV_FNMADD_S, rd, rs1, rs2, rs3);
-      case 0x1: return r4_type_inst("fnmadd.d", RISCV_FNMADD_D, rd, rs1, rs2, rs3);
-      case 0x3: return r4_type_inst("fnmadd.q", RISCV_FNMADD_Q, rd, rs1, rs2, rs3);
-      default: return invalid_inst;
-    }
-    default: return invalid_inst;
-  }
-}
-
-static decoded_instruction_t decode_i_type(uint8_t code, uint8_t f3, int rd, int rs1, int imm) {
-  // decode as if for RV64; for RV32, MSB of shamt should always be 0
-  uint8_t shamt = imm & 0x3f;
-  uint8_t f6 = static_cast<unsigned int>(imm) >> 6;
-  uint16_t csr = static_cast<uint16_t>(imm) & 0xfff;
-  switch (code) {
-    case 0x03: switch (f3) {
-      case 0x0: return i_type_inst("lb", RISCV_LB, rd, rs1, imm, HAS_LOAD);
-      case 0x1: return i_type_inst("lh", RISCV_LH, rd, rs1, imm, HAS_LOAD);
-      case 0x2: return i_type_inst("lw", RISCV_LW, rd, rs1, imm, HAS_LOAD);
-      case 0x3: return i_type_inst("ld", RISCV_LD, rd, rs1, imm, HAS_LOAD);
-      case 0x4: return i_type_inst("lbu", RISCV_LBU, rd, rs1, imm, HAS_LOAD);
-      case 0x5: return i_type_inst("lhu", RISCV_LHU, rd, rs1, imm, HAS_LOAD);
-      case 0x6: return i_type_inst("lwu", RISCV_LWU, rd, rs1, imm, HAS_LOAD);
-      default: return invalid_inst;
-    }
-    case 0x07: switch (f3) {
-      case 0x2: return i_type_inst("flw", RISCV_FLW, rd, rs1, imm, HAS_LOAD);
-      case 0x3: return i_type_inst("fld", RISCV_FLD, rd, rs1, imm, HAS_LOAD);
-      case 0x4: return i_type_inst("flq", RISCV_FLQ, rd, rs1, imm, HAS_LOAD);
-      default: return invalid_inst;
-    }
-    case 0x13: switch (f3) {
-      case 0x0: return i_type_inst("addi", RISCV_ADDI, rd, rs1, imm);
-      case 0x1: return i_type_inst("slli", RISCV_SLLI, rd, rs1, shamt);
-      case 0x2: return i_type_inst("slti", RISCV_SLTI, rd, rs1, imm);
-      case 0x3: return i_type_inst("sltiu", RISCV_SLTIU, rd, rs1, imm);
-      case 0x4: return i_type_inst("xori", RISCV_XORI, rd, rs1, imm);
-      case 0x5: switch (f6) {
-        case 0x00: return i_type_inst("srli", RISCV_SRLI, rd, rs1, shamt);
-        case 0x10: return i_type_inst("srai", RISCV_SRAI, rd, rs1, shamt);
-        default: return invalid_inst;
-      }
-      case 0x6: return i_type_inst("ori", RISCV_ORI, rd, rs1, imm);
-      case 0x7: return i_type_inst("andi", RISCV_ANDI, rd, rs1, imm);
-      default: return invalid_inst;
-    }
-    case 0x1b: switch (f3) {
-      case 0x0: return i_type_inst("addiw", RISCV_ADDIW, rd, rs1, imm);
-      case 0x1: return i_type_inst("slliw", RISCV_SLLIW, rd, rs1, shamt);
-      case 0x5: switch (f6) {
-        case 0x00: return i_type_inst("srliw", RISCV_SRLIW, rd, rs1, shamt);
-        case 0x10: return i_type_inst("sraiw", RISCV_SRAIW, rd, rs1, shamt);
-        default: return invalid_inst;
-      }
-      default: return invalid_inst;
-    }
-    case 0x67: return i_type_inst("jalr", RISCV_JALR, rd, rs1, imm);
-    case 0x73: switch (f3) {
-      case 0x1: return csr_inst("csrrw", RISCV_CSRRW, rd, rs1, csr);
-      case 0x2: return csr_inst("csrrs", RISCV_CSRRS, rd, rs1, csr);
-      case 0x3: return csr_inst("csrrc", RISCV_CSRRC, rd, rs1, csr);
-      case 0x5: return csr_inst("csrrwi", RISCV_CSRRWI, rd, -1, csr);
-      case 0x6: return csr_inst("csrrsi", RISCV_CSRRSI, rd, -1, csr);
-      case 0x7: return csr_inst("csrrci", RISCV_CSRRCI, rd, -1, csr);
-      default: return invalid_inst;
-    }
-    default: return invalid_inst;
-  }
-}
-
-static decoded_instruction_t decode_s_type(uint8_t code, uint8_t f3, int rs1, int rs2, int s_imm) {
-  int b_imm = ((s_imm & 0x1) << 11) | (s_imm & 0x7fe) | ((s_imm & 0x800) ? ~0x7ff : 0);
-  switch (code) {
-    case 0x23: switch (f3) {
-      case 0x0: return s_type_inst("sb", RISCV_SB, rs1, rs2, s_imm, HAS_STORE);
-      case 0x1: return s_type_inst("sh", RISCV_SH, rs1, rs2, s_imm, HAS_STORE);
-      case 0x2: return s_type_inst("sw", RISCV_SW, rs1, rs2, s_imm, HAS_STORE);
-      case 0x3: return s_type_inst("sd", RISCV_SD, rs1, rs2, s_imm, HAS_STORE);
-      default: return invalid_inst;
-    }
-    case 0x27: switch (f3) {
-      case 0x2: return s_type_inst("fsw", RISCV_FSW, rs1, rs2, s_imm, HAS_STORE);
-      case 0x3: return s_type_inst("fsd", RISCV_FSD, rs1, rs2, s_imm, HAS_STORE);
-      case 0x4: return s_type_inst("fsq", RISCV_FSQ, rs1, rs2, s_imm, HAS_STORE);
-      default: return invalid_inst;
-    }
-    case 0x63: switch (f3) {
-      case 0x0: return s_type_inst("beq", RISCV_BEQ, rs1, rs2, b_imm);
-      case 0x1: return s_type_inst("bne", RISCV_BNE, rs1, rs2, b_imm);
-      case 0x4: return s_type_inst("blt", RISCV_BLT, rs1, rs2, b_imm);
-      case 0x5: return s_type_inst("bge", RISCV_BGE, rs1, rs2, b_imm);
-      case 0x6: return s_type_inst("bltu", RISCV_BLTU, rs1, rs2, b_imm);
-      case 0x7: return s_type_inst("bgeu", RISCV_BGEU, rs1, rs2, b_imm);
-      default: return invalid_inst;
-    }
-    default: return invalid_inst;
-  }
-}
-
-static decoded_instruction_t decode_u_type(uint8_t code, int rd, int u_imm) {
-  int j_imm = (u_imm & 0xff000) | ((u_imm & 0x100000) >> 9) | ((u_imm & 0x7fe00000) >> 20) | (u_imm >> 30 ? (-1 & ~0xfffff) : 0);
-  switch (code) {
-    case 0x17: return u_type_inst("auipc", RISCV_AUIPC, rd, u_imm);
-    case 0x37: return u_type_inst("lui", RISCV_LUI, rd, u_imm);
-    case 0x6f: return u_type_inst("jal", RISCV_JAL, rd, j_imm);
     default: return invalid_inst;
   }
 }
@@ -573,14 +575,14 @@ decoded_instruction_t decode(insn_bits_t bits) {
 
   if (decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2))
     return r;
-  if (decoded_instruction_t r4 = decode_r4_type(opcode, f7, rd, rs1, rs2))
-    return r4;
   if (decoded_instruction_t i = decode_i_type(opcode, f3, rd, rs1, i_imm))
     return i;
   if (decoded_instruction_t s = decode_s_type(opcode, f3, rs1, rs2, s_imm))
     return s;
   if (decoded_instruction_t u = decode_u_type(opcode, rd, u_imm))
     return u;
+  if (decoded_instruction_t fp = decode_fp(opcode, f7, f3, rd, rs1, rs2))
+    return fp;
 
   switch (bits & 0x707f) {
     case 0x000f: return inst("fence", RISCV_FENCE, 0);
