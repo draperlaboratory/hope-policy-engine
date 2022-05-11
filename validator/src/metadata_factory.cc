@@ -46,29 +46,23 @@ std::string metadata_factory_t::abbreviate(std::string const &dotted_string) {
   return dotted_string.substr(last + 1, std::string::npos);
 }
 
-void metadata_factory_t::init_entity_initializers(YAML::Node const &reqsAST, std::string prefix) {
-  for (YAML::const_iterator it = reqsAST.begin(); it != reqsAST.end(); ++it) {
-    std::string key = it->first.as<std::string>();
+void metadata_factory_t::init_entity_initializers(const YAML::Node& reqsAST, const std::string& prefix) {
+  for (const auto& it : reqsAST) {
+    std::string key = it.first.as<std::string>();
     if (key == "metadata") {
       entity_init_t init;
       init.entity_name = prefix;
-      YAML::Node mnode = it->second;
-      for (size_t i = 0; i < mnode.size(); i++) {
-        std::string name = mnode[i]["name"].as<std::string>();
-        init.meta_names.push_back(name);
-      }
+      for (const YAML::Node& m : it.second)
+        init.meta_names.push_back(m["name"].as<std::string>());
       entity_initializers[prefix] = init;
     } else {
-      init_entity_initializers(it->second, prefix == "" ? key : prefix + "." + key);
+      init_entity_initializers(it.second, prefix == "" ? key : prefix + "." + key);
     }
   }
 }
 
-void metadata_factory_t::update_entity_initializers(YAML::Node const &metaAST, std::string prefix) {
-  YAML::Node metadata = metaAST;
-  // for each node in Metadata
-  for (YAML::const_iterator seq_it = metadata.begin(); seq_it != metadata.end(); ++seq_it) {
-    YAML::Node metadata_node = *seq_it;
+void metadata_factory_t::update_entity_initializers(const YAML::Node& metaAST, const std::string& prefix) {
+  for (const YAML::Node& metadata_node : metaAST) {
     std::string mname = metadata_node["name"].as<std::string>();
     entity_init_t init;
     init.entity_name = mname;
@@ -77,12 +71,8 @@ void metadata_factory_t::update_entity_initializers(YAML::Node const &metaAST, s
   }
 }
 
-void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
-  YAML::Node root = rawEnc["Metadata"];
-  YAML::Node node;
-  
-  for (size_t i = 0; i < root.size(); i++) {
-    node = root[i];
+void metadata_factory_t::init_encoding_map(const YAML::Node& rawEnc) {
+  for (const YAML::Node& node: rawEnc["Metadata"]) {
     encoding_map[node["name"].as<std::string>()] = node["id"].as<meta_t>();
     reverse_encoding_map[node["id"].as<meta_t>()] = node["name"].as<std::string>();
     abbrev_reverse_encoding_map[node["id"].as<meta_t>()] = abbreviate(node["name"].as<std::string>());
@@ -90,11 +80,9 @@ void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
 }
 
 std::vector<std::string> metadata_factory_t::split_dotted_name(const std::string &name) {
-  std::istringstream ss(name);
-  
   std::vector<std::string> res;
   std::string elt;
-  while (std::getline(ss, elt, '.'))
+  for (std::istringstream ss(name); std::getline(ss, elt, '.');)
     res.push_back(elt);
   return res;
 }
@@ -107,21 +95,20 @@ static void dump_node(YAML::Node node) {
     case YAML::NodeType::Sequence: printf("  sequence\n"); break;
     case YAML::NodeType::Map: printf("  map\n"); break;
     case YAML::NodeType::Undefined: printf("  undefined\n"); break;
-      default: printf("  unknown\n"); break;
+    default: printf("  unknown\n"); break;
   }
 }
 
 std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
-  auto const &path_map_iter = path_map.find(dotted_path);
+  const auto& path_map_iter = path_map.find(dotted_path);
   if (path_map_iter != path_map.end()) {
     return path_map_iter->second;
   }
 
-  auto const &entity_init_iter = entity_initializers.find(dotted_path);
+  const auto& entity_init_iter = entity_initializers.find(dotted_path);
   if (entity_init_iter != entity_initializers.end()) {
-    const std::vector<std::string>& meta_names = entity_init_iter->second.meta_names;
     std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
-    for (auto name: meta_names) {
+    for (const auto& name: entity_init_iter->second.meta_names) {
       metadata->insert(encoding_map[name]);
     }
     path_map[dotted_path] = metadata;
@@ -133,7 +120,7 @@ std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::strin
 std::map<std::string, std::shared_ptr<metadata_t>> *metadata_factory_t::lookup_metadata_map(std::string dotted_path) {
   std::map<std::string, std::shared_ptr<metadata_t>> *results = new std::map<std::string, std::shared_ptr<metadata_t>>();
 
-  for (auto &it : entity_initializers) {
+  for (const auto& it : entity_initializers) {
     if (it.first.rfind(dotted_path) == 0) {
       (*results)[it.first] = lookup_metadata(it.first);
     }
@@ -150,38 +137,36 @@ static const std::unordered_map<std::string, operand_rule_match_t> operand_match
   {"match_not_in_range", OPERAND_RULE_NOT_RANGE},
 };
 
-void metadata_factory_t::update_rule_map(std::string key, YAML::Node &node) {
+void metadata_factory_t::update_rule_map(std::string key, const YAML::Node& node) {
   std::string name;
   YAML::Node operand_rules;
   std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
-  for (const auto &it : node) {
+  for (const auto& it : node) {
     name = it.first.as<std::string>();
     operand_rules = it.second;
   }
   metadata->insert(encoding_map[name]);
   opgroup_rule_t opgroup_rule(metadata);
 
-  for (size_t i = 0; i < operand_rules.size(); i++) {
+  for (const YAML::Node& operand_rule : operand_rules) {
     std::vector<uint32_t> values;
     operand_rule_match_t match = OPERAND_RULE_UNKNOWN;
 
-    if (operand_rules[i].IsScalar()) {
+    if (operand_rule.IsScalar()) {
       opgroup_rule.add_operand_rule(values, OPERAND_RULE_ANY);
       continue;
     }
 
-    if (operand_rules[i].IsMap()) {
+    if (operand_rule.IsMap()) {
       std::string operand_id;
 
-      for (const auto &it : operand_rules[i]) {
+      for (const auto &it : operand_rule) {
         operand_id = it.first.as<std::string>();
-
-        for (size_t j = 0; j < it.second.size(); j++) {
-          values.push_back(it.second[j].as<uint32_t>());
-        }
+        for (const YAML::Node& n : it.second)
+          values.push_back(n.as<uint32_t>());
       }
 
-      for (const auto &id : operand_match_yaml_ids) {
+      for (const auto& id : operand_match_yaml_ids) {
         if (operand_id.compare(id.first) == 0) {
           match = id.second;
         }
@@ -201,15 +186,12 @@ void metadata_factory_t::update_rule_map(std::string key, YAML::Node &node) {
 void metadata_factory_t::init_group_map(YAML::Node &node) {
   node = node["Groups"];
 
-  for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
+  for (const auto& it : node) {
     std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
-    std::string key = it->first.as<std::string>();
+    const std::string key = it.first.as<std::string>();
+    const YAML::Node& instruction_node = it.second;
 
-    YAML::Node instruction_node = it->second;
-
-    for (size_t i = 0; i < instruction_node.size(); i++) {
-      YAML::Node opgroup_node = instruction_node[i];
-
+    for (const YAML::Node& opgroup_node : instruction_node) {
       if (opgroup_node.IsScalar()) {
         std::string name = opgroup_node.as<std::string>();
         metadata->insert(encoding_map[name]);
@@ -248,13 +230,13 @@ metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_d
 
 std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
   if (abbrev) {
-    auto const &iter = abbrev_reverse_encoding_map.find(meta);
+    const auto iter = abbrev_reverse_encoding_map.find(meta);
     if (iter == abbrev_reverse_encoding_map.end())
       return "<unknown: " + std::to_string(meta) + ">";
     else
       return iter->second;
   } else {
-    auto const &iter = reverse_encoding_map.find(meta);
+    const auto iter = reverse_encoding_map.find(meta);
     if (iter == reverse_encoding_map.end())
       return "<unknown: " + std::to_string(meta) + ">";
     else
@@ -265,7 +247,7 @@ std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
 std::string metadata_factory_t::render(std::shared_ptr<const metadata_t> metadata, bool abbrev) const {
   std::ostringstream os;
   bool first = true;
-  for (auto &meta: *metadata) {
+  for (const auto& meta: *metadata) {
     if (first)
       first = false;
     else
