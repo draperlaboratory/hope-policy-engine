@@ -41,7 +41,9 @@ class LLVMMetadataTagger:
         "DMT_RETURN_INSTR": 0x07,
         "DMT_CALL_INSTR": 0x08,
         "DMT_BRANCH_INSTR": 0x09,
-        "DMT_FPTR_CREATE_AUTHORITY": 0x0a
+        "DMT_FPTR_CREATE_AUTHORITY": 0x0a,
+        "DMT_BEFORE_INLINE_ASM_INSNS": 0x0c,
+        "DMT_AFTER_INLINE_ASM_INSNS": 0x0d
     }
 
     # Names policies will use to access features
@@ -85,8 +87,17 @@ class LLVMMetadataTagger:
         "epilogue": {
             "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
             "name": "llvm.Epilogue"
+        },
+        "before_inline_asm": {
+            "tag_specifier": tag_specifiers["DMT_BEFORE_INLINE_ASM_INSNS"],
+            "name": "llvm.Inline"
+        },
+        "after_inline_asm": {
+            "tag_specifier": tag_specifiers["DMT_AFTER_INLINE_ASM_INSNS"],
+            "name": "llvm.Inline"
         }
     }
+    latest_inline_addr = -1
 
     def __init__(self):
         self.needs_tag_cache = {}
@@ -101,10 +112,12 @@ class LLVMMetadataTagger:
             try:
                 d = d[item]
             except KeyError:
+                print("Don't need tag " + tag)
                 self.needs_tag_cache[tag] = False
                 return False
 
         self.needs_tag_cache[tag] = True
+        print("Yes need tag " + tag)
         return True
 
     def add_code_section_ranges(self, elf_file, range_map):
@@ -123,8 +136,24 @@ class LLVMMetadataTagger:
         for policy, tags in self.policy_map.items():
             if self.policy_needs_tag(policy_inits, tags['name']):
                 if tags['tag_specifier'] == tag_specifier:
-                    range_file.write_range(start, end, tags['name'])
-                    range_map.add_range(start, end, tags['name'])
+#                     print(policy + ": start " + hex(start) + ", end " + hex(end));
+                    if tags['name'] == "llvm.Inline":
+                        if self.latest_inline_addr == -1 and tag_specifier == self.tag_specifiers["DMT_BEFORE_INLINE_ASM_INSNS"]:
+                            self.latest_inline_addr = start;
+                        elif self.latest_inline_addr > 0 and tag_specifier == self.tag_specifiers["DMT_AFTER_INLINE_ASM_INSNS"]:
+                            # Do something
+                            print("Should tag between " + hex(self.latest_inline_addr) + " and " + hex(start) + " as INLINE_ASM")
+                            range_file.write_range(self.latest_inline_addr, start, tags['name'])
+                            range_map.add_range(self.latest_inline_addr, start, tags['name'])
+                            self.latest_inline_addr = -1
+                            pass
+                        elif tag_specifier == self.tag_specifiers["DMT_BEFORE_INLINE_ASM_INSNS"]:
+                            print("Invalid double before tag " + hex(self.latest_inline_addr) + " and " + hex(start) + ".")
+                        else:
+                            print("Invalid after inline tag with no before " + hex(start) + ".")
+                    else:
+                        range_file.write_range(start, end, tags['name'])
+                        range_map.add_range(start, end, tags['name'])
 
     def generate_policy_ranges(self, elf_file, range_file, policy_inits):
         metadata = elf_file.get_section_by_name(b'.dover_metadata')
