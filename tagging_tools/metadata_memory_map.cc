@@ -38,8 +38,7 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_
     return;
   
   /* find the right mr */
-  for (auto &mr : mrs) {
-
+  for (mem_region_t& mr : mrs) {
     /* check whether the region is adjacent or contained within */
     if (mr.contains(start) || mr.contains(end)) {
       mr.add_range(start, end, metadata);

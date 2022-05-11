@@ -33,6 +33,7 @@
 #include <iterator>
 #include <memory>
 #include <set>
+#include "policy_meta_set.h"
 #include "policy_types.h"
 
 namespace policy_engine {

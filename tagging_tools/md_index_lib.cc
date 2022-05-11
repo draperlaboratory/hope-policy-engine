@@ -30,6 +30,7 @@
 #include "metadata_index_map.h"
 #include "metadata_factory.h"
 #include "metadata_register_map.h"
+#include "policy_meta_set.h"
 #include "reporter.h"
 #include "tag_file.h"
 
@@ -79,7 +80,7 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   err.info("Metadata entries:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {
     err.info("%lu: { ", i);
-    for(const auto &m : *metadata_values[i]) {
+    for(const meta_t& m : *metadata_values[i]) {
       err.info("%lx ", m);
     }
     err.info("}\n");

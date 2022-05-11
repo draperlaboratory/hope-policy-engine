@@ -25,10 +25,9 @@
  */
 
 #include <string.h>
-
-#include "policy_utils.h"
-
 #include "meta_set_factory.h"
+#include "policy_meta_set.h"
+#include "policy_utils.h"
 
 using namespace policy_engine;
 
@@ -42,8 +41,8 @@ meta_set_t const *meta_set_factory_t::get_meta_set(std::string dotted_path) {
     meta_set_t ms;
     memset(&ms, 0, sizeof(ms));
 //    printf("get_meta_set: %s = ", dotted_path.c_str());
-    for (auto &it: *metadata) {
-      ms_bit_add(&ms, it);
+    for (const meta_t& m: *metadata) {
+      ms_bit_add(&ms, m);
 //      printf("0x%lx ", it.second);
     }
 //    printf("\n");

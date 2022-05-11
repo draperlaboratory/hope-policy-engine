@@ -156,7 +156,7 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   std::list<const elf_section_t*> code_sections;
   std::list<const elf_section_t*> data_sections;
 
-  for (const auto& section : elf_image.sections) {
+  for (const elf_section_t& section : elf_image.sections) {
     if (section.flags & SHF_ALLOC) {
       if ((section.flags & (SHF_WRITE | SHF_EXECINSTR)) == SHF_EXECINSTR)
         code_sections.push_back(&section);
@@ -176,20 +176,20 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
 
   err.info("Code ranges:\n");
   if (elf_image.is_64bit()) {
-    for (const auto& it : code_ranges)
-      err.info("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+    for (const range_t& range : code_ranges)
+      err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
   } else {
-    for (const auto& it : code_ranges)
-      err.info("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
+    for (const range_t& range : code_ranges)
+      err.info("{ 0x%08lx - 0x%08lx }\n", range.start, range.end);
   }
 
   err.info("Data ranges:\n");
   if (elf_image.is_64bit()) {
-    for(const auto& it : data_ranges)
-      err.info("{ 0x%016lx - 0x%016lx }\n", it.start, it.end);
+    for(const range_t& range : data_ranges)
+      err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
   } else {
-    for(const auto& it : data_ranges)
-      err.info("{ 0x%08lx - 0x%08lx }\n", it.start, it.end);
+    for(const range_t& range : data_ranges)
+      err.info("{ 0x%08lx - 0x%08lx }\n", range.start, range.end);
   }
 }
 
@@ -223,8 +223,8 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
     data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
     get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
-    for(const auto& it : data_ranges) {
-      data_ranges_granularity.push_back(std::make_pair(it, get_soc_granularity(soc_node["SOC"], it, elf_image.is_64bit())));
+    for(const range_t& range : data_ranges) {
+      data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.is_64bit())));
     }
 
     if (!write_headers(code_ranges, data_ranges_granularity, elf_image.is_64bit(), std::string(tag_filename))) {

@@ -57,16 +57,15 @@ void range_map_t::add_range(uint64_t start, uint64_t end, const std::string& tag
 const std::vector<std::string> empty;
 
 const std::vector<std::string>& range_map_t::get_tags(uint64_t addr) {
-  for (const auto& range : range_map) {
+  for (const range_t& range : range_map)
     if (addr >= range.start && addr <= range.end)
       return range.tags;
-  }
   return empty;
 }
 
 std::vector<std::pair<uint64_t, uint64_t>> range_map_t::get_ranges(const std::string& tag) {
   std::vector<std::pair<uint64_t, uint64_t>> ranges;
-  for (auto& [ start, end, tags ] : range_map) {
+  for (const auto& [ start, end, tags ] : range_map) {
     if (std::find(tags.begin(), tags.end(), tag) != tags.end() || tags.empty() && tag.empty())
       ranges.push_back(std::make_pair(start, end));
   }

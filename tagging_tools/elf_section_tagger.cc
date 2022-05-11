@@ -13,7 +13,7 @@ static const std::string RWX_R = "elf.Section.SHF_ALLOC";
 static const std::string RWX_W = "elf.Section.SHF_WRITE";
 
 void generate_rwx_ranges(const elf_image_t& ef, range_file_t& range_file, reporter_t& err) {
-  for (const auto& section : ef.sections) {
+  for (const elf_section_t& section : ef.sections) {
     uint64_t end = section.address + section.size;
     if (end % 4 != 0)
       end += 4 - (end % 4);

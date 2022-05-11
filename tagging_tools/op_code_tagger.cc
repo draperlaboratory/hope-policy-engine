@@ -10,7 +10,7 @@
 namespace policy_engine {
 
 void tag_op_codes(const std::string& policy_dir, elf_image_t& ef, const std::string& taginfo_file_name, reporter_t& err) {
-  for (const auto& section : ef.sections)
+  for (const elf_section_t& section : ef.sections)
     if (section.flags & SHF_EXECINSTR)
       if (md_code(policy_dir, section.address, taginfo_file_name, section.data, section.size, err) != 0)
         throw std::runtime_error("md_code failed");

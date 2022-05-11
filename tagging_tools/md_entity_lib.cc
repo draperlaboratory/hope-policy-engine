@@ -90,7 +90,7 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
   }
   verify_entity_bindings(md_tool, bindings, err);
 
-  for (const auto& e: bindings) {
+  for (const std::unique_ptr<entity_binding_t>& e: bindings) {
     const entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
     if (sb != nullptr) {
       auto sym = get_symbol(img.symtab, err, sb->elf_name, !sb->is_singularity, sb->optional);

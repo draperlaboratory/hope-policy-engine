@@ -36,6 +36,7 @@
 #include <yaml-cpp/yaml.h>
 #include "metadata_factory.h"
 #include "opgroup_rule.h"
+#include "policy_meta_set.h"
 #include "policy_types.h"
 #include "validator_exception.h"
 
@@ -110,7 +111,7 @@ std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::strin
   const auto& entity_init_iter = entity_initializers.find(dotted_path);
   if (entity_init_iter != entity_initializers.end()) {
     std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
-    for (const auto& name: entity_init_iter->second.meta_names) {
+    for (const std::string& name: entity_init_iter->second.meta_names) {
       metadata->insert(encoding_map[name]);
     }
     path_map[dotted_path] = metadata;
@@ -174,15 +175,15 @@ void metadata_factory_t::update_rule_map(std::string key, const YAML::Node& node
     if (operand_rule.IsMap()) {
       std::string operand_id;
 
-      for (const auto &it : operand_rule) {
+      for (const auto& it : operand_rule) {
         operand_id = it.first.as<std::string>();
         for (const YAML::Node& n : it.second)
           values.push_back(n.as<uint32_t>());
       }
 
-      for (const auto& id : operand_match_yaml_ids) {
-        if (operand_id.compare(id.first) == 0) {
-          match = id.second;
+      for (const auto& [ id, m ] : operand_match_yaml_ids) {
+        if (operand_id == id) {
+          match = m;
         }
       }
 
@@ -261,7 +262,7 @@ std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
 std::string metadata_factory_t::render(std::shared_ptr<const metadata_t> metadata, bool abbrev) const {
   std::ostringstream os;
   bool first = true;
-  for (const auto& meta: *metadata) {
+  for (const meta_t& meta: *metadata) {
     if (first)
       first = false;
     else
