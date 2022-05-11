@@ -246,34 +246,24 @@ bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &m
 bool policy_engine::write_headers(std::list<range_t> &code_ranges,
                                   std::list<std::pair<range_t, uint8_t>> &data_ranges,
                                   bool is_64_bit, std::string tag_filename) {
-  FILE *in_fp, *out_fp;
-  size_t in_size;
-  uint8_t *in_buffer;
-
-  in_fp = fopen(tag_filename.c_str(), "rb");
+  std::FILE* in_fp = fopen(tag_filename.c_str(), "rb");
   if (in_fp == NULL) {
     return false;
   }
 
   fseek(in_fp, 0L, SEEK_END);
-  in_size = ftell(in_fp);
+  size_t in_size = ftell(in_fp);
   fseek(in_fp, 0L, SEEK_SET);
 
-  in_buffer = (uint8_t *)malloc(in_size);
-  if (in_buffer == NULL) {
-    fclose(in_fp);
-    return false;
-  }
-
+  uint8_t in_buffer[in_size];
   if (fread(in_buffer, 1, in_size, in_fp) != in_size) {
-    free(in_buffer);
     fclose(in_fp);
     return false;
   }
 
   fclose(in_fp);
 
-  out_fp = fopen(tag_filename.c_str(), "wb");
+  std::FILE* out_fp = fopen(tag_filename.c_str(), "wb");
   if (out_fp == NULL) {
     return false;
   }
@@ -320,14 +310,11 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
   }
 
   if (fwrite(in_buffer, 1, in_size, out_fp) != in_size) {
-    free(in_buffer);
     fclose(out_fp);
     return false;
   }
 
   fclose(out_fp);
-  free(in_buffer);
-
   return true;
 }
 
