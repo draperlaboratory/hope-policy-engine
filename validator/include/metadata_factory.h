@@ -73,9 +73,9 @@ private:
 public:
   metadata_factory_t(const std::string& policy_dir);
   std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
-  std::map<std::string, std::shared_ptr<metadata_t>> *lookup_metadata_map(std::string dotted_path);
+  std::map<std::string, std::shared_ptr<metadata_t>> lookup_metadata_map(const std::string& dotted_path);
 
-  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string &opgroup, const decoded_instruction_t& inst) {
+  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
     const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
     if (it_opgroup_rule != opgroup_rule_map.end()) {
       if (it_opgroup_rule->second.matches(inst))
@@ -91,9 +91,9 @@ public:
 
   std::string render(meta_t meta, bool abbrev = false) const;
   std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev = false) const;
-  void enumerate(std::list<std::string> &elts) {
-    for (auto const &p: entity_initializers) {
-      elts.push_back(p.first);
+  void enumerate(std::list<std::string>& elts) {
+    for (const auto& [ name, init ]: entity_initializers) {
+      elts.push_back(name);
     }
   }
 };

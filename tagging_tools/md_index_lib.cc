@@ -37,8 +37,6 @@ namespace policy_engine {
 
 int md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
-  metadata_register_map_t *register_map;
-  metadata_register_map_t *csr_map;
   std::vector<std::shared_ptr<metadata_t>> metadata_values;
   ssize_t register_default = -1;
   ssize_t csr_default = -1;
@@ -53,15 +51,15 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   // Retrieve register metadata from policy
   metadata_factory_t metadata_factory(policy_dir);
 
-  register_map = metadata_factory.lookup_metadata_map("ISA.RISCV.Reg");
-  csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");
+  metadata_register_map_t register_map = metadata_factory.lookup_metadata_map("ISA.RISCV.Reg");
+  metadata_register_map_t csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");
 
   // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
   metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
   metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
-  metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(*register_map);
+  metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(register_map);
   metadata_values.insert(metadata_values.end(), register_index_map.metadata.begin(), register_index_map.metadata.end());
-  metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(*csr_map);
+  metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(csr_map);
   metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
 
   // Separate the default entries from those corresponding to actual registers/CSRs

@@ -117,14 +117,12 @@ std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::strin
   return nullptr;
 }
 
-std::map<std::string, std::shared_ptr<metadata_t>> *metadata_factory_t::lookup_metadata_map(std::string dotted_path) {
-  std::map<std::string, std::shared_ptr<metadata_t>> *results = new std::map<std::string, std::shared_ptr<metadata_t>>();
+std::map<std::string, std::shared_ptr<metadata_t>> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
+  std::map<std::string, std::shared_ptr<metadata_t>> results = std::map<std::string, std::shared_ptr<metadata_t>>();
 
-  for (const auto& it : entity_initializers) {
-    if (it.first.rfind(dotted_path) == 0) {
-      (*results)[it.first] = lookup_metadata(it.first);
-    }
-  }
+  for (const auto& [ name, init ] : entity_initializers)
+    if (name.rfind(dotted_path) == 0)
+      results[name] = lookup_metadata(name);
 
   return results;
 }

@@ -25,11 +25,14 @@
 #include <cstdio>
 #include <functional>
 #include <gelf.h>
+#include <map>
+#include <memory>
 #include <stdexcept>
 #include <sstream>
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include "elf_loader.h"
+#include "metadata.h"
 #include "metadata_factory.h"
 #include "reporter.h"
 #include "tag_file.h"
@@ -37,7 +40,7 @@
 namespace policy_engine {
 
 bool exclude_unused_soc(YAML::Node soc, std::list<std::string>& exclude, metadata_factory_t& factory, reporter_t& err) {
-  auto soc_map = factory.lookup_metadata_map("SOC");
+  std::map<std::string, std::shared_ptr<metadata_t>> soc_map = factory.lookup_metadata_map("SOC");
 
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     std::string name;
@@ -49,7 +52,7 @@ bool exclude_unused_soc(YAML::Node soc, std::list<std::string>& exclude, metadat
 
     name = it->second["name"].as<std::string>();
 
-    if (soc_map->find(name) == soc_map->end()) {
+    if (soc_map.find(name) == soc_map.end()) {
       exclude.push_back(name);
     }
   }
