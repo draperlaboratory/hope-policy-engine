@@ -37,90 +37,81 @@
 using namespace policy_engine;
 
 struct file_reader_t {
-  FILE *fp;
-  file_reader_t(FILE *fp) : fp(fp) { }
-  bool read_byte(uint8_t &b) {
-    return fread(&b, 1, 1, fp) == 1;
-  }
+  std::FILE* const fp;
+  bool read_byte(uint8_t &b) const { return fread(&b, 1, 1, fp) == 1; }
 };
 
 struct file_writer_t {
-  FILE *fp;
-  file_writer_t(FILE *fp) : fp(fp) { }
-  bool write_byte(uint8_t &b) {
-    return fwrite(&b, 1, 1, fp) == 1;
-  }
+  std::FILE* const fp;
+  bool write_byte(uint8_t &b) const { return fwrite(&b, 1, 1, fp) == 1; }
 };
 
 bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& file_name) {
-  FILE *fp = fopen(file_name.c_str(), "rb");
-
-  if (!fp)
+  file_reader_t reader{fopen(file_name.c_str(), "rb")};
+  if (!reader.fp)
     return false;
 
-  file_reader_t reader(fp);
-  fseek(fp, 0, SEEK_END);
-  size_t eof_point = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
+  fseek(reader.fp, 0, SEEK_END);
+  size_t eof_point = ftell(reader.fp);
+  fseek(reader.fp, 0, SEEK_SET);
   
-  while (eof_point != ftell(fp)) {
+  while (eof_point != ftell(reader.fp)) {
     uint64_t start, end;
     uint32_t metadata_count;
 
     if (!read_uleb<file_reader_t, uint64_t>(&reader, start)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     if (!read_uleb<file_reader_t, uint64_t>(&reader, end)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_count)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
       if (!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
-        fclose(fp);
+        fclose(reader.fp);
         return false;
       }
       metadata->insert(meta);
     }
     map.add_range(start, end, metadata);
   }
-  fclose(fp);
+  fclose(reader.fp);
   return true;
 }
 
 bool policy_engine::save_tags(metadata_memory_map_t& map, std::string file_name) {
-  FILE *fp = fopen(file_name.c_str(), "wb");
-
-  if (!fp)
+  file_writer_t writer{fopen(file_name.c_str(), "wb")};
+  if (!writer.fp)
     return false;
-  file_writer_t writer(fp);
+
   for (const auto& [ range, md ] : map) {
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.start)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.end)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint32_t>(&writer, md->size())) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     for (const meta_t& meta : *md) {
       if (!write_uleb<file_writer_t, meta_t>(&writer, meta)) {
-        fclose(fp);
+        fclose(writer.fp);
         return false;
       }
     }
   }
-  fclose(fp);
+  fclose(writer.fp);
   return true;
 }
 
@@ -131,36 +122,34 @@ bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &m
                                      int32_t register_default, int32_t csr_default, int32_t env_default,
                                      std::string file_name,
                                      reporter_t& err) {
-  FILE *fp = fopen(file_name.c_str(), "wb");
-
-  if (!fp)
+  file_writer_t writer{fopen(file_name.c_str(), "wb")};
+  if (!writer.fp)
     return false;
-  file_writer_t writer(fp);
 
   if (!write_uleb<file_writer_t, uint32_t>(&writer, metadata_values.size())) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
 
   for (const std::shared_ptr<metadata_t>& v : metadata_values) {
     if (!write_uleb<file_writer_t, uint32_t>(&writer, v->size())) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     for (const meta_t& m : *v) {
       if (!write_uleb<file_writer_t, meta_t>(&writer, m)) {
-        fclose(fp);
+        fclose(writer.fp);
         return false;
       }
     }
   }
 
   if (!write_uleb<file_writer_t, uint32_t>(&writer, register_index_map.size())) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
   if (!write_uleb<file_writer_t, int32_t>(&writer, register_default)) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
 
@@ -176,21 +165,21 @@ bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &m
     }
 
     if (!write_uleb<file_writer_t, uint32_t>(&writer, register_value)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint32_t>(&writer, index)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
   }
 
   if (!write_uleb<file_writer_t, uint32_t>(&writer, csr_index_map.size())) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
   if (!write_uleb<file_writer_t, int32_t>(&writer, csr_default)) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
 
@@ -206,40 +195,40 @@ bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &m
     }
 
     if (!write_uleb<file_writer_t, uint32_t>(&writer, csr_value)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint32_t>(&writer, index)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
   }
 
   if (!write_uleb<file_writer_t, int32_t>(&writer, env_default)) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
 
   if (!write_uleb<file_writer_t, uint32_t>(&writer, memory_index_map.size())) {
-    fclose(fp);
+    fclose(writer.fp);
     return false;
   }
 
   for (const auto& [ range, index ] : memory_index_map) {
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.start)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.end)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint32_t>(&writer, index)) {
-      fclose(fp);
+      fclose(writer.fp);
       return false;
     }
   }
-  fclose(fp);
+  fclose(writer.fp);
   return true;
 }
 
@@ -263,58 +252,56 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
 
   fclose(in_fp);
 
-  std::FILE* out_fp = fopen(tag_filename.c_str(), "wb");
-  if (out_fp == NULL) {
+  file_writer_t writer{fopen(tag_filename.c_str(), "wb")};
+  if (writer.fp == NULL) {
     return false;
   }
 
-  file_writer_t writer(out_fp);
-
   if (!write_uleb<file_writer_t, uint8_t>(&writer, (uint8_t)is_64_bit)) {
-    fclose(out_fp);
+    fclose(writer.fp);
     return false;
   }
 
   if (!write_uleb<file_writer_t, uint32_t>(&writer, (uint32_t)code_ranges.size())) {
-    fclose(out_fp);
+    fclose(writer.fp);
     return false;
   }
   for (const range_t& range : code_ranges) {
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.start)) {
-      fclose(out_fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.end)) {
-      fclose(out_fp);
+      fclose(writer.fp);
       return false;
     }
   }
 
   if (!write_uleb<file_writer_t, uint32_t>(&writer, (uint32_t)data_ranges.size())) {
-    fclose(out_fp);
+    fclose(writer.fp);
     return false;
   }
   for (const auto& [ range, gran ] : data_ranges) {
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.start)) {
-      fclose(out_fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint64_t>(&writer, range.end)) {
-      fclose(out_fp);
+      fclose(writer.fp);
       return false;
     }
     if (!write_uleb<file_writer_t, uint64_t>(&writer, (uint32_t)gran)) {
-      fclose(out_fp);
+      fclose(writer.fp);
       return false;
     }
   }
 
-  if (fwrite(in_buffer, 1, in_size, out_fp) != in_size) {
-    fclose(out_fp);
+  if (fwrite(in_buffer, 1, in_size, writer.fp) != in_size) {
+    fclose(writer.fp);
     return false;
   }
 
-  fclose(out_fp);
+  fclose(writer.fp);
   return true;
 }
 
@@ -334,64 +321,62 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   uint32_t memory_index_count;
   uint32_t register_index_count;
   uint32_t csr_index_count;
-  FILE *fp = fopen(file_name.c_str(), "rb");
-
-  if (!fp)
+  file_reader_t reader{fopen(file_name.c_str(), "rb")};
+  if (!reader.fp)
     return false;
 
-  file_reader_t reader(fp);
-  fseek(fp, 0, SEEK_END);
-  size_t eof_point = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
+  fseek(reader.fp, 0, SEEK_END);
+  size_t eof_point = ftell(reader.fp);
+  fseek(reader.fp, 0, SEEK_SET);
 
   if (!read_uleb<file_reader_t, uint8_t>(&reader, is_64_bit)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
 
   if (!read_uleb<file_reader_t, uint32_t>(&reader, code_range_count)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
   for (size_t i = 0; i < code_range_count; i++) {
     range_t range;
     if (!read_uleb<file_reader_t, uint64_t>(&reader, range.start)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
 
     if (!read_uleb<file_reader_t, uint64_t>(&reader, range.end)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     code_ranges.push_back(range);
   }
 
   if (!read_uleb<file_reader_t, uint32_t>(&reader, data_range_count)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
   for (size_t i = 0; i < data_range_count; i++) {
     range_t range;
     if (!read_uleb<file_reader_t, uint64_t>(&reader, range.start)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
 
     if (!read_uleb<file_reader_t, uint64_t>(&reader, range.end)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     data_ranges.push_back(range);
     size_t tag_granularity;
     if (!read_uleb<file_reader_t, size_t>(&reader, tag_granularity)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
   }
 
   if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_value_count)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
 
@@ -399,7 +384,7 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     uint32_t metadata_count;
 
     if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_count)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
 
@@ -407,7 +392,7 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     for (size_t j = 0; j < metadata_count; j++) {
       meta_t meta;
       if(!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
-        fclose(fp);
+        fclose(reader.fp);
         return false;
       }
       metadata->insert(meta);
@@ -416,11 +401,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   }
 
   if (!read_uleb<file_reader_t, uint32_t>(&reader, register_index_count)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
   if (!read_uleb<file_reader_t, int32_t>(&reader, register_default)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
 
@@ -430,11 +415,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     uint32_t register_meta;
 
     if (!read_uleb<file_reader_t, uint32_t>(&reader, register_value)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     if (!read_uleb<file_reader_t, uint32_t>(&reader, register_meta)) {
-      fclose(fp);
+      fclose(reader.fp);
       err.error("Failed here\n");
       return false;
     }
@@ -455,11 +440,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   }
 
   if (!read_uleb<file_reader_t, uint32_t>(&reader, csr_index_count)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
   if (!read_uleb<file_reader_t, int32_t>(&reader, csr_default)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
 
@@ -469,11 +454,11 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     uint32_t csr_meta;
 
     if (!read_uleb<file_reader_t, uint32_t>(&reader, csr_value)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     if (!read_uleb<file_reader_t, uint32_t>(&reader, csr_meta)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
 
@@ -493,12 +478,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   }
 
   if (!read_uleb<file_reader_t, int32_t>(&reader, env_default)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
 
   if (!read_uleb<file_reader_t, uint32_t>(&reader, memory_index_count)) {
-    fclose(fp);
+    fclose(reader.fp);
     return false;
   }
 
@@ -507,16 +492,16 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     uint32_t metadata_index;
 
     if (!read_uleb<file_reader_t, uint64_t>(&reader, range.start)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
 
     if (!read_uleb<file_reader_t, uint64_t>(&reader, range.end)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
     if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_index)) {
-      fclose(fp);
+      fclose(reader.fp);
       return false;
     }
 
