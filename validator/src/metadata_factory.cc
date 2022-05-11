@@ -31,6 +31,8 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 #include <yaml-cpp/yaml.h>
 #include "metadata_factory.h"
 #include "opgroup_rule.h"
@@ -125,6 +127,20 @@ std::map<std::string, std::shared_ptr<metadata_t>> metadata_factory_t::lookup_me
       results[name] = lookup_metadata(name);
 
   return results;
+}
+
+std::shared_ptr<metadata_t> metadata_factory_t::lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
+  const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
+  if (it_opgroup_rule != opgroup_rule_map.end()) {
+    if (it_opgroup_rule->second.matches(inst))
+      return it_opgroup_rule->second.metadata;
+  }
+
+  const auto& it_group = group_map.find(opgroup);
+  if (it_group == group_map.end()) {
+    return nullptr;
+  }
+  return it_group->second;
 }
 
 static const std::unordered_map<std::string, operand_rule_match_t> operand_match_yaml_ids {
@@ -253,4 +269,12 @@ std::string metadata_factory_t::render(std::shared_ptr<const metadata_t> metadat
     os << render(meta, abbrev);
   }
   return os.str();
+}
+
+std::vector<std::string> metadata_factory_t::enumerate() {
+  std::vector<std::string> elts;
+  for (const auto& [ name, init ]: entity_initializers) {
+    elts.push_back(name);
+  }
+  return elts;
 }

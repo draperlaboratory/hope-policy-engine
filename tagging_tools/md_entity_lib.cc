@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <list>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -56,20 +57,14 @@ static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, r
 
 // debugging code
 void dump_ents(metadata_tool_t& md_tool) {
-  std::list<std::string> ents;
-  md_tool.factory.enumerate(ents);
   std::printf("ents:\n");
-  for (auto s: ents) {
+  for (const std::string& s: md_tool.factory.enumerate()) {
     std::printf("  %s\n", s.c_str());
   }
 }
 
-void verify_entity_bindings(metadata_tool_t& md_tool,
-			    std::list<std::unique_ptr<entity_binding_t>>& bindings,
-			    reporter_t& err) {
-  std::list<std::string> ents;
-  md_tool.factory.enumerate(ents);
-  for (const auto& s : ents) {
+void verify_entity_bindings(metadata_tool_t& md_tool, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
+  for (const std::string& s : md_tool.factory.enumerate()) {
     auto it = std::find_if(bindings.begin(), bindings.end(), [&](std::unique_ptr<entity_binding_t>& peb) { return peb->entity_name == s; });
     if (it == bindings.end()) {
       err.warning("Entity %s has no binding\n", s);

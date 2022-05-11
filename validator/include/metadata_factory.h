@@ -32,6 +32,7 @@
 #include <map>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include <yaml-cpp/yaml.h>
 #include "metadata.h"
 #include "opgroup_rule.h"
@@ -75,27 +76,11 @@ public:
   std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
   std::map<std::string, std::shared_ptr<metadata_t>> lookup_metadata_map(const std::string& dotted_path);
 
-  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
-    const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
-    if (it_opgroup_rule != opgroup_rule_map.end()) {
-      if (it_opgroup_rule->second.matches(inst))
-        return it_opgroup_rule->second.metadata;
-    }
-
-    const auto& it_group = group_map.find(opgroup);
-    if (it_group == group_map.end()) {
-      return nullptr;
-    }
-    return it_group->second;
-  }
+  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
 
   std::string render(meta_t meta, bool abbrev = false) const;
   std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev = false) const;
-  void enumerate(std::list<std::string>& elts) {
-    for (const auto& [ name, init ]: entity_initializers) {
-      elts.push_back(name);
-    }
-  }
+  std::vector<std::string> enumerate();
 };
 
 } // namespace policy_engine
