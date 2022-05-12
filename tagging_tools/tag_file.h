@@ -60,9 +60,9 @@ bool load_firmware_tag_file(
   metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
-  int32_t& register_default, int32_t& csr_default, int32_t& env_default,
   const std::string& file_name,
-  reporter_t& err
+  reporter_t& err,
+  int32_t& register_default, int32_t& csr_default, int32_t& env_default
 );
 
 } // namespace policy_engine
