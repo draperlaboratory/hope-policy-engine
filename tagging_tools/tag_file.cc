@@ -25,9 +25,10 @@
  */
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
@@ -41,44 +42,67 @@
 
 using namespace policy_engine;
 
-struct stream_reader_t {
+class stream_reader_t {
+private:
   std::ifstream is;
-  bool read_byte(uint8_t& b) {
+  std::streamsize size;
+
+public:
+  stream_reader_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : is(std::ifstream(fname, mode)) {
+    is.ignore(std::numeric_limits<std::streamsize>::max());
+    size = is.gcount();
+    is.clear();
+    is.seekg(0, std::ios::beg);
+  }
+
+  template<class T> std::streamsize read(T* data, std::streamsize n) {
     try {
-      char c;
-      is.read(&c, 1);
-      b = c;
-      return !is.fail();
+      std::streamsize b = n*sizeof(T)/sizeof(char);
+      char bytes[b];
+      std::streamsize r = is.read(bytes, b).gcount();
+      if (r == b)
+        std::memcpy(data, bytes, b);
+      return r*sizeof(char)/sizeof(T);
     } catch (const std::ios::failure& e) {
-      return false;
+      return 0;
     }
   }
+
+  bool read_byte(uint8_t& b) { return read(&b, 1) == 1; }
+
+  std::streamsize length() { return size; }
+  bool eof() { return is.tellg() >= size; }
+
+  explicit operator bool() const { return static_cast<bool>(is); }
 };
 
-struct stream_writer_t {
+class stream_writer_t {
+private:
   std::ofstream os;
-  bool write_byte(uint8_t b) {
+
+public:
+  stream_writer_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : os(std::ofstream(fname, mode)) {}
+
+  template<class T> bool write(const T* data, std::size_t n) {
     try {
-      char c = b;
-      os.write(&c, 1);
+      os.write(reinterpret_cast<const char*>(data), n*sizeof(T)/sizeof(char));
       return !os.fail();
     } catch (const std::ios::failure& e) {
       return false;
     }
   }
+
+  bool write_byte(uint8_t b) { return write(&b, 1); }
+
+  explicit operator bool() const { return static_cast<bool>(os); }
 };
 
 bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& file_name) {
-  stream_reader_t reader{std::ifstream(file_name, std::ios::binary)};
-  if (!reader.is)
+  stream_reader_t reader(file_name);
+  if (!reader)
     return false;
-  
-  reader.is.ignore(std::numeric_limits<std::streamsize>::max());
-  std::streamsize length = reader.is.gcount();
-  reader.is.clear();
-  reader.is.seekg(0, std::ios::beg);
 
-  while (reader.is.tellg() < length) {
+  while (!reader.eof()) {
     uint64_t start, end;
     uint32_t metadata_count;
 
@@ -101,8 +125,8 @@ bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& fil
 }
 
 bool policy_engine::save_tags(metadata_memory_map_t& map, const std::string& file_name) {
-  stream_writer_t writer{std::ofstream(file_name, std::ios::binary)};
-  if (!writer.os)
+  stream_writer_t writer(file_name);
+  if (!writer)
     return false;
 
   for (const auto& [ range, md ] : map) {
@@ -128,8 +152,8 @@ bool policy_engine::save_tag_indexes(
   const std::string& file_name,
   reporter_t& err
 ) {
-  stream_writer_t writer{std::ofstream(file_name, std::ios::binary)};
-  if (!writer.os)
+  stream_writer_t writer(file_name);
+  if (!writer)
     return false;
 
   if (!write_uleb<stream_writer_t, uint32_t>(writer, metadata_values.size()))
@@ -209,24 +233,16 @@ bool policy_engine::write_headers(
   bool is_64_bit,
   const std::string& tag_filename
 ) {
-  std::FILE* in_fp = fopen(tag_filename.c_str(), "rb");
-  if (in_fp == NULL)
+  stream_reader_t reader(tag_filename);
+  if (!reader)
     return false;
 
-  fseek(in_fp, 0L, SEEK_END);
-  size_t in_size = ftell(in_fp);
-  fseek(in_fp, 0L, SEEK_SET);
-
-  uint8_t in_buffer[in_size];
-  if (fread(in_buffer, 1, in_size, in_fp) != in_size) {
-    fclose(in_fp);
+  uint8_t in_buffer[reader.length()];
+  if (reader.read(in_buffer, reader.length()) != reader.length())
     return false;
-  }
 
-  fclose(in_fp);
-
-  stream_writer_t writer{std::ofstream(tag_filename, std::ios::binary)};
-  if (!writer.os)
+  stream_writer_t writer(tag_filename);
+  if (!writer)
     return false;
 
   if (!write_uleb<stream_writer_t, uint8_t>(writer, (uint8_t)is_64_bit))
@@ -252,13 +268,8 @@ bool policy_engine::write_headers(
       return false;
   }
 
-  try {
-    writer.os.write(reinterpret_cast<char*>(in_buffer), in_size);
-    if (writer.os.fail())
-      return false;
-  } catch (const std::ios::failure& e) {
+  if (!writer.write(in_buffer, reader.length()))
     return false;
-  }
 
   return true;
 }
@@ -282,8 +293,8 @@ bool policy_engine::load_firmware_tag_file(
   uint32_t register_index_count;
   uint32_t csr_index_count;
 
-  stream_reader_t reader{std::ifstream(file_name, std::ios::binary)};
-  if (!reader.is)
+  stream_reader_t reader(file_name);
+  if (!reader)
     return false;
 
   if (!read_uleb<stream_reader_t, uint8_t>(reader, is_64_bit))
