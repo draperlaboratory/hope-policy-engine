@@ -24,12 +24,14 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <algorithm>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
+#include <utility>
 #include "metadata.h"
 #include "policy_meta_set.h"
 #include "register_name_map.h"
@@ -98,7 +100,7 @@ bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& fil
   return true;
 }
 
-bool policy_engine::save_tags(metadata_memory_map_t& map, std::string file_name) {
+bool policy_engine::save_tags(metadata_memory_map_t& map, const std::string& file_name) {
   stream_writer_t writer{std::ofstream(file_name, std::ios::binary)};
   if (!writer.os)
     return false;
@@ -117,13 +119,15 @@ bool policy_engine::save_tags(metadata_memory_map_t& map, std::string file_name)
   return true;
 }
 
-bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &metadata_values,
-                                     metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
-                                     metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
-                                     metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                                     int32_t register_default, int32_t csr_default, int32_t env_default,
-                                     std::string file_name,
-                                     reporter_t& err) {
+bool policy_engine::save_tag_indexes(
+  std::vector<std::shared_ptr<metadata_t>>& metadata_values,
+  metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
+  metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
+  metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
+  int32_t register_default, int32_t csr_default, int32_t env_default,
+  const std::string& file_name,
+  reporter_t& err
+) {
   stream_writer_t writer{std::ofstream(file_name, std::ios::binary)};
   if (!writer.os)
     return false;
@@ -134,7 +138,7 @@ bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &m
   for (const std::shared_ptr<metadata_t>& v : metadata_values) {
     if (!write_uleb<stream_writer_t, uint32_t>(writer, v->size()))
       return false;
-    for (const meta_t& m : *v) {
+    for (const meta_t& m : *v)
       if (!write_uleb<stream_writer_t, meta_t>(writer, m))
         return false;
   }
@@ -199,9 +203,12 @@ bool policy_engine::save_tag_indexes(std::vector<std::shared_ptr<metadata_t>> &m
   return true;
 }
 
-bool policy_engine::write_headers(std::list<range_t> &code_ranges,
-                                  std::list<std::pair<range_t, uint8_t>> &data_ranges,
-                                  bool is_64_bit, std::string tag_filename) {
+bool policy_engine::write_headers(
+  std::list<range_t>& code_ranges,
+  std::list<std::pair<range_t, uint8_t>>& data_ranges,
+  bool is_64_bit,
+  const std::string& tag_filename
+) {
   std::FILE* in_fp = fopen(tag_filename.c_str(), "rb");
   if (in_fp == NULL)
     return false;
@@ -256,15 +263,17 @@ bool policy_engine::write_headers(std::list<range_t> &code_ranges,
   return true;
 }
 
-bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
-                                           std::list<range_t> &data_ranges,
-                                           std::vector<std::shared_ptr<metadata_t>> &metadata_values,
-                                           metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
-                                           metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
-                                           metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                                           int32_t &register_default, int32_t &csr_default, int32_t &env_default,
-                                           std::string file_name,
-                                           reporter_t& err) {
+bool policy_engine::load_firmware_tag_file(
+  std::list<range_t>& code_ranges,
+  std::list<range_t>& data_ranges,
+  std::vector<std::shared_ptr<metadata_t>>& metadata_values,
+  metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
+  metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
+  metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
+  int32_t& register_default, int32_t& csr_default, int32_t& env_default,
+  const std::string& file_name,
+  reporter_t& err
+) {
   uint8_t is_64_bit;
   uint32_t code_range_count;
   uint32_t data_range_count;
@@ -336,17 +345,12 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
     if (!read_uleb<stream_reader_t, uint32_t>(reader, register_meta))
       return false;
 
-    for (const auto& [ name, index ] : register_name_map) {
-      if (register_value == index) {
-        register_name = name;
-        break;
-      }
-    }
-    if (register_name.empty())
+    const auto it = std::find_if(register_name_map.begin(), register_name_map.end(), [&](const std::pair<std::string, uint32_t>& e){ return e.second == register_value; });
+    if (it == register_name_map.end())
       return false;
 
-    std::pair<std::string, uint32_t> p(register_name, register_meta);
-    register_index_map.insert(p);
+    std::pair<std::string, uint32_t> p(it->first, register_meta);
+    register_index_map.insert(std::make_pair(it->first, register_meta));
   }
 
   if (!read_uleb<stream_reader_t, uint32_t>(reader, csr_index_count))
@@ -354,26 +358,18 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
   if (!read_uleb<stream_reader_t, int32_t>(reader, csr_default))
     return false;
   for (size_t i = 0; i < csr_index_count; i++) {
-    std::string csr_name;
     uint32_t csr_value;
     uint32_t csr_meta;
-
     if (!read_uleb<stream_reader_t, uint32_t>(reader, csr_value))
       return false;
     if (!read_uleb<stream_reader_t, uint32_t>(reader, csr_meta))
       return false;
 
-    for (const auto& [ name, index ] : csr_name_map) {
-      if (csr_value == index) {
-        csr_name = name;
-        break;
-      }
-    }
-    if (csr_name.empty())
+    const auto it = std::find_if(csr_name_map.begin(), csr_name_map.end(), [&](const std::pair<std::string, uint32_t>& e){ return e.second == csr_value; });
+    if (it == csr_name_map.end())
       return false;
 
-    std::pair<std::string, uint32_t> p(csr_name, csr_meta);
-    csr_index_map.insert(p);
+    csr_index_map.insert(std::make_pair(it->first, csr_meta));
   }
 
   if (!read_uleb<stream_reader_t, int32_t>(reader, env_default))
@@ -391,8 +387,7 @@ bool policy_engine::load_firmware_tag_file(std::list<range_t> &code_ranges,
       return false;
     if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_index))
       return false;
-    std::pair<range_t, uint32_t> p(range, metadata_index);
-    metadata_index_map.insert(p);
+    metadata_index_map.insert(std::make_pair(range, metadata_index));
   }
 
   return true;
