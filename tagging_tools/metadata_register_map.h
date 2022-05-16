@@ -12,7 +12,7 @@ namespace policy_engine {
  * Register equivalent to metadata_memory_map_t.
  * Maps register names to metadata structures
  */
-typedef std::map<std::string, std::shared_ptr<metadata_t>> metadata_register_map_t;
+using metadata_register_map_t = std::map<std::string, std::shared_ptr<metadata_t>>;
 
 }; // namespace policy_engine
 

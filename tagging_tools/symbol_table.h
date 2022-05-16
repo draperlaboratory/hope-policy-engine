@@ -72,12 +72,17 @@ private:
   std::map<std::string, int> name_map;
 
 public:
-  typedef std::vector<symbol_t>::const_iterator const_iterator;
+  using iterator = typename decltype(sym_list)::iterator;
+  using const_iterator = typename decltype(sym_list)::const_iterator;
 
   symbol_table_t() {}
 
+  iterator begin() { return sym_list.begin(); }
+  iterator end() { return sym_list.end(); }
   const_iterator begin() const { return sym_list.begin(); }
   const_iterator end() const { return sym_list.end(); }
+  const_iterator cbegin() const { return sym_list.cbegin(); }
+  const_iterator cend() const { return sym_list.cend(); }
 
   void push_back(const symbol_t& sym);
 
