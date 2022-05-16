@@ -44,8 +44,9 @@ static const std::string riscv_prefix = "riscv64-unknown-elf-";
 
 void save_tags_to_temp(
   const std::vector<std::shared_ptr<metadata_t>>& metadata_values,
-  metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
-  elf_image_t& img, std::string new_elf_name, char tempfile[],
+  const metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
+  const elf_image_t& img,
+  char tempfile[],
   bool is_64_bit, reporter_t& err
 ) {
   int address_width = img.is_64bit() ? 8 : 4;
@@ -55,15 +56,14 @@ void save_tags_to_temp(
   size_t mem_map_size = memory_index_map.size();
   fwrite(&mem_map_size, address_width, 1, section_file);
   int i = 0;
-  for (auto& e : memory_index_map) {
-    range_t range = e.first;
-    uint64_t metadata_size = metadata_values[e.second]->size();
+  for (const auto& [ range, index ] : memory_index_map) {
+    uint64_t metadata_size = metadata_values[index]->size();
 
     fwrite(&range.start, address_width, 1, section_file);
     fwrite(&range.end, address_width, 1, section_file);
     fwrite(&metadata_size, address_width, 1, section_file);
 
-    for (const meta_t& m : *metadata_values[e.second]) {
+    for (const meta_t& m : *metadata_values[index]) {
       fwrite(&m, address_width, 1, section_file);
     }
   }
@@ -79,7 +79,7 @@ bool embed_tags_in_elf(
   reporter_t& err
 ) {
   char section_temp_file[] = "/tmp/sectionXXXXXX";
-  save_tags_to_temp(metadata_values, memory_index_map, old_elf, new_elf_name, section_temp_file, is_64_bit, err);
+  save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, is_64_bit, err);
 
   char command_string[512];
   const char* base_command = update ?
