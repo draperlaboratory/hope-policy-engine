@@ -47,13 +47,12 @@ namespace policy_engine {
  */
 class metadata_tool_t {
 private:
-  metadata_cache_t md_cache;
   metadata_memory_map_t md_map;
 
 public:
   metadata_factory_t factory;
 
-  metadata_tool_t(const std::string& policy_dir) : factory(metadata_factory_t(policy_dir)), md_map(&md_cache) {}
+  metadata_tool_t(const std::string& policy_dir) : factory(metadata_factory_t(policy_dir)) {}
 
   bool apply_group_tag(uint64_t start, uint64_t end, const std::string& group, const decoded_instruction_t& inst) {
     std::shared_ptr<metadata_t> metadata = factory.lookup_group_metadata(group, inst);

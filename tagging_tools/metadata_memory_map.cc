@@ -47,7 +47,7 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_
   }
   
   /* an appropriate existing MR was not found - make a new one */
-  mem_region_t mr = mem_region_t(this);
+  mem_region_t mr = mem_region_t(*this);
   int len = mrs.size();
 
   /* put it in the vector at the right location */

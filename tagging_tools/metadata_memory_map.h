@@ -43,20 +43,23 @@ struct range_t {
 };
 
 class metadata_memory_map_t {
+private:
   class mem_region_t {
     friend class metadata_memory_map_t;
 
-    metadata_cache_t *md_cache;
+  private:
     range_t range;
     std::vector<std::shared_ptr<metadata_t>> mem;
+    metadata_memory_map_t* map; // must be a raw pointer so it doesn't get cleaned up when mem_region_t does
 
-    mem_region_t(metadata_memory_map_t *map) : range({0,0}){ md_cache = map->md_cache; }
-
-    static const int stride = sizeof(uint32_t); // platform word size
-
+  public:
     /* expose iterator of inner vector */
     using iterator = typename decltype(mem)::iterator;
     using const_iterator = typename decltype(mem)::const_iterator;
+
+    static const int stride = sizeof(uint32_t); // platform word size
+
+    mem_region_t(metadata_memory_map_t& m) : range({0, 0}), map(&m) {}
     
     iterator begin() { return mem.begin(); }
     iterator end() { return mem.end(); }
@@ -96,14 +99,14 @@ class metadata_memory_map_t {
       while (s < e) {
         if (mem[s])
           metadata->insert(mem[s]);
-        mem[s++] = md_cache->canonize(metadata);
+        mem[s++] = map->md_cache.canonize(metadata);
       }
     }
   };
 
   uint64_t base;
   uint64_t end_address;
-  metadata_cache_t *md_cache;
+  metadata_cache_t md_cache;
   std::vector<mem_region_t> mrs;
 
 public:
@@ -117,8 +120,7 @@ public:
     return nullptr;
   }
 
-  metadata_memory_map_t() : base(-1){ md_cache = new metadata_cache_t(); }
-  metadata_memory_map_t(metadata_cache_t* mc) : base(-1), md_cache(mc) { }
+  metadata_memory_map_t() : base(-1) {}
 
   template <class MMap, class MRIterator, class MRVIterator>
   class ForwardIterator {
