@@ -46,30 +46,23 @@ void save_tags_to_temp(
   const std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   const metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   const elf_image_t& img,
-  char tempfile[],
+  const std::string& tag_map,
   bool is_64_bit, reporter_t& err
 ) {
+  std::ofstream section_file(tag_map, std::ios::binary);
   int address_width = img.is_64bit() ? 8 : 4;
-  int fd = mkstemp(tempfile);
-  std::FILE* section_file = fdopen(fd, "wb");
 
-  size_t mem_map_size = memory_index_map.size();
-  fwrite(&mem_map_size, address_width, 1, section_file);
-  int i = 0;
+  uint64_t mem_map_size = memory_index_map.size();
+  section_file.write(reinterpret_cast<const char*>(&mem_map_size), address_width);
   for (const auto& [ range, index ] : memory_index_map) {
     uint64_t metadata_size = metadata_values[index]->size();
+    section_file.write(reinterpret_cast<const char*>(&range.start), address_width);
+    section_file.write(reinterpret_cast<const char*>(&range.end), address_width);
+    section_file.write(reinterpret_cast<const char*>(&metadata_size), address_width);
 
-    fwrite(&range.start, address_width, 1, section_file);
-    fwrite(&range.end, address_width, 1, section_file);
-    fwrite(&metadata_size, address_width, 1, section_file);
-
-    for (const meta_t& m : *metadata_values[index]) {
-      fwrite(&m, address_width, 1, section_file);
-    }
+    for (const meta_t& m : *metadata_values[index])
+      section_file.write(reinterpret_cast<const char*>(&m), address_width);
   }
-
-  fclose(section_file);
-  close(fd);
 }
 
 bool embed_tags_in_elf(
@@ -78,7 +71,7 @@ bool embed_tags_in_elf(
   elf_image_t& old_elf, std::string new_elf_name, bool update, bool is_64_bit,
   reporter_t& err
 ) {
-  char section_temp_file[] = "/tmp/sectionXXXXXX";
+  std::string section_temp_file = "initial_tag_map";
   save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, is_64_bit, err);
 
   char command_string[512];
@@ -86,11 +79,8 @@ bool embed_tags_in_elf(
     "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1" : 
     "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
   std::string bfd_target = is_64_bit ? "elf64-littleriscv" : "elf32-littleriscv";
-  std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file, old_elf.name.c_str(), new_elf_name.c_str());
+  std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file.c_str(), old_elf.name.c_str(), new_elf_name.c_str());
   int ret = system(command_string);
-
-  if (remove(section_temp_file))
-    err.warning("Failed to delete temporary file %s.\n", section_temp_file);
 
   return (ret == 0);
 }
