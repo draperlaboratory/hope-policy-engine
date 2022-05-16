@@ -30,6 +30,7 @@ private:
 
 public:
   using iterator = typename decltype(index_map)::iterator;
+  using const_iterator = typename decltype(index_map)::const_iterator;
 
   std::vector<std::shared_ptr<metadata_t>> metadata;
 
@@ -46,12 +47,18 @@ public:
 
   iterator begin() { return index_map.begin(); }
   iterator end() { return index_map.end(); }
-  size_t size() { return index_map.size(); }
+  const_iterator begin() const { return index_map.begin(); }
+  const_iterator end() const { return index_map.end(); }
+  const_iterator cbegin() const { return index_map.cbegin(); }
+  const_iterator cend() const { return index_map.cend(); }
 
   void insert(const std::pair<K, int>& p) { index_map.insert(p); }
   int& at(const K& k) { return index_map.at(k); }
   const int& at(const K& k) const { return index_map.at(k); }
   size_t erase(const K& k) { return index_map.erase(k); }
+  size_t size() const { return index_map.size(); }
+
+  int& operator [](const K& k) { return index_map[k]; }
 };
 
 } // namespace policy_engine
