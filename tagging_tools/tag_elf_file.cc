@@ -47,9 +47,7 @@ int generate_tag_array(const std::string& elfname, range_file_t& range_file, con
   else
     base_command += " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data ";
   base_command += elfname + " " + elfname_policy;
-  std::FILE* objcopy_proc = popen(base_command.c_str(), "r");
-  int objcopy_result = pclose(objcopy_proc);
-  if (objcopy_result < 0)
+  if (int objcopy_result = std::system(base_command.c_str()) < 0)
     return objcopy_result;
   
   uint64_t start_addr = 0;
@@ -78,7 +76,7 @@ int generate_tag_array(const std::string& elfname, range_file_t& range_file, con
       );
     }
   }
-  return objcopy_result;
+  return 0;
 }
 
 }
