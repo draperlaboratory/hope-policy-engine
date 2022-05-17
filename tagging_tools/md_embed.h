@@ -7,7 +7,7 @@
 
 namespace policy_engine {
 
-int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, bool is_64_bit, reporter_t& err);
+int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, reporter_t& err);
     
 }
 

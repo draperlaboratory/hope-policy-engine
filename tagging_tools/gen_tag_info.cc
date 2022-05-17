@@ -40,7 +40,6 @@ DEFINE_string(tag_file, "", "File to output tag info");
 DEFINE_string(bin, "", "Program binary to parse for tags");
 DEFINE_string(log, "WARNING", "Logging level (DEBUG, WARNING, INFO)");
 DEFINE_bool(entities, false, "Entities file for policy");
-DEFINE_string(arch, "rv32", "Currently supported: rv32 (default), rv64");
 DEFINE_string(soc_file, "", "SOC config file. If present, write TMT headers for PEX firmware");
 
 int main(int argc, char* argv[]) {
@@ -98,7 +97,7 @@ int main(int argc, char* argv[]) {
         policy_engine::range_map_t range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
       if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
         policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits, err);
-      int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, FLAGS_arch == "rv64");
+      int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, elf_image.is_64bit());
       if (rc != 0)
         err.error("Couldn't add .tag_array to binary\n");
     }
@@ -123,7 +122,7 @@ int main(int argc, char* argv[]) {
     exit(entity_result);
   }
 
-  int embed_result = policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, FLAGS_arch == "rv64", err);
+  int embed_result = policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, err);
   if (embed_result != 0)
     err.error("md_embed failed\n");
 

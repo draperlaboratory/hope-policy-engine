@@ -47,7 +47,7 @@ void save_tags_to_temp(
   const metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   const elf_image_t& img,
   const std::string& tag_map,
-  bool is_64_bit, reporter_t& err
+  reporter_t& err
 ) {
   std::ofstream section_file(tag_map, std::ios::binary);
   int address_width = (img.is_64bit() ? 8 : 4)/sizeof(std::ofstream::char_type);
@@ -68,24 +68,26 @@ void save_tags_to_temp(
 bool embed_tags_in_elf(
   const std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
-  elf_image_t& old_elf, std::string new_elf_name, bool update, bool is_64_bit,
+  elf_image_t& old_elf,
+  const std::string& new_elf_name,
+  bool update,
   reporter_t& err
 ) {
   std::string section_temp_file = "initial_tag_map";
-  save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, is_64_bit, err);
+  save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, err);
 
   char command_string[512];
   const char* base_command = update ?
     "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1" : 
     "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
-  std::string bfd_target = is_64_bit ? "elf64-littleriscv" : "elf32-littleriscv";
+  std::string bfd_target = old_elf.is_64bit() ? "elf64-littleriscv" : "elf32-littleriscv";
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file.c_str(), old_elf.name.c_str(), new_elf_name.c_str());
   int ret = system(command_string);
 
   return (ret == 0);
 }
 
-int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, bool is_64_bit, reporter_t& err) {
+int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
 
   // Retrieve memory metadata from tag file
@@ -102,12 +104,12 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
   const char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
-  std::string bfd_target = is_64_bit ? "elf64-littleriscv" : "elf32-littleriscv";
+  std::string bfd_target = img.is_64bit() ? "elf64-littleriscv" : "elf32-littleriscv";
   char command_string[256];
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), elf_filename.c_str());
   int ret = system(command_string);
 
-  if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, is_64_bit, err)) {
+  if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, err)) {
     err.error("Failed to save indexes to tag file\n");
     return 1;
   }
