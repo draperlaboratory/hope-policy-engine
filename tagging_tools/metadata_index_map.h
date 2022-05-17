@@ -24,13 +24,14 @@ namespace policy_engine {
 // XXX: K is always the key type of M, but two generics are needed to support
 // metadata_memory_map_t as M
 template <class M, class K>
-class metadata_index_map_t {
+class metadata_index_map_t : private std::map<K, int> {
 private:
-  std::map<K, int> index_map;
+  using parent = typename std::map<K, int>;
 
 public:
-  using iterator = typename decltype(index_map)::iterator;
-  using const_iterator = typename decltype(index_map)::const_iterator;
+  using iterator = typename parent::iterator;
+  using const_iterator = typename parent::const_iterator;
+  using size_type = typename parent::size_type;
 
   std::vector<std::shared_ptr<metadata_t>> metadata;
 
@@ -39,26 +40,22 @@ public:
   metadata_index_map_t(const M& metadata_map) {
     for (const auto& [ key, value ] : metadata_map) {
       const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](std::shared_ptr<const metadata_t> v){ return *v == *value; });
-      index_map[key] = std::distance(metadata.begin(), it);
+      (*this)[key] = std::distance(metadata.begin(), it);
       if (it == metadata.end())
         metadata.push_back(value);
     }
   }
 
-  iterator begin() { return index_map.begin(); }
-  iterator end() { return index_map.end(); }
-  const_iterator begin() const { return index_map.begin(); }
-  const_iterator end() const { return index_map.end(); }
-  const_iterator cbegin() const { return index_map.cbegin(); }
-  const_iterator cend() const { return index_map.cend(); }
-
-  void insert(const std::pair<K, int>& p) { index_map.insert(p); }
-  int& at(const K& k) { return index_map.at(k); }
-  const int& at(const K& k) const { return index_map.at(k); }
-  size_t erase(const K& k) { return index_map.erase(k); }
-  size_t size() const { return index_map.size(); }
-
-  int& operator [](const K& k) { return index_map[k]; }
+  using parent::begin;
+  using parent::end;
+  using parent::cbegin;
+  using parent::cend;
+  using parent::find;
+  using parent::insert;
+  using parent::at;
+  using parent::operator[];
+  using parent::erase;
+  using parent::size;
 };
 
 } // namespace policy_engine
