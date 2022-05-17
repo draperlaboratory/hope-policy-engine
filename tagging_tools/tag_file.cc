@@ -57,12 +57,12 @@ public:
 
   template<class T> std::streamsize read(T* data, std::streamsize n) {
     try {
-      std::streamsize b = n*sizeof(T)/sizeof(char);
-      char bytes[b];
+      std::streamsize b = n*sizeof(T)/sizeof(std::ofstream::char_type);
+      std::ofstream::char_type bytes[b];
       std::streamsize r = is.read(bytes, b).gcount();
       if (r == b)
         std::memcpy(data, bytes, b);
-      return r*sizeof(char)/sizeof(T);
+      return r*sizeof(std::ofstream::char_type)/sizeof(T);
     } catch (const std::ios::failure& e) {
       return 0;
     }
@@ -85,7 +85,7 @@ public:
 
   template<class T> bool write(const T* data, std::size_t n) {
     try {
-      os.write(reinterpret_cast<const char*>(data), n*sizeof(T)/sizeof(char));
+      os.write(reinterpret_cast<const std::ofstream::char_type*>(data), n*sizeof(T)/sizeof(std::ofstream::char_type));
       return !os.fail();
     } catch (const std::ios::failure& e) {
       return false;

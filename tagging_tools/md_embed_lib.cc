@@ -50,7 +50,7 @@ void save_tags_to_temp(
   bool is_64_bit, reporter_t& err
 ) {
   std::ofstream section_file(tag_map, std::ios::binary);
-  int address_width = img.is_64bit() ? 8 : 4;
+  int address_width = (img.is_64bit() ? 8 : 4)/sizeof(std::ofstream::char_type);
 
   uint64_t mem_map_size = memory_index_map.size();
   section_file.write(reinterpret_cast<const char*>(&mem_map_size), address_width);
