@@ -95,8 +95,7 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<
   return true;
 }
 
-size_t get_soc_granularity(YAML::Node soc, range_t range, bool is_64_bit) {
-  size_t default_granularity = is_64_bit ? 8 : 4;
+size_t get_soc_granularity(YAML::Node soc, range_t range, std::size_t default_granularity) {
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     uint64_t start = it->second["start"].as<uint64_t>();
     uint64_t end = it->second["end"].as<uint64_t>();
@@ -175,7 +174,7 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   coalesce_ranges(data_ranges, err);
 
   err.info("Code ranges:\n");
-  if (elf_image.is_64bit()) {
+  if (elf_image.word_bytes() == 8) {
     for (const range_t& range : code_ranges)
       err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
   } else {
@@ -184,7 +183,7 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   }
 
   err.info("Data ranges:\n");
-  if (elf_image.is_64bit()) {
+  if (elf_image.word_bytes() == 8) {
     for(const range_t& range : data_ranges)
       err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
   } else {
@@ -224,10 +223,10 @@ int md_header(const std::string& elf_filename, const std::string& soc_filename, 
     get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
     for(const range_t& range : data_ranges) {
-      data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.is_64bit())));
+      data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
     }
 
-    if (!write_headers(code_ranges, data_ranges_granularity, elf_image.is_64bit(), std::string(tag_filename))) {
+    if (!write_headers(code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8, std::string(tag_filename))) {
       err.error("Failed to write headers to tag file\n");
       return 1;
     }

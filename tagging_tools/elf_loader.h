@@ -63,7 +63,7 @@ public:
   elf_image_t(const std::string& fname);
   ~elf_image_t();
 
-  bool is_64bit() const { return ehdr.e_ident[4] == ELFCLASS64; }
+  int word_bytes() const { return ehdr.e_ident[4] == ELFCLASS64 ? 8 : 4; }
   uintptr_t entry_point() const { return ehdr.e_entry; }
 };
 

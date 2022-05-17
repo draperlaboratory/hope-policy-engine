@@ -21,18 +21,17 @@ std::string check_output(const std::string& cmd) {
   return proc_stdout;
 }
 
-int generate_tag_array(const std::string& elfname, range_file_t& range_file, const std::string& policy_name, YAML::Node policy_meta_info, bool rv64) {
+int generate_tag_array(const std::string& elfname, range_file_t& range_file, const std::string& policy_name, YAML::Node policy_meta_info, int address_bytes) {
   std::string tag_array_filename = "tag_array";
   std::ofstream tag_array_file(tag_array_filename, std::ios::binary);
   int length = policy_meta_info["MaxBit"].as<int>();
 
-  int bytes_per_address = (rv64 ? 64 : 32)/8;
-  std::string bfd_target = rv64 ? "elf64-littleriscv" : "elf32-littleriscv";
+  std::string bfd_target = address_bytes == 8 ? "elf64-littleriscv" : "elf32-littleriscv";
   std::string tool_prefix = "riscv64-unknown-elf-";
 
-  std::vector<uint8_t> tag_array_bytes(bytes_per_address*(length + 1), 0);
+  std::vector<uint8_t> tag_array_bytes(address_bytes*(length + 1), 0);
 
-  for (int i = 0; i < bytes_per_address; i++) {
+  for (int i = 0; i < address_bytes; i++) {
     uint8_t byte = i < sizeof(length) ? (length >> (i*8)) : 0;
     tag_array_file << byte;
   }
@@ -73,8 +72,8 @@ int generate_tag_array(const std::string& elfname, range_file_t& range_file, con
     for (const auto& m : policy_meta_info["Metadata"]) {
       int mid = std::stoi(m["id"].as<std::string>());
       range_file.write_range(
-        start_addr + (mid*bytes_per_address) + bytes_per_address,
-        start_addr + (mid*bytes_per_address) + 2*bytes_per_address,
+        start_addr + (mid*address_bytes) + address_bytes,
+        start_addr + (mid*address_bytes) + 2*address_bytes,
         m["name"].as<std::string>()
       );
     }

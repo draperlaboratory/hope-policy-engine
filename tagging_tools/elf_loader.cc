@@ -93,7 +93,7 @@ elf_image_t::elf_image_t(const std::string& fname) : name(fname), fd(-1), elf(nu
     Elf_Scn* symtab_scn = elf_getscn(elf, ind);
     Elf_Data* symtab_data = nullptr;
     if ((symtab_data = elf_getdata(symtab_scn, symtab_data)) != nullptr) {
-      int symbol_count = sections[ind].size/(is_64bit() ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
+      int symbol_count = sections[ind].size/(word_bytes() == 8 ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym));
       for (int i = 0; i < symbol_count; i++) {
         GElf_Sym symbol;
         if (gelf_getsym(symtab_data, i, &symbol) != nullptr && symbol.st_shndx != SHN_UNDEF && symbol.st_shndx != SHN_ABS) {

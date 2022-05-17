@@ -50,7 +50,7 @@ void save_tags_to_temp(
   reporter_t& err
 ) {
   std::ofstream section_file(tag_map, std::ios::binary);
-  int address_width = (img.is_64bit() ? 8 : 4)/sizeof(std::ofstream::char_type);
+  int address_width = img.word_bytes()/sizeof(std::ofstream::char_type);
 
   uint64_t mem_map_size = memory_index_map.size();
   section_file.write(reinterpret_cast<const char*>(&mem_map_size), address_width);
@@ -80,7 +80,7 @@ bool embed_tags_in_elf(
   const char* base_command = update ?
     "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1" : 
     "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
-  std::string bfd_target = old_elf.is_64bit() ? "elf64-littleriscv" : "elf32-littleriscv";
+  std::string bfd_target = old_elf.word_bytes() == 8 ? "elf64-littleriscv" : "elf32-littleriscv";
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file.c_str(), old_elf.name.c_str(), new_elf_name.c_str());
   int ret = system(command_string);
 
@@ -104,7 +104,7 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
   const char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
-  std::string bfd_target = img.is_64bit() ? "elf64-littleriscv" : "elf32-littleriscv";
+  std::string bfd_target = img.word_bytes() == 8 ? "elf64-littleriscv" : "elf32-littleriscv";
   char command_string[256];
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), elf_filename.c_str());
   int ret = system(command_string);

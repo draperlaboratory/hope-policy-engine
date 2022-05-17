@@ -98,7 +98,7 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
         // go ahead and mark it
         uint64_t end_addr;
         if (sb->is_singularity)
-          end_addr = sym->address + (img.is_64bit() ? 8 : 4);
+          end_addr = sym->address + img.word_bytes();
         else
           end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
         if (!md_tool.apply_tag(sym->address, end_addr, sb->entity_name.c_str())) {

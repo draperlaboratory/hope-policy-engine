@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
         policy_engine::range_map_t range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
       if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
         policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits, err);
-      int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, elf_image.is_64bit());
+      int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, elf_image.word_bytes());
       if (rc != 0)
         err.error("Couldn't add .tag_array to binary\n");
     }
