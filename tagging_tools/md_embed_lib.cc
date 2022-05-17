@@ -73,18 +73,21 @@ bool embed_tags_in_elf(
   bool update,
   reporter_t& err
 ) {
-  std::string section_temp_file = "initial_tag_map";
+  const std::string section_temp_file = "initial_tag_map";
   save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, err);
 
   char command_string[512];
-  const char* base_command = update ?
-    "%sobjcopy --target %s --update-section .initial_tag_map=%s %s %s >/dev/null 2>&1" : 
-    "%sobjcopy --target %s --add-section .initial_tag_map=%s --set-section-flags .initial_tag_map=readonly,data %s %s >/dev/null 2>&1";
-  std::string bfd_target = old_elf.word_bytes() == 8 ? "elf64-littleriscv" : "elf32-littleriscv";
-  std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), section_temp_file.c_str(), old_elf.name.c_str(), new_elf_name.c_str());
-  int ret = system(command_string);
+  const char base_command[] = "%sobjcopy --target elf%d-littleriscv --%s-section .initial_tag_map=%s %s %s %s";
+  std::sprintf(command_string, base_command,
+    riscv_prefix.c_str(),
+    old_elf.word_bytes()*8,
+    update ? "update" : "add",
+    section_temp_file.c_str(),
+    update ? "" : "--set-section-flags .initial_tag_map=readonly,data",
+    old_elf.name.c_str(), new_elf_name.c_str()
+  );
 
-  return (ret == 0);
+  return system(command_string) == 0;
 }
 
 int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
@@ -103,11 +106,10 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
-  const char base_command[] = "%sobjdump --target %s -d -j .initial_tag_map %s >/dev/null 2>&1";
-  std::string bfd_target = img.word_bytes() == 8 ? "elf64-littleriscv" : "elf32-littleriscv";
+  const char base_command[] = "%sobjdump --target elf%d-littleriscv -d -j .initial_tag_map %s >/dev/null 2>&1";
   char command_string[256];
-  std::sprintf(command_string, base_command, riscv_prefix.c_str(), bfd_target.c_str(), elf_filename.c_str());
-  int ret = system(command_string);
+  std::sprintf(command_string, base_command, riscv_prefix.c_str(), img.word_bytes()*8, elf_filename.c_str());
+  int ret = std::system(command_string);
 
   if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, err)) {
     err.error("Failed to save indexes to tag file\n");
