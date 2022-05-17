@@ -6,7 +6,7 @@
 
 namespace policy_engine {
 
-int md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err);
+void md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err);
     
 }
 

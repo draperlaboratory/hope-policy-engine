@@ -36,7 +36,7 @@
 
 namespace policy_engine {
 
-int md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err) {
+void md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
   std::vector<std::shared_ptr<metadata_t>> metadata_values;
   ssize_t register_default = -1;
@@ -44,10 +44,8 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   ssize_t env_default = -1;
 
   // Retrieve memory metadata from tag file
-  if (load_tags(metadata_memory_map, tag_filename) == false) {
-    err.error("Failed to load tags\n");
-    return 1;
-  }
+  if (!load_tags(metadata_memory_map, tag_filename))
+    throw std::ios::failure("failed to load tags from " + tag_filename);
 
   // Retrieve register metadata from policy
   metadata_factory_t metadata_factory(policy_dir);
@@ -67,12 +65,12 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
   try {
     register_default = register_index_map.at("ISA.RISCV.Reg.Default");
     register_index_map.erase("ISA.RISCV.Reg.Default");
-  } catch(const std::out_of_range& oor) { }
+  } catch (const std::out_of_range& oor) {}
 
   try {
     csr_default = csr_index_map.at("ISA.RISCV.CSR.Default");
     csr_index_map.erase("ISA.RISCV.CSR.Default");
-  } catch(const std::out_of_range& oor) { }
+  } catch (const std::out_of_range& oor) {}
 
   env_default = register_index_map.at("ISA.RISCV.Reg.Env");
   register_index_map.erase("ISA.RISCV.Reg.Env");
@@ -86,13 +84,8 @@ int md_index(const std::string& tag_filename, const std::string& policy_dir, rep
     err.info("}\n");
   }
 
-  if (save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map,
-                      register_default, csr_default, env_default, tag_filename, err) == false) {
-    err.error("Failed to save indexes to tag file\n");
-    return 1;
-  }
-
-  return 0;
+  if (!save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map, register_default, csr_default, env_default, tag_filename, err))
+    throw std::ios::failure("failed to save indexes to tag file");
 }
 
 } // namespace policy_engine

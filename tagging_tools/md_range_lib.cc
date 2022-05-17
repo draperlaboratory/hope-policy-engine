@@ -75,19 +75,13 @@ bool load_range_file(metadata_factory_t& md_factory, metadata_memory_map_t& map,
   return res;
 }
 
-int md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err) {
+void md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err) {
   metadata_factory_t md_factory(policy_dir);
   metadata_memory_map_t map;
-
   if (!load_range_file(md_factory, map, range_file_name, err))
-    return 1;
-
-  if (!save_tags(map, file_name)) {
-    err.error("failed write of tag file\n");
-    return 1;
-  }
-
-  return 0;
+    throw std::ios::failure("couldn't load range file " + range_file_name);
+  if (!save_tags(map, file_name))
+    throw std::ios::failure("failed write of tag file");
 }
 
 } // namespace policy_engine

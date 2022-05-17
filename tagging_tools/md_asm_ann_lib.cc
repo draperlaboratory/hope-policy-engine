@@ -25,9 +25,9 @@
  */
 
 #include <cstdint>
-#include <iostream>
 #include <fstream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include "asm_annotater.h"
 #include "metadata.h"
@@ -54,31 +54,25 @@ public:
   }
 };
 
-int md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, reporter_t& err, const std::string& output_file) {
+void md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, const std::string& output_file) {
   metadata_memory_map_t md_map;
 
   std::ifstream asm_in(asm_file);
-  if (!asm_in) {
-    err.error("couldn't open asm file %s\n", asm_file);
-    return 1;
-  }
+  if (!asm_in)
+    throw std::ios::failure("couldn't open input file " + asm_file);
 
   const std::string fname = output_file.empty() ? asm_file + ".tagged" : output_file;
   std::ofstream asm_out(fname);
-  if (!asm_out) {
-    err.error("couldn't open output asm file %s\n", fname);
-    return 1;
-  }
+  if (!asm_out)
+    throw std::ios::failure("couldn't open output file " + fname);
 
   metadata_factory_t md_factory(policy_dir);
 
-  if (!load_tags(md_map, taginfo_file)) {
-    err.error("couldn't load tags from %s\n", taginfo_file);
-    return 1;
-  }
+  if (!load_tags(md_map, taginfo_file))
+    throw std::ios::failure("couldn't load tags from " + taginfo_file);
+
   annotater_t ann(md_factory, md_map, asm_in, asm_out);
   ann.execute();
-  return 0;
 }
 
 } // namespace policy_engine

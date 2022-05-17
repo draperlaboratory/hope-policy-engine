@@ -192,50 +192,35 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   }
 }
 
-int md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, reporter_t& err) {
+void md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, reporter_t& err) {
   std::list<range_t> soc_ranges;
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;
   std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
   YAML::Node soc_node;
 
-  try {
-    metadata_factory_t factory(policy_dir);
-    elf_image_t elf_image(elf_filename);
+  metadata_factory_t factory(policy_dir);
+  elf_image_t elf_image(elf_filename);
 
-    soc_node = YAML::LoadFile(soc_filename);
-    if (soc_node["SOC"] == NULL) {
-      err.error("SOC root node not present\n");
-      return false;
-    }
+  soc_node = YAML::LoadFile(soc_filename);
+  if (soc_node["SOC"] == nullptr)
+    throw std::runtime_error("SOC root node not present");
 
-    if (exclude_unused_soc(soc_node["SOC"], soc_exclude, factory, err) == false) {
-      err.error("Failed to get SOC ranges\n");
-      return 1;
-    }
+  if (!exclude_unused_soc(soc_node["SOC"], soc_exclude, factory, err))
+    throw std::runtime_error("failed to get SOC ranges");
 
-    if (get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude, err) == false) {
-      err.error("Failed to get SOC ranges\n");
-      return 1;
-    }
+  if (!get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude, err))
+    throw std::runtime_error("failed to get SOC ranges");
 
-    data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
-    get_address_ranges(elf_image, code_ranges, data_ranges, err);
+  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+  get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
-    for(const range_t& range : data_ranges) {
-      data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
-    }
-
-    if (!write_headers(code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8, std::string(tag_filename))) {
-      err.error("Failed to write headers to tag file\n");
-      return 1;
-    }
-
-    return 0;
-  } catch (const std::runtime_error& e) {
-    err.error("Failed to load ELF image: %s\n", e.what());
-    return 1;
+  for(const range_t& range : data_ranges) {
+    data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
   }
+
+  if (!write_headers(code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8, std::string(tag_filename)))
+    throw std::ios::failure("failed to write headers to tag file");
 }
 
 } // namespace policy_engine

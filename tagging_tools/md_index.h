@@ -6,7 +6,7 @@
 
 namespace policy_engine {
 
-int md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err);
+void md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err);
 
 }
 

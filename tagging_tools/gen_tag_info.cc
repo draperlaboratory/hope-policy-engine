@@ -72,13 +72,9 @@ int main(int argc, char* argv[]) {
 
   std::string policy_base = FLAGS_policy_dir.substr(FLAGS_policy_dir.find_last_of("/") + 1);
   
-  struct stat tag_buf;
-  if (stat(FLAGS_tag_file.c_str(), &tag_buf) == 0) {
-    if (std::remove(FLAGS_tag_file.c_str()) != 0) {
-      err.error("could not remove %s\n", FLAGS_tag_file);
-      exit(-1);
-    }
-  }
+  if (struct stat tag_buf; stat(FLAGS_tag_file.c_str(), &tag_buf) == 0)
+    if (std::remove(FLAGS_tag_file.c_str()) != 0)
+      throw std::ios::failure("could not remove " + FLAGS_tag_file);
 
   YAML::Node policy_modules = YAML::LoadFile(FLAGS_policy_dir + "/policy_modules.yml");
   YAML::Node policy_inits = YAML::LoadFile(FLAGS_policy_dir + "/policy_init.yml");
@@ -103,11 +99,7 @@ int main(int argc, char* argv[]) {
     }
     range_file.finish();
     
-    int range_result = policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file, err);
-    if (range_result != 0) {
-      err.error("md_range failed");
-      exit(range_result);
-    }
+    policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file, err);
   }
   
   // have to reopen the file here because it's been edited and the current copy is corrupt
@@ -116,15 +108,9 @@ int main(int argc, char* argv[]) {
   tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, err);
 
   std::vector<std::string> entities(&argv[1], &argv[argc - 1]);
-  int entity_result = policy_engine::md_entity(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, entities, err);
-  if (entity_result != 0) {
-    err.error("md_entity failed\n");
-    exit(entity_result);
-  }
+  policy_engine::md_entity(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, entities, err);
 
-  int embed_result = policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, err);
-  if (embed_result != 0)
-    err.error("md_embed failed\n");
+  policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, err);
 
   std::ofstream asm_file(asm_file_name);
   std::string llvm_od_cmd = get_isp_prefix() + "/bin/llvm-objdump -dS " + FLAGS_bin;
@@ -141,24 +127,11 @@ int main(int argc, char* argv[]) {
     exit(llvm_result);
   }
 
-  int asm_ann_result = policy_engine::md_asm_ann(FLAGS_policy_dir, FLAGS_tag_file, asm_file_name, err);
-  if (asm_ann_result != 0) {
-    err.error("md_asm_ann failed");
-    exit(asm_ann_result);
-  }
+  policy_engine::md_asm_ann(FLAGS_policy_dir, FLAGS_tag_file, asm_file_name);
 
   if (!FLAGS_soc_file.empty()) {
-    int index_result = policy_engine::md_index(FLAGS_tag_file, FLAGS_policy_dir, err);
-    if (index_result != 0) {
-      err.error("md_index failed");
-      exit(index_result);
-    }
-
-    int header_result = policy_engine::md_header(FLAGS_bin, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
-    if (header_result != 0) {
-      err.error("md_header failed");
-      exit(header_result);
-    }
+    policy_engine::md_index(FLAGS_tag_file, FLAGS_policy_dir, err);
+    policy_engine::md_header(FLAGS_bin, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
   }
 
   return 0;

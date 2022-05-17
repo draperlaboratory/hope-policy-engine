@@ -72,16 +72,12 @@ void verify_entity_bindings(metadata_tool_t& md_tool, std::list<std::unique_ptr<
   }
 }
 
-int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, reporter_t& err, bool update) {
+void md_entity(const std::string& policy_dir, elf_image_t& img, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, reporter_t& err, bool update) {
   std::string entity_yaml = policy_dir + "/policy_entities.yml";
   metadata_tool_t md_tool(policy_dir.c_str());
 
-  if (update) {
-    if (!md_tool.load_tag_info(tag_file_name.c_str())) {
-      err.error("couldn't load tags from %s\n", tag_file_name);
-      return 2;
-    }
-  }
+  if (update && !md_tool.load_tag_info(tag_file_name.c_str()))
+    throw std::ios::failure("couldn't load tags from " + tag_file_name);
 
   std::list<std::unique_ptr<entity_binding_t>> bindings;
   load_entity_bindings(entity_yaml, bindings, err);
@@ -119,13 +115,8 @@ int md_entity(const std::string& policy_dir, elf_image_t& img, const std::string
     }
   }
 
-  if (err.errors == 0) {
-    if (!md_tool.save_tag_info(tag_file_name.c_str())) {
-      err.error("couldn't save tags to %s\n", tag_file_name);
-    }
-  }
-
-  return err.errors;
+  if (!md_tool.save_tag_info(tag_file_name.c_str()))
+    throw std::ios::failure("couldn't save tags to " + tag_file_name);
 }
 
 }

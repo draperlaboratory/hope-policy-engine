@@ -90,14 +90,12 @@ bool embed_tags_in_elf(
   return system(command_string) == 0;
 }
 
-int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
+void md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
 
   // Retrieve memory metadata from tag file
-  if (!load_tags(metadata_memory_map, tag_filename.c_str())) {
-    err.error("Failed to load tags\n");
-    return 1;
-  }
+  if (!load_tags(metadata_memory_map, tag_filename.c_str()))
+    throw std::ios::failure("failed to load tags");
 
   // Retrieve register metadata from policy
   metadata_factory_t metadata_factory(policy_dir);
@@ -111,11 +109,8 @@ int md_embed(const std::string& tag_filename, const std::string& policy_dir, elf
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), img.word_bytes()*8, elf_filename.c_str());
   int ret = std::system(command_string);
 
-  if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, err)) {
-    err.error("Failed to save indexes to tag file\n");
-    return 1;
-  }
-  return 0;
+  if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, err))
+    throw std::ios::failure("failed to save indices to tag file");
 }
 
 } // namespace policy_engine
