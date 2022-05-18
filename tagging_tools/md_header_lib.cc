@@ -39,74 +39,50 @@
 
 namespace policy_engine {
 
-bool exclude_unused_soc(YAML::Node soc, std::list<std::string>& exclude, metadata_factory_t& factory, reporter_t& err) {
+void exclude_unused_soc(const YAML::Node& soc, std::list<std::string>& exclude, metadata_factory_t& factory) {
   std::map<std::string, std::shared_ptr<metadata_t>> soc_map = factory.lookup_metadata_map("SOC");
 
-  for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-    std::string name;
-
-    if (it->second["name"] == NULL) {
-      err.error("'name' node not present\n");
-      return false;
-    }
-
-    name = it->second["name"].as<std::string>();
-
+  for (const auto& node : soc) {
+    if (!node.second["name"])
+      throw std::out_of_range("md_header: 'name' node not present");
+    std::string name = node.second["name"].as<std::string>();
     if (soc_map.find(name) == soc_map.end()) {
       exclude.push_back(name);
     }
   }
-
-  return true;
 }
 
-bool get_soc_ranges(YAML::Node soc, std::list<range_t>& ranges, const std::list<std::string>& exclude, reporter_t& err) {
-  for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-    range_t range;
-    std::string name;
-
-    if (it->second["name"] == NULL) {
-      err.error("'name' node not present\n");
-      return false;
-    }
-
-    name = it->second["name"].as<std::string>();
+std::list<range_t> get_soc_ranges(const YAML::Node& soc, const std::list<std::string>& exclude, reporter_t& err) {
+  std::list<range_t> ranges;
+  for (const auto& node : soc) {
+    if (!node.second["name"])
+      throw std::out_of_range("md_header: 'name' node not present");
+    std::string name = node.second["name"].as<std::string>();
 
     if (std::find(exclude.begin(), exclude.end(), name) != exclude.end()) {
       err.info("Excluding %s from SOC ranges\n", name);
       continue;
     }
 
-    if (it->second["start"] == NULL) {
-      err.error("'start' node not present\n");
-      return false;
-    }
-    range.start = it->second["start"].as<uint64_t>();
-
-    if (it->second["end"] == NULL) {
-      err.error("'end' node not present\n");
-      return false;
-    }
-    range.end = it->second["end"].as<uint64_t>();
-
-    ranges.push_back(range);
+    if (!node.second["start"])
+      throw std::out_of_range("md_header: 'start' node not present");
+    if (!node.second["end"])
+      throw std::out_of_range("md_header: 'end' node not present");
+    ranges.push_back(range_t{node.second["start"].as<uint64_t>(), node.second["end"].as<uint64_t>()});
   }
-
-  return true;
+  return ranges;
 }
 
-size_t get_soc_granularity(YAML::Node soc, range_t range, std::size_t default_granularity) {
-  for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-    uint64_t start = it->second["start"].as<uint64_t>();
-    uint64_t end = it->second["end"].as<uint64_t>();
-    if (start ==  range.start && end == range.end) {
-      if (it->second["tag_granularity"] != NULL) {
-        return it->second["tag_granularity"].as<size_t>();
-      }
+std::size_t get_soc_granularity(const YAML::Node& soc, range_t range, std::size_t default_granularity) {
+  for (const auto& node: soc) {
+    uint64_t start = node.second["start"].as<uint64_t>();
+    uint64_t end = node.second["end"].as<uint64_t>();
+    if (start == range.start && end == range.end) {
+      if (node.second["tag_granularity"])
+        return node.second["tag_granularity"].as<size_t>();
       return default_granularity;
     }
   }
-
   return default_granularity;
 }
 
@@ -193,34 +169,28 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
 }
 
 void md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, reporter_t& err) {
-  std::list<range_t> soc_ranges;
-  std::list<range_t> code_ranges;
-  std::list<range_t> data_ranges;
-  std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
-  YAML::Node soc_node;
-
   metadata_factory_t factory(policy_dir);
   elf_image_t elf_image(elf_filename);
 
-  soc_node = YAML::LoadFile(soc_filename);
-  if (soc_node["SOC"] == nullptr)
-    throw std::runtime_error("SOC root node not present");
+  YAML::Node soc_node = YAML::LoadFile(soc_filename);
+  if (!soc_node["SOC"])
+    throw std::out_of_range("md_header: SOC root node not present");
 
-  if (!exclude_unused_soc(soc_node["SOC"], soc_exclude, factory, err))
-    throw std::runtime_error("failed to get SOC ranges");
+  exclude_unused_soc(soc_node["SOC"], soc_exclude, factory);
 
-  if (!get_soc_ranges(soc_node["SOC"], soc_ranges, soc_exclude, err))
-    throw std::runtime_error("failed to get SOC ranges");
+  std::list<range_t> soc_ranges = get_soc_ranges(soc_node["SOC"], soc_exclude, err);
 
+  std::list<range_t> code_ranges, data_ranges;
   data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
   get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
-  for(const range_t& range : data_ranges) {
+  std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
+  for (const range_t& range : data_ranges) {
     data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
   }
 
   if (!write_headers(code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8, std::string(tag_filename)))
-    throw std::ios::failure("failed to write headers to tag file");
+    throw std::ios::failure("md_header: failed to write headers to tag file");
 }
 
 } // namespace policy_engine
