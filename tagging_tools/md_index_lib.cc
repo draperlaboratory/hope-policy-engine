@@ -39,9 +39,6 @@ namespace policy_engine {
 void md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err) {
   metadata_memory_map_t metadata_memory_map;
   std::vector<std::shared_ptr<metadata_t>> metadata_values;
-  ssize_t register_default = -1;
-  ssize_t csr_default = -1;
-  ssize_t env_default = -1;
 
   // Retrieve memory metadata from tag file
   if (!load_tags(metadata_memory_map, tag_filename))
@@ -62,17 +59,19 @@ void md_index(const std::string& tag_filename, const std::string& policy_dir, re
   metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
 
   // Separate the default entries from those corresponding to actual registers/CSRs
-  try {
-    register_default = register_index_map.at("ISA.RISCV.Reg.Default");
-    register_index_map.erase("ISA.RISCV.Reg.Default");
-  } catch (const std::out_of_range& oor) {}
+  int register_default = -1;
+  if (auto it = register_index_map.find("ISA.RISCV.Reg.Default"); it != register_index_map.end()) {
+    register_default = it->second;
+    register_index_map.erase(it);
+  }
 
-  try {
-    csr_default = csr_index_map.at("ISA.RISCV.CSR.Default");
-    csr_index_map.erase("ISA.RISCV.CSR.Default");
-  } catch (const std::out_of_range& oor) {}
+  int csr_default = -1;
+  if (auto it = csr_index_map.find("ISA.RISCV.CSR.Default"); it != csr_index_map.end()) {
+    csr_default = it->second;
+    csr_index_map.erase(it);
+  }
 
-  env_default = register_index_map.at("ISA.RISCV.Reg.Env");
+  int env_default = register_index_map.at("ISA.RISCV.Reg.Env");
   register_index_map.erase("ISA.RISCV.Reg.Env");
 
   err.info("Metadata entries:\n");
