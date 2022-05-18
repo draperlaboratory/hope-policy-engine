@@ -9,7 +9,7 @@
 
 namespace policy_engine {
 
-struct range_t {
+struct tagged_range_t {
   uint64_t start;
   uint64_t end;
   std::vector<std::string> tags;
@@ -37,17 +37,20 @@ public:
 
 class range_map_t {
 private:
-  std::vector<range_t> range_map;
+  std::vector<tagged_range_t> range_map;
+
 public:
+  using iterator = typename decltype(range_map)::iterator;
+
   range_map_t() {}
 
-  bool contains(const range_t& key);
-  range_t& operator [](int i);
+  bool contains(const tagged_range_t& key);
+  tagged_range_t& operator [](int i) { return range_map[i]; }
   void add_range(uint64_t start, uint64_t end, const std::string& tag = "");
   const std::vector<std::string>& get_tags(uint64_t addr);
   std::vector<std::pair<uint64_t, uint64_t>> get_ranges(const std::string& tag);
-  std::vector<range_t>::iterator begin();
-  std::vector<range_t>::iterator end();
+  iterator begin() { return range_map.begin(); }
+  iterator end() { return range_map.end(); }
 };
 
 }

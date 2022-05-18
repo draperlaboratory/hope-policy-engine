@@ -33,16 +33,12 @@ void range_file_t::print() {
     std::cout << line << '\n';
 }
 
-bool range_map_t::contains(const range_t& key) {
+bool range_map_t::contains(const tagged_range_t& key) {
   auto& [ start, end, tags ] = key;
-  return std::any_of(range_map.begin(), range_map.end(), [&start, &end](range_t range) {
+  return std::any_of(range_map.begin(), range_map.end(), [&start, &end](tagged_range_t range) {
     auto& [ s, e, t ] = range;
     return start >= s && end <= e;
   });
-}
-
-range_t& range_map_t::operator [](int i) {
-  return range_map[i];
 }
 
 void range_map_t::add_range(uint64_t start, uint64_t end, const std::string& tag) {
@@ -51,13 +47,13 @@ void range_map_t::add_range(uint64_t start, uint64_t end, const std::string& tag
       tags.push_back(tag);
   std::vector<std::string> tags;
   tags.push_back(tag);
-  range_map.push_back(range_t{start, end, tags});
+  range_map.push_back(tagged_range_t{start, end, tags});
 }
 
 const std::vector<std::string> empty;
 
 const std::vector<std::string>& range_map_t::get_tags(uint64_t addr) {
-  for (const range_t& range : range_map)
+  for (const tagged_range_t& range : range_map)
     if (addr >= range.start && addr <= range.end)
       return range.tags;
   return empty;
@@ -70,14 +66,6 @@ std::vector<std::pair<uint64_t, uint64_t>> range_map_t::get_ranges(const std::st
       ranges.push_back(std::make_pair(start, end));
   }
   return ranges;
-}
-
-std::vector<range_t>::iterator range_map_t::begin() {
-  return range_map.begin();
-}
-
-std::vector<range_t>::iterator range_map_t::end() {
-  return range_map.end();
 }
 
 } // namespace policy_engine

@@ -204,7 +204,7 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file
     for (auto& [ start, end, tags ] : code_range_map) {
       for (uint64_t s = start; s < end; s += PTR_SIZE) {
         uint64_t e = s + PTR_SIZE;
-        if (!range_map.contains(range_t{s, e, tags})) {
+        if (!range_map.contains(tagged_range_t{s, e, tags})) {
           err.info("llvm.NoCFI range = %lx:%lx\n", s, e);
           range_file.write_range(s, e, "llvm.NoCFI");
         }
