@@ -201,10 +201,10 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file
   if (policy_inits["Require"]["llvm"].as<std::string>().find("NoCFI") != std::string::npos) {
     range_map_t code_range_map;
     add_code_section_ranges(elf_file, code_range_map);
-    for (auto& [ start, end, tags ] : code_range_map) {
-      for (uint64_t s = start; s < end; s += PTR_SIZE) {
+    for (auto& [ range, tags ] : code_range_map) {
+      for (uint64_t s = range.start; s < range.end; s += PTR_SIZE) {
         uint64_t e = s + PTR_SIZE;
-        if (!range_map.contains(tagged_range_t{s, e, tags})) {
+        if (!range_map.contains(tagged_range_t{{s, e}, tags})) {
           err.info("llvm.NoCFI range = %lx:%lx\n", s, e);
           range_file.write_range(s, e, "llvm.NoCFI");
         }

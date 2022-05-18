@@ -38,7 +38,11 @@
 namespace policy_engine {
   
 struct range_t {
-  uint64_t start, end;
+  uint64_t start;
+  uint64_t end;
+
+  bool contains(uint64_t address) const { return address >= start && address <= end; }
+
   bool operator <(const range_t& other) const { return (start < other.start) || (start == other.start && end < other.end); }
 };
 

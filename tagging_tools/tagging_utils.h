@@ -6,12 +6,12 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include "metadata_memory_map.h"
 
 namespace policy_engine {
 
 struct tagged_range_t {
-  uint64_t start;
-  uint64_t end;
+  range_t range;
   std::vector<std::string> tags;
 };
 
@@ -48,7 +48,7 @@ public:
   tagged_range_t& operator [](int i) { return range_map[i]; }
   void add_range(uint64_t start, uint64_t end, const std::string& tag = "");
   const std::vector<std::string>& get_tags(uint64_t addr);
-  std::vector<std::pair<uint64_t, uint64_t>> get_ranges(const std::string& tag);
+  std::vector<range_t> get_ranges(const std::string& tag);
   iterator begin() { return range_map.begin(); }
   iterator end() { return range_map.end(); }
 };
