@@ -33,7 +33,7 @@ void range_file_t::print() {
     std::cout << line << std::endl;
 }
 
-bool range_map_t::contains(const tagged_range_t& key) {
+bool range_map_t::contains(const tagged_range_t& key) const {
   const auto& [ range, tags ] = key;
   return std::any_of(range_map.begin(), range_map.end(), [&](const tagged_range_t& tagged) {
     const auto& [ r, t ] = tagged;
@@ -53,14 +53,14 @@ void range_map_t::add_range(uint64_t start, uint64_t end, const std::string& tag
 
 const std::vector<std::string> empty;
 
-const std::vector<std::string>& range_map_t::get_tags(uint64_t addr) {
+const std::vector<std::string>& range_map_t::get_tags(uint64_t addr) const {
   for (const tagged_range_t& tagged : range_map)
     if (tagged.range.contains(addr))
       return tagged.tags;
   return empty;
 }
 
-std::vector<range_t> range_map_t::get_ranges(const std::string& tag) {
+std::vector<range_t> range_map_t::get_ranges(const std::string& tag) const {
   std::vector<range_t> ranges;
   for (const auto& [ range, tags ] : range_map) {
     if (std::find(tags.begin(), tags.end(), tag) != tags.end() || (tags.empty() && tag.empty()))

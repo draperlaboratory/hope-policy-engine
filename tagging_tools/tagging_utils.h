@@ -41,16 +41,27 @@ private:
 
 public:
   using iterator = typename decltype(range_map)::iterator;
+  using const_iterator = typename decltype(range_map)::const_iterator;
 
   range_map_t() {}
 
-  bool contains(const tagged_range_t& key);
+  bool contains(const tagged_range_t& key) const;
+
   tagged_range_t& operator [](int i) { return range_map[i]; }
+  const tagged_range_t& operator [](int i) const { return range_map[i]; }
+  tagged_range_t& at(int i) { return range_map.at(i); }
+  const tagged_range_t& at(int i) const { return range_map.at(i); }
+
+  iterator begin() noexcept { return range_map.begin(); }
+  iterator end() noexcept { return range_map.end(); }
+  const_iterator begin() const noexcept { return range_map.begin(); }
+  const_iterator end() const noexcept { return range_map.end(); }
+  const_iterator cbegin() const noexcept { return range_map.cbegin(); }
+  const_iterator cend() const noexcept { return range_map.cend(); }
+
   void add_range(uint64_t start, uint64_t end, const std::string& tag = "");
-  const std::vector<std::string>& get_tags(uint64_t addr);
-  std::vector<range_t> get_ranges(const std::string& tag);
-  iterator begin() { return range_map.begin(); }
-  iterator end() { return range_map.end(); }
+  const std::vector<std::string>& get_tags(uint64_t addr) const;
+  std::vector<range_t> get_ranges(const std::string& tag) const;
 };
 
 }
