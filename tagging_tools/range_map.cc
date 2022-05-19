@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 #include "metadata_memory_map.h"
-#include "tagging_utils.h"
+#include "range_map.h"
 
 namespace policy_engine {
 

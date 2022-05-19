@@ -32,8 +32,8 @@
 #include "metadata_cache.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
+#include "range_map.h"
 #include "tag_file.h"
-#include "tagging_utils.h"
 #include "reporter.h"
 #include "validator_exception.h"
 

@@ -10,7 +10,7 @@
 #include <yaml-cpp/yaml.h>
 #include "elf_loader.h"
 #include "llvm_metadata_tagger.h"
-#include "tagging_utils.h"
+#include "range_map.h"
 
 namespace policy_engine {
 

@@ -2,8 +2,8 @@
 #define __ELF_SECTION_TAGGER_H__
 
 #include "elf_loader.h"
+#include "range_map.h"
 #include "reporter.h"
-#include "tagging_utils.h"
 
 namespace policy_engine {
 

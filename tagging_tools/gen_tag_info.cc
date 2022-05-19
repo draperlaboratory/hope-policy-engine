@@ -21,9 +21,9 @@
 #include "md_range.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
+#include "range_map.h"
 #include "reporter.h"
 #include "tag_elf_file.h"
-#include "tagging_utils.h"
 
 std::list<std::string> soc_exclude = {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"};
 

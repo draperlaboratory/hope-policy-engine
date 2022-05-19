@@ -6,8 +6,8 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include "elf_loader.h"
+#include "range_map.h"
 #include "reporter.h"
-#include "tagging_utils.h"
 
 namespace policy_engine {
 
