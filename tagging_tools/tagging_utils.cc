@@ -30,11 +30,11 @@ void range_file_t::done() {}
 void range_file_t::print() {
   std::ifstream file(name);
   for (std::string line; std::getline(file, line);)
-    std::cout << line << '\n';
+    std::cout << line << std::endl;
 }
 
 bool range_map_t::contains(const tagged_range_t& key) {
-  auto& [ range, tags ] = key;
+  const auto& [ range, tags ] = key;
   return std::any_of(range_map.begin(), range_map.end(), [&](const tagged_range_t& tagged) {
     const auto& [ r, t ] = tagged;
     return range.start >= r.start && range.end <= r.end;
@@ -42,12 +42,13 @@ bool range_map_t::contains(const tagged_range_t& key) {
 }
 
 void range_map_t::add_range(uint64_t start, uint64_t end, const std::string& tag) {
-  for(auto& [ range, tags ] : range_map)
-    if (range.start == start && range.end == end)
+  for (auto& [ range, tags ] : range_map) {
+    if (range.start == start && range.end == end) {
       tags.push_back(tag);
-  std::vector<std::string> tags;
-  tags.push_back(tag);
-  range_map.push_back(tagged_range_t{{start, end}, tags});
+      return;
+    }
+  }
+  range_map.push_back(tagged_range_t{{start, end}, {tag}});
 }
 
 const std::vector<std::string> empty;
