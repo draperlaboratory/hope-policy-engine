@@ -115,43 +115,39 @@ void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, rang
   }
 }
 
-void llvm_metadata_tagger_t::check_and_write_range(range_file_t& range_file, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits, range_map_t& range_map) {
+void llvm_metadata_tagger_t::check_and_add_range(range_map_t& range_map, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits) {
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
         err.info("saw tag %s = %lx:%lx\n", tags.at("name"), start, end);
-        range_file.write_range(start, end, tags.at("name"));
         range_map.add_range(start, end, tags.at("name"));
       }
     }
   }
 }
 
-range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file, range_file_t& range_file, const YAML::Node& policy_inits) {
-  auto metadata_section = std::find_if(elf_file.sections.begin(), elf_file.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
-  if (metadata_section == elf_file.sections.end())
-    throw std::runtime_error("No metadata found in ELF file!");
+void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf_image_t& ef, const YAML::Node& policy_inits) {
+  auto metadata_section = std::find_if(ef.sections.begin(), ef.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
+  if (metadata_section == ef.sections.end())
+    throw std::runtime_error("no metadata found in ELF file");
   uint8_t* metadata = reinterpret_cast<uint8_t*>(metadata_section->data);
   if (metadata[0] != metadata_ops.at("DMD_SET_BASE_ADDRESS_OP"))
-    throw std::runtime_error("Invalid metadata found in ELF file!");
-
-  range_map_t range_map;
+    throw std::runtime_error("invalid metadata found in ELF file");
+  
+  uint64_t base_address = 0;
   for (int i = 0; i < metadata_section->size; i++) {
-    uint64_t base_address;
     if (metadata[i] == metadata_ops.at("DMD_SET_BASE_ADDRESS_OP")) {
-      uint64_t addr = 0;
+      base_address = 0;
       for (int j = 0; j < 8; j++, i++)
-        addr += metadata[i] << (j*8);
-      base_address = addr;
-      err.info("new base address is %lx\n", base_address);
+        base_address += metadata[i] << (j*8);
     } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         address += metadata[i] << (j*8);
       uint8_t tag_specifier = metadata[i++];
       err.info("tag is %x at address %lx\n", tag_specifier, address);
-      check_and_write_range(range_file, address, address + PTR_SIZE, tag_specifier, policy_inits, range_map);
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_RANGE_OP")) {
+      check_and_add_range(range_map, address, address + PTR_SIZE, tag_specifier, policy_inits);
+    } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         start_address += metadata[i] << (j*8);
@@ -159,24 +155,7 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file
         end_address += metadata[i] << (j*8);
       uint8_t tag_specifier = metadata[i++];
       err.info("tag is %x for address range %lx:%lx\n", tag_specifier, start_address, end_address);
-      check_and_write_range(range_file, start_address, end_address, tag_specifier, policy_inits, range_map);
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
-      err.info("Saw policy symbol!\n");
-      exit(-1);
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
-      err.info("Saw policy range!\n");
-      exit(-1);
-      i += PTR_SIZE*3; // unreachable?
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL_RANKED")) {
-      err.info("Saw policy symbol ranked!\n");
-      exit(-1);
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE_RANKED")) {
-      err.info("Saw policy range ranked!\n");
-      exit(-1);
-      i += PTR_SIZE*5;
-    } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK_WEAK_DECL_HACK")) {
-      err.info("Saw end weak decl tag!\n");
-      exit(1);
+      check_and_add_range(range_map, start_address, end_address, tag_specifier, policy_inits);
     } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK")) {
       uint64_t end_address = 0;
       for (int j = 0; j < PTR_SIZE; j++, i++)
@@ -191,28 +170,34 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(elf_image_t& elf_file
         end_address += metadata[i] << (j*8);
       err.info("saw function range %lx:%lx\n", start_address, end_address);
       range_map.add_range(start_address, end_address, "COMPILER_GENERATED");
+    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
+      throw std::runtime_error("saw policy symbol");
+    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
+      throw std::runtime_error("saw policy range");
+    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL_RANKED")) {
+      throw std::runtime_error("saw policy symbol ranked");
+    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE_RANKED")) {
+      throw std::runtime_error("saw policy range ranked");
+    } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK_WEAK_DECL_HACK")) {
+      throw std::runtime_error("saw end weak decl tag");
     } else {
-      err.error("found unknown byte in metadata: %x\n", metadata[i]);
-      exit(-1);
+      throw std::runtime_error("found unknown byt in metadata: " + std::to_string(metadata[i]));
     }
   }
-  free(metadata);
 
   if (policy_inits["Require"]["llvm"].as<std::string>().find("NoCFI") != std::string::npos) {
     range_map_t code_range_map;
-    add_code_section_ranges(elf_file, code_range_map);
+    add_code_section_ranges(ef, code_range_map);
     for (auto& [ range, tags ] : code_range_map) {
       for (uint64_t s = range.start; s < range.end; s += PTR_SIZE) {
         uint64_t e = s + PTR_SIZE;
         if (!range_map.contains(tagged_range_t{{s, e}, tags})) {
           err.info("llvm.NoCFI range = %lx:%lx\n", s, e);
-          range_file.write_range(s, e, "llvm.NoCFI");
+          range_map.add_range(s, e, "llvm.NoCFI");
         }
       }
     }
   }
-
-  return range_map;
 }
 
 } // namespace policy_engine

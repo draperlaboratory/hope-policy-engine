@@ -80,27 +80,21 @@ int main(int argc, char* argv[]) {
   YAML::Node policy_inits = YAML::LoadFile(FLAGS_policy_dir + "/policy_init.yml");
   YAML::Node policy_metas = YAML::LoadFile(FLAGS_policy_dir + "/policy_meta.yml");
 
-  { // open a new scope so that the ELF image cleans up properly before reopening it
+  policy_engine::range_map_t range_map;
+  if (policy_inits["Require"]) {
     policy_engine::elf_image_t elf_image(FLAGS_bin);
-
-    policy_engine::range_file_t range_file;
     policy_engine::llvm_metadata_tagger_t llvm_tagger(err);
 
-    if (policy_inits["Require"]) {
-      if (policy_inits["Require"]["elf"])
-        policy_engine::generate_rwx_ranges(elf_image, range_file, err);
-      if (policy_inits["Require"]["llvm"])
-        policy_engine::range_map_t range_map = llvm_tagger.generate_policy_ranges(elf_image, range_file, policy_inits);
-      if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
-        policy_engine::generate_soc_ranges(FLAGS_soc_file, range_file, policy_inits, err);
-      int rc = policy_engine::generate_tag_array(FLAGS_bin, range_file, policy_base, policy_metas, elf_image.word_bytes());
-      if (rc != 0)
-        err.error("Couldn't add .tag_array to binary\n");
-    }
-    range_file.finish();
-    
-    policy_engine::md_range(FLAGS_policy_dir, range_file.name, FLAGS_tag_file, err);
+    if (policy_inits["Require"]["elf"])
+      policy_engine::add_rwx_ranges(range_map, elf_image, err);
+    if (policy_inits["Require"]["llvm"])
+      llvm_tagger.add_policy_ranges(range_map, elf_image, policy_inits);
+    if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
+      policy_engine::add_soc_ranges(range_map, FLAGS_soc_file, policy_inits, err);
+    if (!policy_engine::add_tag_array(range_map, FLAGS_bin, policy_base, policy_metas, elf_image.word_bytes()))
+      err.error("Couldn't add .tag_array to binary\n");
   }
+  policy_engine::md_range(FLAGS_policy_dir, range_map, FLAGS_tag_file, err);
   
   // have to reopen the file here because it's been edited and the current copy is corrupt
   policy_engine::elf_image_t elf_image_post(FLAGS_bin);

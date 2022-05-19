@@ -15,26 +15,6 @@ struct tagged_range_t {
   std::vector<std::string> tags;
 };
 
-class range_file_t {
-private:
-  std::ofstream file;
-public:
-  range_file_t() : name("ranges") {
-    file = std::ofstream(name);
-  }
-
-  size_t write_range(uint64_t start, uint64_t end, const std::string& tag);
-  void finish();
-  const std::string name;
-  void done();
-  void print();
-
-  ~range_file_t() {
-    if (file.is_open())
-      file.close();
-  }
-};
-
 class range_map_t {
 private:
   std::vector<tagged_range_t> range_map;
@@ -59,7 +39,8 @@ public:
   const_iterator cbegin() const noexcept { return range_map.cbegin(); }
   const_iterator cend() const noexcept { return range_map.cend(); }
 
-  void add_range(uint64_t start, uint64_t end, const std::string& tag = "");
+  void add_range(uint64_t start, uint64_t end, const std::string& tag="") { add_range(start, end, std::vector<std::string>{tag}); }
+  void add_range(uint64_t start, uint64_t end, const std::vector<std::string>& tags);
   const std::vector<std::string>& get_tags(uint64_t addr) const;
   std::vector<range_t> get_ranges(const std::string& tag) const;
 };

@@ -21,7 +21,7 @@ std::string check_output(const std::string& cmd) {
   return proc_stdout;
 }
 
-int generate_tag_array(const std::string& elfname, range_file_t& range_file, const std::string& policy_name, YAML::Node policy_meta_info, int address_bytes) {
+bool add_tag_array(range_map_t& range_map, const std::string& elfname, const std::string& policy_name, const YAML::Node& policy_meta_info, int address_bytes) {
   std::string tag_array_filename = "tag_array";
   std::ofstream tag_array_file(tag_array_filename, std::ios::binary);
   int length = policy_meta_info["MaxBit"].as<int>();
@@ -48,7 +48,7 @@ int generate_tag_array(const std::string& elfname, range_file_t& range_file, con
     base_command += " --add-section .tag_array=" + tag_array_filename + " --set-section-flags .tag_array=readonly,data ";
   base_command += elfname + " " + elfname_policy;
   if (int objcopy_result = std::system(base_command.c_str()) < 0)
-    return objcopy_result;
+    return false;
   
   uint64_t start_addr = 0;
   objdump = check_output(tool_prefix + "objdump --target " + bfd_target + " -h " + elfname + "-" + policy_name);
@@ -66,17 +66,18 @@ int generate_tag_array(const std::string& elfname, range_file_t& range_file, con
       }
     }
   }
+
   if (start_addr > 0) {
     for (const auto& m : policy_meta_info["Metadata"]) {
       int mid = std::stoi(m["id"].as<std::string>());
-      range_file.write_range(
+      range_map.add_range(
         start_addr + (mid*address_bytes) + address_bytes,
         start_addr + (mid*address_bytes) + 2*address_bytes,
         m["name"].as<std::string>()
       );
     }
   }
-  return 0;
+  return true;
 }
 
 }

@@ -33,12 +33,13 @@
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "tag_file.h"
+#include "tagging_utils.h"
 #include "reporter.h"
 #include "validator_exception.h"
 
 namespace policy_engine {
 
-bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t start, uint64_t end, const char *tag_name) {
+bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
   std::shared_ptr<metadata_t> md = md_factory.lookup_metadata(tag_name);
   if (!md)
     return false;
@@ -46,40 +47,14 @@ bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint6
   return true;
 }
 
-bool load_range_file(metadata_factory_t& md_factory, metadata_memory_map_t& map, std::string file_name, reporter_t& err) {
-  int lineno = 1;
-  bool res = true;
-  try {
-    std::ifstream infile(file_name);
-    std::string line;
-    while (std::getline(infile, line)) {
-      std::istringstream iss(line);
-      std::vector<std::string> tokens {std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
-      if (tokens.size() != 3) {
-        err.warning("%s: %d: bad format - wrong number of items\n", file_name, lineno);
-        res = false;
-      } else {
-        uint64_t start = strtoul(tokens[0].c_str(), 0, 16);
-        uint64_t end = strtoul(tokens[1].c_str(), 0, 16);
-        if (!apply_tag(md_factory, map, start, end, tokens[2].c_str())) {
-          err.warning("%s: %d: could not find tag %s\n", file_name.c_str(), lineno, tokens[2].c_str());
-          res = false;
-        }
-      }
-      lineno++;
-    }
-  } catch (...) {
-    err.error("error loading %s\n", file_name);
-    return false;
-  }
-  return res;
-}
-
-void md_range(const std::string& policy_dir, const std::string& range_file_name, const std::string& file_name, reporter_t& err) {
+void md_range(const std::string& policy_dir, const range_map_t& range_map, const std::string& file_name, reporter_t& err) {
   metadata_factory_t md_factory(policy_dir);
   metadata_memory_map_t map;
-  if (!load_range_file(md_factory, map, range_file_name, err))
-    throw std::ios::failure("couldn't load range file " + range_file_name);
+  
+  for (const auto& [ range, tags ] : range_map)
+    for (const std::string& tag : tags)
+      if (!apply_tag(md_factory, map, range.start, range.end, tag))
+        throw std::out_of_range("could not find tag " + tag);
   if (!save_tags(map, file_name))
     throw std::ios::failure("failed write of tag file");
 }

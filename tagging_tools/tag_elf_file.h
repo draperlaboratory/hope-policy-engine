@@ -4,6 +4,6 @@
 
 namespace policy_engine {
 
-int generate_tag_array(const std::string& elfname, range_file_t& range_file, const std::string& policy_name, YAML::Node policy_meta_info, int address_bytes);
+bool add_tag_array(range_map_t& range_map, const std::string& elfname, const std::string& policy_name, const YAML::Node& policy_meta_info, int address_bytes);
 
 }

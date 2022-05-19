@@ -7,7 +7,7 @@
 
 namespace policy_engine {
 
-void generate_rwx_ranges(const elf_image_t& ef, range_file_t& range_file, reporter_t& err);
+void add_rwx_ranges(range_map_t& range_map, const elf_image_t& ef, reporter_t& err);
 
 }
 

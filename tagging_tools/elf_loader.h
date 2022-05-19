@@ -45,6 +45,8 @@ struct elf_section_t {
   const uint64_t offset;
   const size_t size;
   void* const data;
+
+  constexpr uint64_t end_address() const {return (address + size + 3) & ~3; }
 };
 
 class elf_image_t {

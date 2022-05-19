@@ -12,21 +12,17 @@ static const std::string RWX_X = "elf.Section.SHF_EXECINSTR";
 static const std::string RWX_R = "elf.Section.SHF_ALLOC";
 static const std::string RWX_W = "elf.Section.SHF_WRITE";
 
-void generate_rwx_ranges(const elf_image_t& ef, range_file_t& range_file, reporter_t& err) {
+void add_rwx_ranges(range_map_t& range_map, const elf_image_t& ef, reporter_t& err) {
   for (const elf_section_t& section : ef.sections) {
-    uint64_t end = section.address + section.size;
-    if (end % 4 != 0)
-      end += 4 - (end % 4);
     if (section.flags & SHF_EXECINSTR) {
-      range_file.write_range(section.address, end, RWX_X);
-      range_file.write_range(section.address, end, RWX_R);
-      err.info("X %s: %#lx - %#lx\n", section.name, section.address, end);
+      range_map.add_range(section.address, section.end_address(), {RWX_R, RWX_X});
+      err.info("X %s: %#lx - %#lx\n", section.name, section.address, section.end_address());
     } else if (section.flags & SHF_WRITE) {
-      range_file.write_range(section.address, end, RWX_W);
-      err.info("W %s: %#lx - %#lx\n", section.name, section.address, end);
+      range_map.add_range(section.address, section.end_address(), RWX_W);
+      err.info("W %s: %#lx - %#lx\n", section.name, section.address, section.end_address());
     } else if (section.flags & SHF_ALLOC) {
-      range_file.write_range(section.address, end, RWX_R);
-      err.info("R %s: %#lx - %#lx\n", section.name, section.address, end);
+      range_map.add_range(section.address, section.end_address(), RWX_R);
+      err.info("R %s: %#lx - %#lx\n", section.name, section.address, section.end_address());
     }
   }
 }
