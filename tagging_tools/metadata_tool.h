@@ -39,41 +39,13 @@
 
 namespace policy_engine {
 
-/**
- * Metadata utilities commonly have to set up the same basic sets of
- * objects in order to reach some basic level of function.  This class
- * aggregates a baseline set of required objects, and sets them up for
- * use by tools that want to create/update metadata.
- */
-class metadata_tool_t {
-private:
-  metadata_memory_map_t md_map;
-
-public:
-  metadata_factory_t factory;
-
-  metadata_tool_t(const std::string& policy_dir) : factory(metadata_factory_t(policy_dir)) {}
-
-  bool apply_group_tag(uint64_t start, uint64_t end, const std::string& group, const decoded_instruction_t& inst) {
-    std::shared_ptr<metadata_t> metadata = factory.lookup_group_metadata(group, inst);
-    if (!metadata)
-      return false;
-    md_map.add_range(start, end, metadata);
-    return true;
-  }
-
-  bool apply_tag(uint64_t start, uint64_t end, const std::string& tag_name) {
-    std::shared_ptr<metadata_t> md = factory.lookup_metadata(tag_name);
-    if (!md)
-      return false;
-    md_map.add_range(start, end, md);
-    return true;
-  }
-
-  void apply_tag(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) { md_map.add_range(start, end, metadata); }
-  bool load_tag_info(const std::string& tag_file_name) { return load_tags(md_map, tag_file_name); }
-  bool save_tag_info(const std::string& tag_file_name) { return save_tags(md_map, tag_file_name); }
-};
+static bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
+  std::shared_ptr<metadata_t> md = md_factory.lookup_metadata(tag_name);
+  if (!md)
+    return false;
+  map.add_range(start, end, md);
+  return true;
+}
 
 } // namespace policy_engine
 

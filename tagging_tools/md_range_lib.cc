@@ -32,20 +32,13 @@
 #include "metadata_cache.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
+#include "metadata_tool.h"
 #include "range_map.h"
 #include "tag_file.h"
 #include "reporter.h"
 #include "validator_exception.h"
 
 namespace policy_engine {
-
-bool apply_tag(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
-  std::shared_ptr<metadata_t> md = md_factory.lookup_metadata(tag_name);
-  if (!md)
-    return false;
-  map.add_range(start, end, md);
-  return true;
-}
 
 void md_range(const std::string& policy_dir, const range_map_t& range_map, const std::string& file_name, reporter_t& err) {
   metadata_factory_t md_factory(policy_dir);

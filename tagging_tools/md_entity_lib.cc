@@ -32,6 +32,8 @@
 #include <vector>
 #include "elf_loader.h"
 #include "entity_binding.h"
+#include "metadata_factory.h"
+#include "metadata_memory_map.h"
 #include "metadata_tool.h"
 #include "reporter.h"
 #include "symbol_table.h"
@@ -56,15 +58,15 @@ static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, r
 }
 
 // debugging code
-void dump_ents(metadata_tool_t& md_tool) {
+void dump_ents(metadata_factory_t& md_factory) {
   std::printf("ents:\n");
-  for (const std::string& s: md_tool.factory.enumerate()) {
+  for (const std::string& s: md_factory.enumerate()) {
     std::printf("  %s\n", s.c_str());
   }
 }
 
-void verify_entity_bindings(metadata_tool_t& md_tool, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
-  for (const std::string& s : md_tool.factory.enumerate()) {
+void verify_entity_bindings(metadata_factory_t& md_factory, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
+  for (const std::string& s : md_factory.enumerate()) {
     auto it = std::find_if(bindings.begin(), bindings.end(), [&](std::unique_ptr<entity_binding_t>& peb) { return peb->entity_name == s; });
     if (it == bindings.end()) {
       err.warning("Entity %s has no binding\n", s);
@@ -74,9 +76,10 @@ void verify_entity_bindings(metadata_tool_t& md_tool, std::list<std::unique_ptr<
 
 void md_entity(const std::string& policy_dir, elf_image_t& img, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, reporter_t& err, bool update) {
   std::string entity_yaml = policy_dir + "/policy_entities.yml";
-  metadata_tool_t md_tool(policy_dir.c_str());
+  metadata_memory_map_t md_map;
+  metadata_factory_t md_factory(policy_dir);
 
-  if (update && !md_tool.load_tag_info(tag_file_name.c_str()))
+  if (update && !load_tags(md_map, tag_file_name))
     throw std::ios::failure("couldn't load tags from " + tag_file_name);
 
   std::list<std::unique_ptr<entity_binding_t>> bindings;
@@ -84,7 +87,7 @@ void md_entity(const std::string& policy_dir, elf_image_t& img, const std::strin
   for (const std::string& yaml_file : yaml_files) {
     load_entity_bindings(yaml_file, bindings, err);
   }
-  verify_entity_bindings(md_tool, bindings, err);
+  verify_entity_bindings(md_factory, bindings, err);
 
   for (const std::unique_ptr<entity_binding_t>& e: bindings) {
     const entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
@@ -97,7 +100,7 @@ void md_entity(const std::string& policy_dir, elf_image_t& img, const std::strin
           end_addr = sym->address + img.word_bytes();
         else
           end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
-        if (!md_tool.apply_tag(sym->address, end_addr, sb->entity_name.c_str())) {
+        if (!apply_tag(md_factory, md_map, sym->address, end_addr, sb->entity_name)) {
           err.warning("Unable to apply tag %s\n", sb->entity_name);
         }
       }
@@ -107,7 +110,7 @@ void md_entity(const std::string& policy_dir, elf_image_t& img, const std::strin
         auto sym = get_symbol(img.symtab, err, rb->elf_start_name, false, false);
         auto end = get_symbol(img.symtab, err, rb->elf_end_name, false, false);
         if (sym != img.symtab.end() && end != img.symtab.end()) {
-          if (!md_tool.apply_tag(sym->address, end->address, rb->entity_name.c_str())) {
+          if (!apply_tag(md_factory, md_map, sym->address, end->address, rb->entity_name)) {
             err.warning("Unable to apply tag %s\n", rb->entity_name);
           }
         }
@@ -115,7 +118,7 @@ void md_entity(const std::string& policy_dir, elf_image_t& img, const std::strin
     }
   }
 
-  if (!md_tool.save_tag_info(tag_file_name.c_str()))
+  if (!save_tags(md_map, tag_file_name))
     throw std::ios::failure("couldn't save tags to " + tag_file_name);
 }
 
