@@ -36,6 +36,7 @@
 #include "metadata_factory.h"
 #include "reporter.h"
 #include "tag_file.h"
+#include "tagging_utils.h"
 
 namespace policy_engine {
 
@@ -87,17 +88,8 @@ std::size_t get_soc_granularity(const YAML::Node& soc, range_t range, std::size_
 }
 
 void elf_sections_to_ranges(const std::list<const elf_section_t*>& sections, std::list<range_t>& ranges) {
-  for(const auto section : sections) {
-    range_t range;
-    range.start = section->address;
-
-    // Round up to the next word boundary, then subtract 1 to make inclusive
-    range.end = section->address + section->size;
-    range.end += (4 - (range.end % 4)) % 4;
-    range.end -= 1;
-
-    ranges.push_back(range);
-  }
+  for (const auto section : sections)
+    ranges.push_back(range_t{section->address, round_up(section->address + section->size, 4) - 1});
 }
 
 bool compare_range(range_t& first, range_t& second) {

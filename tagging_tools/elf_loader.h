@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <vector>
 #include "symbol_table.h"
+#include "tagging_utils.h"
 
 namespace policy_engine {
 
@@ -46,7 +47,7 @@ struct elf_section_t {
   const size_t size;
   void* const data;
 
-  constexpr uint64_t end_address() const {return (address + size + 3) & ~3; }
+  constexpr uint64_t end_address() const { return round_up(address + size, 4); }
 };
 
 class elf_image_t {
