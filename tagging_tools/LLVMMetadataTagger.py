@@ -98,6 +98,7 @@ class LLVMMetadataTagger:
         }
     }
     latest_inline_addr = -1
+    latest_inline_addr_valid = False
 
     def __init__(self):
         self.needs_tag_cache = {}
@@ -134,24 +135,40 @@ class LLVMMetadataTagger:
     def check_and_write_range(self, range_file, start, end, tag_specifier,
                             policy_inits, range_map):
         for policy, tags in self.policy_map.items():
-            if self.policy_needs_tag(policy_inits, tags['name']):
+            if self.policy_needs_tag(policy_inits, tags['name']) or self.policy_needs_tag(policy_inits, "llvm.Inline"):
                 if tags['tag_specifier'] == tag_specifier:
 #                     print(policy + ": start " + hex(start) + ", end " + hex(end));
+                    if tags['name'] == "llvm.Prologue":
+                        self.latest_inline_addr_valid = False
+                        self.latest_inline_addr = start + 4;
+                    if tags['name'] == "llvm.Epilogue" and self.latest_inline_addr > 0 and self.latest_inline_addr_valid:
+                            print("Should tag between " + hex(self.latest_inline_addr) + " and epilogue at " + hex(start) + " as INLINE_ASM")
+                            range_file.write_range(self.latest_inline_addr, start, "llvm.Inline")
+                            range_map.add_range(self.latest_inline_addr, start, "llvm.Inline")
+                            self.latest_inline_addr = -1
+                            self.latest_inline_addr_valid = False
+
                     if tags['name'] == "llvm.Inline":
-                        if self.latest_inline_addr == -1 and tag_specifier == self.tag_specifiers["DMT_BEFORE_INLINE_ASM_INSNS"]:
-                            self.latest_inline_addr = start;
+                        if tag_specifier == self.tag_specifiers["DMT_BEFORE_INLINE_ASM_INSNS"]:
+                            self.latest_inline_addr_valid = True
+                            self.latest_inline_addr = start + 4
                         elif self.latest_inline_addr > 0 and tag_specifier == self.tag_specifiers["DMT_AFTER_INLINE_ASM_INSNS"]:
                             # Do something
-                            print("Should tag between " + hex(self.latest_inline_addr) + " and " + hex(start) + " as INLINE_ASM")
+                            if self.latest_inline_addr_valid:
+                                print("Should tag between " + hex(self.latest_inline_addr) + " and " + hex(start) + " as INLINE_ASM")
+                            else:
+                                print("Should tag between prologue at " + hex(self.latest_inline_addr) + " and " + hex(start) + " as INLINE_ASM")
                             range_file.write_range(self.latest_inline_addr, start, tags['name'])
                             range_map.add_range(self.latest_inline_addr, start, tags['name'])
                             self.latest_inline_addr = -1
+                            self.latest_inline_addr_valid = False
                             pass
                         elif tag_specifier == self.tag_specifiers["DMT_BEFORE_INLINE_ASM_INSNS"]:
                             print("Invalid double before tag " + hex(self.latest_inline_addr) + " and " + hex(start) + ".")
+                            # Maybe if we hit prologue or epilogue, we should reset vakyes, too.
                         else:
                             print("Invalid after inline tag with no before " + hex(start) + ".")
-                    else:
+                    elif self.policy_needs_tag(policy_inits, tags['name']):
                         range_file.write_range(start, end, tags['name'])
                         range_map.add_range(start, end, tags['name'])
 
