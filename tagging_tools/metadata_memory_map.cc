@@ -24,6 +24,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include "metadata_memory_map.h"
@@ -35,8 +36,7 @@ void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end
   if (range.start == range.end) {
     range.start = start;
     assert(mem.size() == 0); // first range added
-  }
-  else if (start < range.start) {
+  } else if (start < range.start) {
     // inserting before the existing base - have to insert a bit
     int n_insert = (range.start - start)/stride;
     mem.insert(mem.begin(), n_insert, nullptr);
@@ -62,42 +62,19 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_
   /* this is a meaningless call */
   if (start >= end)
     return;
-  
-  /* find the right mr */
-  for (mem_region_t& mr : mrs) {
-    /* check whether the region is adjacent or contained within */
-    if (mr.contains(start) || mr.contains(end)) {
-      mr.add_range(start, end, metadata);
-      return;
-    }
+
+  if (auto it = std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return r.contains(start) || r.contains(end); }); it != mrs.end()) {
+    it->add_range(start, end, metadata);
+  } else {
+    /* an appropriate existing MR was not found - make a new one */
+    mem_region_t mr = mem_region_t(*this);
+    mr.add_range(start, end, metadata);
+    mrs.insert(std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return end < r.range.start; }), mr); // will add at end if not found
   }
-  
-  /* an appropriate existing MR was not found - make a new one */
-  mem_region_t mr = mem_region_t(*this);
-  int len = mrs.size();
-
-  /* put it in the vector at the right location */
-  int i;
-  for (i = 0; i < len; i++) {
-    if (end < mrs[i].range.start) {
-      /* insert in the correct place */
-      mrs.insert(mrs.begin()+i, mr);
-
-      /* now add the metadata range */
-      mrs[i].add_range(start, end, metadata);
-      return;
-    }
-  }
-
-  /* nothing found, put it at the end. */
-  mrs.push_back(mr);
-  mrs[i].add_range(start, end, metadata);
-   
-  return;
 }
 
 std::shared_ptr<metadata_t> metadata_memory_map_t::get_metadata(uint64_t addr) {
-  for (auto& mr : mrs) {
+  for (const auto& mr : mrs) {
     if (mr.contains(addr))
       return mr.getaddr(addr);
   }
