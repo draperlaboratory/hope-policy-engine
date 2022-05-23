@@ -82,8 +82,7 @@ void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, el
   verify_entity_bindings(md_factory, bindings, err);
 
   for (const std::unique_ptr<entity_binding_t>& e: bindings) {
-    const entity_symbol_binding_t* sb = dynamic_cast<entity_symbol_binding_t*>(e.get());
-    if (sb != nullptr) {
+    if (const auto sb = dynamic_cast<entity_symbol_binding_t*>(e.get())) {
       auto sym = get_symbol(img.symtab, err, sb->elf_name, !sb->is_singularity, sb->optional);
       if (sym != img.symtab.end()) {
         // go ahead and mark it
@@ -96,15 +95,12 @@ void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, el
           err.warning("Unable to apply tag %s\n", sb->entity_name);
         }
       }
-    } else {
-      entity_range_binding_t* rb = dynamic_cast<entity_range_binding_t*>(e.get());
-      if (rb != nullptr) {
-        auto sym = get_symbol(img.symtab, err, rb->elf_start_name, false, false);
-        auto end = get_symbol(img.symtab, err, rb->elf_end_name, false, false);
-        if (sym != img.symtab.end() && end != img.symtab.end()) {
-          if (!apply_tag(md_factory, md_map, sym->address, end->address, rb->entity_name)) {
-            err.warning("Unable to apply tag %s\n", rb->entity_name);
-          }
+    } else if (const auto rb = dynamic_cast<entity_range_binding_t*>(e.get())) {
+      auto sym = get_symbol(img.symtab, err, rb->elf_start_name, false, false);
+      auto end = get_symbol(img.symtab, err, rb->elf_end_name, false, false);
+      if (sym != img.symtab.end() && end != img.symtab.end()) {
+        if (!apply_tag(md_factory, md_map, sym->address, end->address, rb->entity_name)) {
+          err.warning("Unable to apply tag %s\n", rb->entity_name);
         }
       }
     }

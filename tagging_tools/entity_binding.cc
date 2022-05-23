@@ -31,7 +31,7 @@
 #include "reporter.h"
 #include "validator_exception.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
 template <class T=std::string>
 static T expect_field(const YAML::Node& n, const std::string& field, const std::string& entity_name) {
@@ -40,40 +40,41 @@ static T expect_field(const YAML::Node& n, const std::string& field, const std::
   return n[field].as<T>();
 }
 
-static void process_element(const YAML::Node& n, std::list<std::unique_ptr<entity_binding_t>>& bindings) {
+static std::unique_ptr<entity_binding_t> process_element(const YAML::Node& n) {
   std::string entity_name = expect_field(n, "name", "");
   std::string element_name = expect_field(n, "kind", entity_name);
   if (element_name == "symbol") {
-    bindings.push_back(std::make_unique<entity_symbol_binding_t>(
+    return std::make_unique<entity_symbol_binding_t>(
       entity_name,
       expect_field(n, "elf_name", entity_name),
       n["optional"] && n["optional"].as<bool>(),
       n["tag_all"] && !n["tag_all"].as<bool>()
-    ));
+    );
   } else if (element_name == "range") {
-    bindings.push_back(std::make_unique<entity_range_binding_t>(
+    return std::make_unique<entity_range_binding_t>(
       entity_name,
       expect_field(n, "elf_start", entity_name),
       expect_field(n, "elf_end", entity_name),
       n["optional"] && n["optional"].as<bool>()
-    ));
+    );
   } else if (element_name == "soc") {
-    bindings.push_back(std::make_unique<entity_soc_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>()));
+    return std::make_unique<entity_soc_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>());
   } else if (element_name == "isa") {
-    bindings.push_back(std::make_unique<entity_isa_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>()));
+    return std::make_unique<entity_isa_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>());
   } else if (element_name == "image") {
-    bindings.push_back(std::make_unique<entity_image_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>()));
+    return std::make_unique<entity_image_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>());
   } else {
     throw configuration_exception_t("unexpected kind " + element_name);
   }
 }
 
-void policy_engine::load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
+void load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
   try {
     for (const YAML::Node& node : YAML::LoadFile(file_name))
-      process_element(node, bindings);
+      bindings.push_back(process_element(node));
   } catch (const std::exception &e) {
     err.error("while parsing %s: %s\n", file_name, e.what());
   }
 }
 
+}

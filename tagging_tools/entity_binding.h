@@ -38,7 +38,7 @@ struct entity_binding_t {
   const std::string entity_name;
   const bool optional;
 
-  entity_binding_t(const std::string& n, bool o="") : entity_name(n), optional(o) {}
+  entity_binding_t(const std::string& n, bool o) : entity_name(n), optional(o) {}
   virtual ~entity_binding_t() {}
 };
 
