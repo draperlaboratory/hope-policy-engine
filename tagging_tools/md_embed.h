@@ -3,11 +3,13 @@
 
 #include <string>
 #include "elf_loader.h"
+#include "metadata_factory.h"
+#include "metadata_memory_map.h"
 #include "reporter.h"
 
 namespace policy_engine {
 
-void md_embed(const std::string& tag_filename, const std::string& policy_dir, elf_image_t& img, const std::string& elf_filename, reporter_t& err);
+void md_embed(metadata_factory_t& metadata_factory, metadata_memory_map_t& metadata_memory_map, elf_image_t& img, const std::string& elf_filename, reporter_t& err);
     
 }
 

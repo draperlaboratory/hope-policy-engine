@@ -74,16 +74,8 @@ void verify_entity_bindings(metadata_factory_t& md_factory, std::list<std::uniqu
   }
 }
 
-void md_entity(const std::string& policy_dir, elf_image_t& img, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, reporter_t& err, bool update) {
-  std::string entity_yaml = policy_dir + "/policy_entities.yml";
-  metadata_memory_map_t md_map;
-  metadata_factory_t md_factory(policy_dir);
-
-  if (update && !load_tags(md_map, tag_file_name))
-    throw std::ios::failure("couldn't load tags from " + tag_file_name);
-
+void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err) {
   std::list<std::unique_ptr<entity_binding_t>> bindings;
-  load_entity_bindings(entity_yaml, bindings, err);
   for (const std::string& yaml_file : yaml_files) {
     load_entity_bindings(yaml_file, bindings, err);
   }
@@ -117,9 +109,6 @@ void md_entity(const std::string& policy_dir, elf_image_t& img, const std::strin
       }
     }
   }
-
-  if (!save_tags(md_map, tag_file_name))
-    throw std::ios::failure("couldn't save tags to " + tag_file_name);
 }
 
 }

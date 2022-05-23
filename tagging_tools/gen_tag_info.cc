@@ -19,11 +19,14 @@
 #include "md_header.h"
 #include "md_index.h"
 #include "md_range.h"
+#include "metadata_factory.h"
+#include "metadata_memory_map.h"
 #include "op_code_tagger.h"
 #include "soc_tagger.h"
 #include "range_map.h"
 #include "reporter.h"
 #include "tag_elf_file.h"
+#include "tag_file.h"
 
 std::list<std::string> soc_exclude = {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"};
 
@@ -94,17 +97,23 @@ int main(int argc, char* argv[]) {
     if (!policy_engine::add_tag_array(range_map, FLAGS_bin, policy_base, policy_metas, elf_image.word_bytes()))
       err.error("Couldn't add .tag_array to binary\n");
   }
-  policy_engine::md_range(FLAGS_policy_dir, range_map, FLAGS_tag_file, err);
+
+  policy_engine::metadata_memory_map_t md_memory_map;
+  policy_engine::metadata_factory_t md_factory(FLAGS_policy_dir);
+
+  policy_engine::md_range(md_factory, md_memory_map, range_map);
   
   // have to reopen the file here because it's been edited and the current copy is corrupt
   policy_engine::elf_image_t elf_image_post(FLAGS_bin);
 
-  tag_op_codes(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, err);
+  tag_op_codes(md_factory, md_memory_map, elf_image_post, err);
 
-  std::vector<std::string> entities(&argv[1], &argv[argc - 1]);
-  policy_engine::md_entity(FLAGS_policy_dir, elf_image_post, FLAGS_tag_file, entities, err);
+  std::vector<std::string> entities{FLAGS_policy_dir + "/policy_entities.yml"};
+  for (int i = 1; i < argc; i++)
+    entities.push_back(argv[i]);
+  policy_engine::md_entity(md_factory, md_memory_map, elf_image_post, entities, err);
 
-  policy_engine::md_embed(FLAGS_tag_file, FLAGS_policy_dir, elf_image_post, FLAGS_bin + "-" + policy_base, err);
+  policy_engine::md_embed(md_factory, md_memory_map, elf_image_post, FLAGS_bin + "-" + policy_base, err);
 
   std::ofstream asm_file(asm_file_name);
   std::string llvm_od_cmd = get_isp_prefix() + "/bin/llvm-objdump -dS " + FLAGS_bin;
@@ -121,10 +130,10 @@ int main(int argc, char* argv[]) {
     exit(llvm_result);
   }
 
-  policy_engine::md_asm_ann(FLAGS_policy_dir, FLAGS_tag_file, asm_file_name);
+  policy_engine::md_asm_ann(md_factory, md_memory_map, asm_file_name);
 
   if (!FLAGS_soc_file.empty()) {
-    policy_engine::md_index(FLAGS_tag_file, FLAGS_policy_dir, err);
+    policy_engine::md_index(md_factory, md_memory_map, FLAGS_tag_file, err);
     policy_engine::md_header(FLAGS_bin, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
   }
 

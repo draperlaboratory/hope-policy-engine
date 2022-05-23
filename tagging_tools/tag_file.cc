@@ -97,52 +97,6 @@ public:
   explicit operator bool() const { return static_cast<bool>(os); }
 };
 
-bool policy_engine::load_tags(metadata_memory_map_t& map, const std::string& file_name) {
-  stream_reader_t reader(file_name);
-  if (!reader)
-    return false;
-
-  while (!reader.eof()) {
-    uint64_t start, end;
-    uint32_t metadata_count;
-
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, start))
-      return false;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, end))
-      return false;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count))
-      return false;
-    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
-    for (uint32_t i = 0; i < metadata_count; i++) {
-      meta_t meta;
-      if (!read_uleb<stream_reader_t, meta_t>(reader, meta))
-        return false;
-      metadata->insert(meta);
-    }
-    map.add_range(start, end, metadata);
-  }
-  return true;
-}
-
-bool policy_engine::save_tags(metadata_memory_map_t& map, const std::string& file_name) {
-  stream_writer_t writer(file_name);
-  if (!writer)
-    return false;
-
-  for (const auto& [ range, md ] : map) {
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.start))
-      return false;
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.end))
-      return false;
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, md->size()))
-      return false;
-    for (const meta_t& meta : *md)
-      if (!write_uleb<stream_writer_t, meta_t>(writer, meta))
-        return false;
-  }
-  return true;
-}
-
 bool policy_engine::save_tag_indexes(
   std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,

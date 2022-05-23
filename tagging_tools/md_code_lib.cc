@@ -39,12 +39,7 @@
 
 namespace policy_engine {
 
-void md_code(const std::string& policy_dir, uint64_t code_address, const std::string& file_name, void* bytes, int n, reporter_t& err) {
-  metadata_factory_t md_factory(policy_dir);
-  metadata_memory_map_t map;
-  if (!load_tags(map, file_name))
-    throw std::ios::failure("failure to read tags from " + file_name);
-
+void md_code(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err) {
   insn_bits_t* bits = reinterpret_cast<insn_bits_t*>(bytes);
   for (int i = 0; i < n/sizeof(insn_bits_t); i++) {
     decoded_instruction_t inst = decode(bits[i]);
@@ -63,9 +58,6 @@ void md_code(const std::string& policy_dir, uint64_t code_address, const std::st
     }
     code_address += 4;
   }
-
-  if (!save_tags(map, file_name))
-    throw std::ios::failure("failed write of tag file");
 }
 
 } // namespace policy_engine

@@ -36,16 +36,8 @@
 
 namespace policy_engine {
 
-void md_index(const std::string& tag_filename, const std::string& policy_dir, reporter_t& err) {
-  metadata_memory_map_t metadata_memory_map;
+void md_index(metadata_factory_t& metadata_factory, metadata_memory_map_t& metadata_memory_map, const std::string& tag_filename, reporter_t& err) {
   std::vector<std::shared_ptr<metadata_t>> metadata_values;
-
-  // Retrieve memory metadata from tag file
-  if (!load_tags(metadata_memory_map, tag_filename))
-    throw std::ios::failure("failed to load tags from " + tag_filename);
-
-  // Retrieve register metadata from policy
-  metadata_factory_t metadata_factory(policy_dir);
 
   metadata_register_map_t register_map = metadata_factory.lookup_metadata_map("ISA.RISCV.Reg");
   metadata_register_map_t csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");

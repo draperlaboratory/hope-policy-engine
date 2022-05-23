@@ -29,27 +29,18 @@
 #include <memory>
 #include <sstream>
 #include <string>
-#include "metadata_cache.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "metadata_tool.h"
 #include "range_map.h"
-#include "tag_file.h"
-#include "reporter.h"
-#include "validator_exception.h"
 
 namespace policy_engine {
 
-void md_range(const std::string& policy_dir, const range_map_t& range_map, const std::string& file_name, reporter_t& err) {
-  metadata_factory_t md_factory(policy_dir);
-  metadata_memory_map_t map;
-  
+void md_range(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, const range_map_t& range_map) {
   for (const auto& [ range, tags ] : range_map)
     for (const std::string& tag : tags)
-      if (!apply_tag(md_factory, map, range.start, range.end, tag))
+      if (!apply_tag(md_factory, md_map, range.start, range.end, tag))
         throw std::out_of_range("could not find tag " + tag);
-  if (!save_tags(map, file_name))
-    throw std::ios::failure("failed write of tag file");
 }
 
 } // namespace policy_engine

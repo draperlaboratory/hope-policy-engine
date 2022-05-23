@@ -3,11 +3,13 @@
 
 #include <cstdint>
 #include <string>
+#include "metadata_factory.h"
+#include "metadata_memory_map.h"
 #include "reporter.h"
 
 namespace policy_engine {
 
-void md_code(const std::string& policy_dir, uint64_t code_address, const std::string& file_name, void* bytes, int n, reporter_t& err);
+void md_code(metadata_factory_t& md_factory, metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err);
     
 }
 

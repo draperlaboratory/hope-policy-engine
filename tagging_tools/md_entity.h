@@ -4,11 +4,13 @@
 #include <string>
 #include <vector>
 #include "elf_loader.h"
+#include "metadata_factory.h"
+#include "metadata_memory_map.h"
 #include "reporter.h"
 
 namespace policy_engine {
 
-void md_entity(const std::string& policy_dir, elf_image_t& img, const std::string& tag_file_name, const std::vector<std::string>& yaml_files, reporter_t& err, bool update=true);
+void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err);
     
 }
 

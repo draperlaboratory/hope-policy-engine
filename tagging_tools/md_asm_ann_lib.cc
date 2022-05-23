@@ -31,6 +31,7 @@
 #include <string>
 #include "asm_annotater.h"
 #include "metadata.h"
+#include "metadata_memory_map.h"
 #include "metadata_factory.h"
 #include "reporter.h"
 #include "tag_file.h"
@@ -54,9 +55,7 @@ public:
   }
 };
 
-void md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, const std::string& asm_file, const std::string& output_file) {
-  metadata_memory_map_t md_map;
-
+void md_asm_ann(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, const std::string& asm_file, const std::string& output_file) {
   std::ifstream asm_in(asm_file);
   if (!asm_in)
     throw std::ios::failure("couldn't open input file " + asm_file);
@@ -65,11 +64,6 @@ void md_asm_ann(const std::string& policy_dir, const std::string& taginfo_file, 
   std::ofstream asm_out(fname);
   if (!asm_out)
     throw std::ios::failure("couldn't open output file " + fname);
-
-  metadata_factory_t md_factory(policy_dir);
-
-  if (!load_tags(md_map, taginfo_file))
-    throw std::ios::failure("couldn't load tags from " + taginfo_file);
 
   annotater_t ann(md_factory, md_map, asm_in, asm_out);
   ann.execute();
