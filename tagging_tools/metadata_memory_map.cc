@@ -24,14 +24,40 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <cstdint>
 #include <string>
 #include "metadata_memory_map.h"
-#include "metadata_factory.h"
-#include "reporter.h"
-#include "validator_exception.h"
+#include "range.h"
 
 namespace policy_engine {
   
+void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
+  if (range.start == range.end) {
+    range.start = start;
+    assert(mem.size() == 0); // first range added
+  }
+  else if (start < range.start) {
+    // inserting before the existing base - have to insert a bit
+    int n_insert = (range.start - start)/stride;
+    mem.insert(mem.begin(), n_insert, nullptr);
+    range.start = start;
+  }
+
+  int s = (start - range.start)/stride;
+  int e = (end - range.start)/stride;
+
+  if (e > mem.size()) {
+    mem.resize(e, nullptr);
+    range.end = index_to_addr(e);
+  }
+
+  while (s < e) {
+    if (mem[s])
+      metadata->insert(mem[s]);
+    mem[s++] = map->md_cache.canonize(metadata);
+  }
+}
+
 void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
   /* this is a meaningless call */
   if (start >= end)
@@ -68,6 +94,14 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_
   mrs[i].add_range(start, end, metadata);
    
   return;
+}
+
+std::shared_ptr<metadata_t> metadata_memory_map_t::get_metadata(uint64_t addr) {
+  for (auto& mr : mrs) {
+    if (mr.contains(addr))
+      return mr.getaddr(addr);
+  }
+  return nullptr;
 }
 
 }

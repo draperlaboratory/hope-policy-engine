@@ -6,7 +6,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include "metadata_memory_map.h"
+#include "range.h"
 
 namespace policy_engine {
 

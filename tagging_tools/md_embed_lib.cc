@@ -36,6 +36,7 @@
 #include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
+#include "range.h"
 #include "reporter.h"
 #include "tag_file.h"
 

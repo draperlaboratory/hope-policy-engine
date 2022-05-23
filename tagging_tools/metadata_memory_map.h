@@ -32,20 +32,9 @@
 #include <vector>
 #include "metadata.h"
 #include "metadata_cache.h"
-#include "metadata_factory.h"
-#include "reporter.h"
+#include "range.h"
 
 namespace policy_engine {
-  
-struct range_t {
-  uint64_t start;
-  uint64_t end;
-
-  bool contains(uint64_t address) const { return address >= start && address <= end; }
-
-  bool operator ==(const range_t& other) const { return start == other.start && end == other.end; }
-  bool operator <(const range_t& other) const { return (start < other.start) || (start == other.start && end < other.end); }
-};
 
 class metadata_memory_map_t {
 private:
@@ -81,32 +70,7 @@ private:
     bool contains(uint64_t addr) const { return (addr >= range.start) && (addr <= range.end); }
     size_t size() const { return mem.size(); }
     
-    void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
-      if (range.start == range.end) {
-        range.start = start;
-        assert(mem.size() == 0); // first range added
-      }
-      else if (start < range.start) {
-        // inserting before the existing base - have to insert a bit
-        int n_insert = (range.start - start)/stride;
-        mem.insert(mem.begin(), n_insert, nullptr);
-        range.start = start;
-      }
-    
-      int s = (start - range.start)/stride;
-      int e = (end - range.start)/stride;
-    
-      if (e > mem.size()) {
-        mem.resize(e, nullptr);
-        range.end = index_to_addr(e);
-      }
-
-      while (s < e) {
-        if (mem[s])
-          metadata->insert(mem[s]);
-        mem[s++] = map->md_cache.canonize(metadata);
-      }
-    }
+    void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
   };
 
   uint64_t base;
@@ -115,16 +79,6 @@ private:
   std::vector<mem_region_t> mrs;
 
 public:
-  void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
-
-  std::shared_ptr<metadata_t> get_metadata(uint64_t addr) {
-    for (auto& mr : mrs) {
-      if (mr.contains(addr))
-        return mr.getaddr(addr);
-    }
-    return nullptr;
-  }
-
   metadata_memory_map_t() : base(-1) {}
 
   template <class MMap, class MRIterator, class MRVIterator>
@@ -227,6 +181,9 @@ public:
   const_iterator end() const noexcept { return const_iterator(this, false); }
   const_iterator cbegin() const noexcept { return const_iterator(this, true); }
   const_iterator cend() const noexcept { return const_iterator(this, false); }
+
+  void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
+  std::shared_ptr<metadata_t> get_metadata(uint64_t addr);
 };
 
 } // namespace policy_engine

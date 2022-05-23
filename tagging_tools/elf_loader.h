@@ -33,7 +33,7 @@
 #include <string>
 #include <sys/types.h>
 #include <vector>
-#include "metadata_memory_map.h"
+#include "range.h"
 #include "symbol_table.h"
 #include "tagging_utils.h"
 

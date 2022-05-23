@@ -27,11 +27,13 @@
 #ifndef TAG_FILE_H
 #define TAG_FILE_H
 
+#include <list>
 #include <memory>
 #include <string>
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
 #include "metadata_index_map.h"
+#include "range.h"
 #include "reporter.h"
 
 namespace policy_engine {

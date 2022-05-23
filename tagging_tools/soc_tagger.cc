@@ -5,6 +5,7 @@
 #include <utility>
 #include <yaml-cpp/yaml.h>
 #include "metadata_memory_map.h"
+#include "range.h"
 #include "range_map.h"
 #include "reporter.h"
 
