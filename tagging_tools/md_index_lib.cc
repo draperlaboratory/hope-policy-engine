@@ -76,7 +76,7 @@ void md_index(metadata_factory_t& metadata_factory, metadata_memory_map_t& metad
   }
 
   if (!save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map, register_default, csr_default, env_default, tag_filename, err))
-    throw std::ios::failure("failed to save indexes to tag file");
+    throw std::ios::failure("md_index: failed to save indexes to tag file");
 }
 
 } // namespace policy_engine

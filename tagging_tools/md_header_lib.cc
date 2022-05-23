@@ -59,81 +59,62 @@ std::list<range_t> get_soc_ranges(const YAML::Node& soc, const std::list<std::st
     if (!node.second["name"])
       throw std::out_of_range("md_header: 'name' node not present");
     std::string name = node.second["name"].as<std::string>();
-
     if (std::find(exclude.begin(), exclude.end(), name) != exclude.end()) {
       err.info("Excluding %s from SOC ranges\n", name);
-      continue;
+    } else {
+      if (!node.second["start"])
+        throw std::out_of_range("md_header: 'start' node not present");
+      if (!node.second["end"])
+        throw std::out_of_range("md_header: 'end' node not present");
+      ranges.push_back(range_t{node.second["start"].as<uint64_t>(), node.second["end"].as<uint64_t>()});
     }
-
-    if (!node.second["start"])
-      throw std::out_of_range("md_header: 'start' node not present");
-    if (!node.second["end"])
-      throw std::out_of_range("md_header: 'end' node not present");
-    ranges.push_back(range_t{node.second["start"].as<uint64_t>(), node.second["end"].as<uint64_t>()});
   }
   return ranges;
 }
 
-std::size_t get_soc_granularity(const YAML::Node& soc, range_t range, std::size_t default_granularity) {
+std::size_t get_soc_granularity(const YAML::Node& soc, const range_t& range, std::size_t default_granularity) {
   for (const auto& node: soc) {
-    uint64_t start = node.second["start"].as<uint64_t>();
-    uint64_t end = node.second["end"].as<uint64_t>();
-    if (start == range.start && end == range.end) {
+    range_t current{node.second["start"].as<uint64_t>(), node.second["end"].as<uint64_t>()};
+    if (current == range) {
       if (node.second["tag_granularity"])
-        return node.second["tag_granularity"].as<size_t>();
+        return node.second["tag_granularity"].as<std::size_t>();
       return default_granularity;
     }
   }
   return default_granularity;
 }
 
-void elf_sections_to_ranges(const std::list<const elf_section_t*>& sections, std::list<range_t>& ranges) {
-  for (const auto section : sections)
-    ranges.push_back(range_t{section->address, round_up(section->address + section->size, 4) - 1});
-}
-
 void coalesce_ranges(std::list<range_t>& ranges, reporter_t& err) {
-  std::list<range_t>::iterator it = ++ranges.begin();
-
-  while(it != ranges.end()) {
+  auto it = std::next(ranges.begin());
+  while (it != ranges.end()) {
     err.info("Range: 0x%lx = 0x%lx\n", it->start, it->end);
 
-    auto previous = std::prev(it, 1);
-
+    // this can't actually be bottom-factored, as the iterator has to be incremented before removing data from
+    // the list
+    auto previous = std::prev(it);
     if (it->end <= previous->end) {
       ranges.erase(it++);
-      continue;
-    }
-
-    if ((it->start - previous->end) <= 1) {
+    } else if ((it->start - previous->end) <= 1) {
       previous->end = it->end;
       ranges.erase(it++);
-      continue;
+    } else {
+      it++;
     }
-
-    it++;
   }
 }
 
 void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges, reporter_t& err) {
-  std::list<const elf_section_t*> code_sections;
-  std::list<const elf_section_t*> data_sections;
 
   for (const elf_section_t& section : elf_image.sections) {
     if (section.flags & SHF_ALLOC) {
       if ((section.flags & (SHF_WRITE | SHF_EXECINSTR)) == SHF_EXECINSTR)
-        code_sections.push_back(&section);
+        code_ranges.push_back(section.address_range());
       else
-        data_sections.push_back(&section);
+        data_ranges.push_back(section.address_range());
     }
   }
-
-  elf_sections_to_ranges(code_sections, code_ranges);
-  elf_sections_to_ranges(data_sections, data_ranges);
-
   code_ranges.sort();
   data_ranges.sort();
-
   coalesce_ranges(code_ranges, err);
   coalesce_ranges(data_ranges, err);
 
@@ -167,7 +148,6 @@ void md_header(const std::string& elf_filename, const std::string& soc_filename,
   exclude_unused_soc(soc_node["SOC"], soc_exclude, factory);
 
   std::list<range_t> soc_ranges = get_soc_ranges(soc_node["SOC"], soc_exclude, err);
-
   std::list<range_t> code_ranges, data_ranges;
   data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
   get_address_ranges(elf_image, code_ranges, data_ranges, err);

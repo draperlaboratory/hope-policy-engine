@@ -33,6 +33,7 @@
 #include <string>
 #include <sys/types.h>
 #include <vector>
+#include "metadata_memory_map.h"
 #include "symbol_table.h"
 #include "tagging_utils.h"
 
@@ -48,6 +49,7 @@ struct elf_section_t {
   void* const data;
 
   constexpr uint64_t end_address() const { return round_up(address + size, 4); }
+  constexpr range_t address_range() const { return range_t{address, end_address() - 1}; }
 };
 
 class elf_image_t {
