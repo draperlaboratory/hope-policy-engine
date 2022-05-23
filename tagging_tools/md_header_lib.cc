@@ -92,10 +92,6 @@ void elf_sections_to_ranges(const std::list<const elf_section_t*>& sections, std
     ranges.push_back(range_t{section->address, round_up(section->address + section->size, 4) - 1});
 }
 
-bool compare_range(range_t& first, range_t& second) {
-  return (first.start < second.start);
-}
-
 void coalesce_ranges(std::list<range_t>& ranges, reporter_t& err) {
   std::list<range_t>::iterator it = ++ranges.begin();
 
@@ -135,8 +131,8 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   elf_sections_to_ranges(code_sections, code_ranges);
   elf_sections_to_ranges(data_sections, data_ranges);
 
-  code_ranges.sort(compare_range);
-  data_ranges.sort(compare_range);
+  code_ranges.sort();
+  data_ranges.sort();
 
   coalesce_ranges(code_ranges, err);
   coalesce_ranges(data_ranges, err);
