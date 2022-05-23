@@ -34,7 +34,6 @@
 #include "entity_binding.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
-#include "metadata_tool.h"
 #include "reporter.h"
 #include "symbol_table.h"
 #include "validator_exception.h"
@@ -91,7 +90,7 @@ void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, el
           end_addr = sym->address + img.word_bytes();
         else
           end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
-        if (!apply_tag(md_factory, md_map, sym->address, end_addr, sb->entity_name)) {
+        if (!md_factory.apply_tag(md_map, sym->address, end_addr, sb->entity_name)) {
           err.warning("Unable to apply tag %s\n", sb->entity_name);
         }
       }
@@ -99,7 +98,7 @@ void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, el
       auto sym = get_symbol(img.symtab, err, rb->elf_start_name, false, false);
       auto end = get_symbol(img.symtab, err, rb->elf_end_name, false, false);
       if (sym != img.symtab.end() && end != img.symtab.end()) {
-        if (!apply_tag(md_factory, md_map, sym->address, end->address, rb->entity_name)) {
+        if (!md_factory.apply_tag(md_map, sym->address, end->address, rb->entity_name)) {
           err.warning("Unable to apply tag %s\n", rb->entity_name);
         }
       }

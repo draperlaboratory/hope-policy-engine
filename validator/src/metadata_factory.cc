@@ -24,7 +24,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <algorithm>
 #include <cstring>
+#include <cstdint>
 #include <cstdio>
 #include <exception>
 #include <linux/limits.h>
@@ -35,6 +37,7 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 #include "metadata_factory.h"
+#include "metadata_memory_map.h"
 #include "opgroup_rule.h"
 #include "policy_meta_set.h"
 #include "policy_types.h"
@@ -42,7 +45,7 @@
 
 using namespace policy_engine;
 
-std::string metadata_factory_t::abbreviate(std::string const &dotted_string) {
+std::string metadata_factory_t::abbreviate(const std::string& dotted_string) {
   size_t last = dotted_string.rfind('.');
   if (last == std::string::npos)
     return dotted_string;
@@ -82,7 +85,7 @@ void metadata_factory_t::init_encoding_map(const YAML::Node& rawEnc) {
   }
 }
 
-std::vector<std::string> metadata_factory_t::split_dotted_name(const std::string &name) {
+static std::vector<std::string> split_dotted_name(const std::string &name) {
   std::vector<std::string> res;
   std::string elt;
   for (std::istringstream ss(name); std::getline(ss, elt, '.');)
@@ -103,18 +106,13 @@ static void dump_node(YAML::Node node) {
 }
 
 std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
-  const auto& path_map_iter = path_map.find(dotted_path);
-  if (path_map_iter != path_map.end()) {
-    return path_map_iter->second;
-  }
+  if (const auto& it = path_map.find(dotted_path); it != path_map.end())
+    return it->second;
 
-  const auto& entity_init_iter = entity_initializers.find(dotted_path);
-  if (entity_init_iter != entity_initializers.end()) {
-    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
-    for (const std::string& name: entity_init_iter->second.meta_names) {
-      metadata->insert(encoding_map[name]);
-    }
-    path_map[dotted_path] = metadata;
+  if (const auto& it = entity_initializers.find(dotted_path); it != entity_initializers.end()) {
+    path_map[dotted_path] = std::make_shared<metadata_t>();
+    for (const std::string& name : it->second.meta_names)
+      path_map[dotted_path]->insert(encoding_map[name]);
     return path_map[dotted_path];
   }
   return nullptr;
@@ -122,11 +120,9 @@ std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::strin
 
 std::map<std::string, std::shared_ptr<metadata_t>> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
   std::map<std::string, std::shared_ptr<metadata_t>> results = std::map<std::string, std::shared_ptr<metadata_t>>();
-
   for (const auto& [ name, init ] : entity_initializers)
     if (name.rfind(dotted_path) == 0)
       results[name] = lookup_metadata(name);
-
   return results;
 }
 
@@ -161,63 +157,48 @@ void metadata_factory_t::update_rule_map(std::string key, const YAML::Node& node
     operand_rules = it.second;
   }
   metadata->insert(encoding_map[name]);
-  opgroup_rule_t opgroup_rule(metadata);
+  opgroup_rule_map[key] = opgroup_rule_t(metadata);
 
   for (const YAML::Node& operand_rule : operand_rules) {
-    std::vector<uint32_t> values;
-    operand_rule_match_t match = OPERAND_RULE_UNKNOWN;
-
     if (operand_rule.IsScalar()) {
-      opgroup_rule.add_operand_rule(values, OPERAND_RULE_ANY);
-      continue;
-    }
-
-    if (operand_rule.IsMap()) {
+      opgroup_rule_map[key].add_operand_rule(std::vector<uint32_t>(), OPERAND_RULE_ANY);
+    } else if (operand_rule.IsMap()) {
       std::string operand_id;
-
+      std::vector<uint32_t> values;
       for (const auto& it : operand_rule) {
         operand_id = it.first.as<std::string>();
         for (const YAML::Node& n : it.second)
           values.push_back(n.as<uint32_t>());
       }
 
-      for (const auto& [ id, m ] : operand_match_yaml_ids) {
-        if (operand_id == id) {
-          match = m;
-        }
-      }
-
-      if (match == OPERAND_RULE_UNKNOWN) {
+      auto it = std::find_if(
+        operand_match_yaml_ids.begin(), operand_match_yaml_ids.end(),
+        [&](const std::pair<std::string, operand_rule_match_t>& e){ return operand_id == e.first; }
+      );
+      if (it == operand_match_yaml_ids.end())
         throw std::runtime_error("Invalid operand rule type: " + operand_id);
-      }
+      else
+        opgroup_rule_map[key].add_operand_rule(values, it->second);
     }
-
-    opgroup_rule.add_operand_rule(values, match);
   }
-
-  opgroup_rule_map[key] = opgroup_rule;
 }
 
-void metadata_factory_t::init_group_map(YAML::Node &node) {
-  node = node["Groups"];
-
-  for (const auto& it : node) {
-    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
+void metadata_factory_t::init_group_map(const YAML::Node& node) {
+  for (const auto& it : node["Groups"]) {
     const std::string key = it.first.as<std::string>();
+    group_map[key] = std::make_shared<metadata_t>();
     const YAML::Node& instruction_node = it.second;
 
     for (const YAML::Node& opgroup_node : instruction_node) {
       if (opgroup_node.IsScalar()) {
         std::string name = opgroup_node.as<std::string>();
-        metadata->insert(encoding_map[name]);
+        group_map[key]->insert(encoding_map[name]);
       }
 
       if (opgroup_node.IsMap()) {
         update_rule_map(key, opgroup_node);
       }
     }
-
-    group_map[key] = metadata;
   }
 }
 
@@ -241,6 +222,14 @@ metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_d
   init_encoding_map(metaAST);
   YAML::Node groupAST = load_yaml("policy_group.yml");
   init_group_map(groupAST);
+}
+
+bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
+  std::shared_ptr<metadata_t> md = lookup_metadata(tag_name);
+  if (!md)
+    return false;
+  map.add_range(start, end, md);
+  return true;
 }
 
 std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
@@ -274,8 +263,7 @@ std::string metadata_factory_t::render(std::shared_ptr<const metadata_t> metadat
 
 std::vector<std::string> metadata_factory_t::enumerate() {
   std::vector<std::string> elts;
-  for (const auto& [ name, init ]: entity_initializers) {
+  for (const auto& [ name, init ] : entity_initializers)
     elts.push_back(name);
-  }
   return elts;
 }

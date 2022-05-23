@@ -35,6 +35,7 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 #include "metadata.h"
+#include "metadata_memory_map.h"
 #include "opgroup_rule.h"
 #include "policy_types.h"
 #include "riscv_isa.h"
@@ -48,6 +49,8 @@ struct entity_init_t {
 
 class metadata_factory_t {
 private:
+  const std::string policy_dir;
+
   std::unordered_map<meta_t, std::string> reverse_encoding_map; // for rendering
   std::unordered_map<meta_t, std::string> abbrev_reverse_encoding_map; // for rendering
   std::unordered_map<std::string, meta_t> encoding_map;
@@ -62,21 +65,19 @@ private:
   void init_entity_initializers(const YAML::Node& reqsAST, const std::string& prefix);
   void update_entity_initializers(const YAML::Node& metaAST, const std::string& prefix);
   void init_encoding_map(const YAML::Node& rawEnc);
-  void init_group_map(YAML::Node& groupAST);
-  YAML::Node load_yaml(const std::string& yml_file);
-  
-  const std::string policy_dir;
-
-  static std::vector<std::string> split_dotted_name(const std::string &name);
-
+  void init_group_map(const YAML::Node& groupAST);
   void update_rule_map(std::string key, const YAML::Node& node);
+
+  YAML::Node load_yaml(const std::string& yml_file);
 
 public:
   metadata_factory_t(const std::string& policy_dir);
+
   std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
   std::map<std::string, std::shared_ptr<metadata_t>> lookup_metadata_map(const std::string& dotted_path);
-
   std::shared_ptr<metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
+
+  bool apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name);
 
   std::string render(meta_t meta, bool abbrev = false) const;
   std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev = false) const;
