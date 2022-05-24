@@ -106,7 +106,7 @@ bool policy_engine::save_tag_indexes(
   const std::string& file_name,
   reporter_t& err
 ) {
-  stream_writer_t writer(file_name);
+  stream_writer_t writer(file_name, std::ios::binary | std::ios::app);
   if (!writer)
     return false;
 
@@ -187,14 +187,6 @@ bool policy_engine::write_headers(
   bool is_64_bit,
   const std::string& tag_filename
 ) {
-  stream_reader_t reader(tag_filename);
-  if (!reader)
-    return false;
-
-  uint8_t in_buffer[reader.length()];
-  if (reader.read(in_buffer, reader.length()) != reader.length())
-    return false;
-
   stream_writer_t writer(tag_filename);
   if (!writer)
     return false;
@@ -221,9 +213,6 @@ bool policy_engine::write_headers(
     if (!write_uleb<stream_writer_t, uint64_t>(writer, (uint32_t)gran))
       return false;
   }
-
-  if (!writer.write(in_buffer, reader.length()))
-    return false;
 
   return true;
 }
