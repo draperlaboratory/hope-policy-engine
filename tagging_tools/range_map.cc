@@ -15,6 +15,7 @@
 #include "range.h"
 #include "range_map.h"
 #include "reporter.h"
+#include "yaml_tools.h"
 
 namespace policy_engine {
 
@@ -60,7 +61,7 @@ void range_map_t::add_soc_ranges(const std::string& soc_file, const YAML::Node& 
 
   std::map<std::string, range_t> soc_ranges;
   for (const auto& elem : soc_cfg["SOC"])
-    soc_ranges[elem.second["name"].as<std::string>()] = range_t{elem.second["start"].as<uint64_t>(), elem.second["end"].as<uint64_t>()};
+    soc_ranges[elem.second["name"].as<std::string>()] = elem.second.as<range_t>();
   for (const auto& device : policy_inits["Require"]["SOC"]) {
     for (const auto& elem : device.second) {
       std::string name = "SOC." + device.first.as<std::string>() + "." + elem.first.as<std::string>();

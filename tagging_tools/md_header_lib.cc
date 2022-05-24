@@ -37,6 +37,7 @@
 #include "reporter.h"
 #include "tag_file.h"
 #include "tagging_utils.h"
+#include "yaml_tools.h"
 
 namespace policy_engine {
 
@@ -66,7 +67,7 @@ std::list<range_t> get_soc_ranges(const YAML::Node& soc, const std::list<std::st
         throw std::out_of_range("md_header: 'start' node not present");
       if (!node.second["end"])
         throw std::out_of_range("md_header: 'end' node not present");
-      ranges.push_back(range_t{node.second["start"].as<uint64_t>(), node.second["end"].as<uint64_t>()});
+      ranges.push_back(node.second.as<range_t>());
     }
   }
   return ranges;
