@@ -36,6 +36,7 @@
 #include <unordered_map>
 #include <vector>
 #include <yaml-cpp/yaml.h>
+#include "entity_binding.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "opgroup_rule.h"
@@ -252,6 +253,42 @@ void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_a
       map.add_range(code_address, code_address + 4, metadata);
     }
     code_address += 4;
+  }
+}
+
+void metadata_factory_t::tag_entities(metadata_memory_map_t& md_map, const elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err) {
+  std::list<std::unique_ptr<entity_binding_t>> bindings;
+  for (const std::string& yaml_file : yaml_files)
+    bindings.splice(bindings.end(), entity_binding_t::load(yaml_file, err));
+  for (const std::string& s : enumerate()) {
+    auto it = std::find_if(bindings.begin(), bindings.end(), [&](std::unique_ptr<entity_binding_t>& peb) { return peb->entity_name == s; });
+    if (it == bindings.end()) {
+      err.warning("Entity %s has no binding\n", s);
+    }
+  }
+
+  for (const std::unique_ptr<entity_binding_t>& e: bindings) {
+    if (const auto sb = dynamic_cast<entity_symbol_binding_t*>(e.get())) {
+      if (auto sym = img.symtab.find(sb->elf_name, !sb->is_singularity, sb->optional, err); sym != img.symtab.end()) {
+        // go ahead and mark it
+        uint64_t end_addr;
+        if (sb->is_singularity)
+          end_addr = sym->address + img.word_bytes();
+        else
+          end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
+        if (!apply_tag(md_map, sym->address, end_addr, sb->entity_name)) {
+          err.warning("Unable to apply tag %s\n", sb->entity_name);
+        }
+      }
+    } else if (const auto rb = dynamic_cast<entity_range_binding_t*>(e.get())) {
+      auto sym = img.symtab.find(rb->elf_start_name, false, false, err);
+      auto end = img.symtab.find(rb->elf_end_name, false, false, err);
+      if (sym != img.symtab.end() && end != img.symtab.end()) {
+        if (!apply_tag(md_map, sym->address, end->address, rb->entity_name)) {
+          err.warning("Unable to apply tag %s\n", rb->entity_name);
+        }
+      }
+    }
   }
 }
 

@@ -68,13 +68,15 @@ static std::unique_ptr<entity_binding_t> process_element(const YAML::Node& n) {
   }
 }
 
-void load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
+std::list<std::unique_ptr<entity_binding_t>> entity_binding_t::load(const std::string& file_name, reporter_t& err) {
+  std::list<std::unique_ptr<entity_binding_t>> bindings;
   try {
     for (const YAML::Node& node : YAML::LoadFile(file_name))
       bindings.push_back(process_element(node));
   } catch (const std::exception &e) {
     err.error("while parsing %s: %s\n", file_name, e.what());
   }
+  return bindings;
 }
 
 }

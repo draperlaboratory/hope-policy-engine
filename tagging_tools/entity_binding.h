@@ -35,6 +35,8 @@
 namespace policy_engine {
 
 struct entity_binding_t {
+  static std::list<std::unique_ptr<entity_binding_t>> load(const std::string& file_name, reporter_t& err);
+
   const std::string entity_name;
   const bool optional;
 
@@ -70,8 +72,6 @@ struct entity_isa_binding_t : public entity_binding_t {
 struct entity_image_binding_t : public entity_binding_t {
   entity_image_binding_t(const std::string& n, bool o=false) : entity_binding_t(n, o) {}
 };
-
-void load_entity_bindings(const std::string& file_name, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err);
 
 } // namespace policy_engine
 

@@ -14,7 +14,6 @@
 #include "llvm_metadata_tagger.h"
 #include "md_asm_ann.h"
 #include "md_embed.h"
-#include "md_entity.h"
 #include "md_header.h"
 #include "md_index.h"
 #include "metadata_factory.h"
@@ -109,7 +108,7 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> entities{FLAGS_policy_dir + "/policy_entities.yml"};
   for (int i = 1; i < argc; i++)
     entities.push_back(argv[i]);
-  policy_engine::md_entity(md_factory, md_memory_map, elf_image_post, entities, err);
+  md_factory.tag_entities(md_memory_map, elf_image_post, entities, err);
 
   policy_engine::md_embed(md_factory, md_memory_map, elf_image_post, FLAGS_bin + "-" + policy_base, err);
 
