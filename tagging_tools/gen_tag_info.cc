@@ -11,9 +11,9 @@
 #include <unistd.h>
 #include <yaml-cpp/yaml.h>
 #include "elf_loader.h"
+#include "embed.h"
 #include "llvm_metadata_tagger.h"
 #include "md_asm_ann.h"
-#include "md_embed.h"
 #include "md_header.h"
 #include "md_index.h"
 #include "metadata_factory.h"
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
     entities.push_back(argv[i]);
   md_factory.tag_entities(md_memory_map, elf_image_post, entities, err);
 
-  policy_engine::md_embed(md_factory, md_memory_map, elf_image_post, FLAGS_bin + "-" + policy_base, err);
+  policy_engine::embed_tags(md_memory_map, elf_image_post, FLAGS_bin + "-" + policy_base, err);
 
   std::ofstream asm_file(asm_file_name);
   std::string llvm_od_cmd = get_isp_prefix() + "/bin/llvm-objdump -dS " + FLAGS_bin;

@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include "elf_loader.h"
 #include "metadata.h"
-#include "metadata_factory.h"
 #include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
@@ -92,7 +91,7 @@ bool embed_tags_in_elf(
   return system(command_string) == 0;
 }
 
-void md_embed(metadata_factory_t& metadata_factory, metadata_memory_map_t& metadata_memory_map, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
+void embed_tags(metadata_memory_map_t& metadata_memory_map, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
   // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
   metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
 
