@@ -38,6 +38,7 @@
 #include "metadata_memory_map.h"
 #include "opgroup_rule.h"
 #include "policy_types.h"
+#include "range_map.h"
 #include "riscv_isa.h"
 
 namespace policy_engine {
@@ -78,9 +79,16 @@ public:
   std::shared_ptr<metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
 
   bool apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name);
+  template<class RangeMap=range_map_t>
+  void apply_tags(metadata_memory_map_t& map, const RangeMap& range_map) {
+    for (const auto& [ range, tags ] : range_map)
+      for (const std::string& tag : tags)
+        if (!apply_tag(map, range.start, range.end, tag))
+          throw std::out_of_range("could not find tag " + tag);
+  }
 
-  std::string render(meta_t meta, bool abbrev = false) const;
-  std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev = false) const;
+  std::string render(meta_t meta, bool abbrev=false) const;
+  std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev=false) const;
   std::vector<std::string> enumerate();
 };
 

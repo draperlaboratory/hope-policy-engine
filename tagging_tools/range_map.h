@@ -6,7 +6,10 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <yaml-cpp/yaml.h>
+#include "elf_loader.h"
 #include "range.h"
+#include "reporter.h"
 
 namespace policy_engine {
 
@@ -22,6 +25,10 @@ private:
 public:
   using iterator = typename decltype(range_map)::iterator;
   using const_iterator = typename decltype(range_map)::const_iterator;
+
+  static const std::string RWX_X;
+  static const std::string RWX_R;
+  static const std::string RWX_W;
 
   range_map_t() {}
 
@@ -41,6 +48,8 @@ public:
 
   void add_range(uint64_t start, uint64_t end, const std::string& tag="") { add_range(start, end, std::vector<std::string>{tag}); }
   void add_range(uint64_t start, uint64_t end, const std::vector<std::string>& tags);
+  void add_rwx_ranges(const elf_image_t& ef, reporter_t& err);
+  void add_soc_ranges(const std::string& soc_file, const YAML::Node& policy_inits, reporter_t& err);
   const std::vector<std::string>& get_tags(uint64_t addr) const;
   std::vector<range_t> get_ranges(const std::string& tag) const;
 };

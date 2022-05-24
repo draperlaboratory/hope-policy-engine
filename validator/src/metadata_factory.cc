@@ -43,7 +43,7 @@
 #include "policy_types.h"
 #include "validator_exception.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
 std::string metadata_factory_t::abbreviate(const std::string& dotted_string) {
   size_t last = dotted_string.rfind('.');
@@ -266,4 +266,6 @@ std::vector<std::string> metadata_factory_t::enumerate() {
   for (const auto& [ name, init ] : entity_initializers)
     elts.push_back(name);
   return elts;
+}
+
 }
