@@ -39,8 +39,10 @@
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "opgroup_rule.h"
+#include "platform_types.h"
 #include "policy_meta_set.h"
 #include "policy_types.h"
+#include "riscv_isa.h"
 #include "validator_exception.h"
 
 namespace policy_engine {
@@ -230,6 +232,27 @@ bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, u
     return false;
   map.add_range(start, end, md);
   return true;
+}
+
+void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err) {
+  insn_bits_t* bits = reinterpret_cast<insn_bits_t*>(bytes);
+  for (int i = 0; i < n/sizeof(insn_bits_t); i++) {
+    decoded_instruction_t inst = decode(bits[i]);
+    if (!inst) {
+      err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits[i], code_address);
+      code_address += 4;
+      continue;
+    }
+
+    std::shared_ptr<metadata_t> metadata = lookup_group_metadata(inst.name, inst);
+
+    if (metadata == nullptr) {
+      err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
+    } else {
+      map.add_range(code_address, code_address + 4, metadata);
+    }
+    code_address += 4;
+  }
 }
 
 std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {

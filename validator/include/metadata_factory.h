@@ -87,6 +87,8 @@ public:
           throw std::out_of_range("could not find tag " + tag);
   }
 
+  void tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err);
+
   std::string render(meta_t meta, bool abbrev=false) const;
   std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev=false) const;
   std::vector<std::string> enumerate();

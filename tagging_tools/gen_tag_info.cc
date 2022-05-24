@@ -19,7 +19,6 @@
 #include "md_index.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
-#include "op_code_tagger.h"
 #include "range_map.h"
 #include "reporter.h"
 #include "tag_elf_file.h"
@@ -103,7 +102,9 @@ int main(int argc, char* argv[]) {
   // have to reopen the file here because it's been edited and the current copy is corrupt
   policy_engine::elf_image_t elf_image_post(FLAGS_bin);
 
-  tag_op_codes(md_factory, md_memory_map, elf_image_post, err);
+  for (const policy_engine::elf_section_t& section : elf_image_post.sections)
+    if (section.flags & SHF_EXECINSTR)
+      md_factory.tag_opcodes(md_memory_map, section.address, section.data, section.size, err);
 
   std::vector<std::string> entities{FLAGS_policy_dir + "/policy_entities.yml"};
   for (int i = 1; i < argc; i++)
