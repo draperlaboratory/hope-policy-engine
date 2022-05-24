@@ -32,6 +32,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "reporter.h"
 
 namespace policy_engine {
 
@@ -91,6 +92,7 @@ public:
 
   const_iterator find(const std::string& name) const;
   const_iterator find(uint64_t addr) const;
+  const_iterator find(const std::string& name, bool needs_size, bool optional, reporter_t& reporter) const;
   const_iterator lower_bound(uint64_t addr) const;
   const_iterator upper_bound(uint64_t addr) const;
   const_iterator find_nearest(uint64_t addr) const;

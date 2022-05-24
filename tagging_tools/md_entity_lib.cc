@@ -40,22 +40,6 @@
 
 namespace policy_engine {
 
-static symbol_table_t::const_iterator get_symbol(const symbol_table_t& symtab, reporter_t& err, const std::string& name, bool needs_size, bool optional) {
-  auto sym = symtab.find(name);
-  if (sym != symtab.end()) {
-    if (needs_size && sym->size == 0) {
-      if (optional)
-        err.warning("symbol %s has zero size.\n", name);
-      else {
-        err.error("symbol %s has zero size.\n", name);
-        sym = symtab.end();
-      }
-    }
-  } else if (!optional)
-    err.error("symbol %s not found\n", name);
-  return sym;
-}
-
 // debugging code
 void dump_ents(metadata_factory_t& md_factory) {
   std::printf("ents:\n");
@@ -64,26 +48,20 @@ void dump_ents(metadata_factory_t& md_factory) {
   }
 }
 
-void verify_entity_bindings(metadata_factory_t& md_factory, std::list<std::unique_ptr<entity_binding_t>>& bindings, reporter_t& err) {
+void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, const elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err) {
+  std::list<std::unique_ptr<entity_binding_t>> bindings;
+  for (const std::string& yaml_file : yaml_files)
+    load_entity_bindings(yaml_file, bindings, err);
   for (const std::string& s : md_factory.enumerate()) {
     auto it = std::find_if(bindings.begin(), bindings.end(), [&](std::unique_ptr<entity_binding_t>& peb) { return peb->entity_name == s; });
     if (it == bindings.end()) {
       err.warning("Entity %s has no binding\n", s);
     }
   }
-}
-
-void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err) {
-  std::list<std::unique_ptr<entity_binding_t>> bindings;
-  for (const std::string& yaml_file : yaml_files) {
-    load_entity_bindings(yaml_file, bindings, err);
-  }
-  verify_entity_bindings(md_factory, bindings, err);
 
   for (const std::unique_ptr<entity_binding_t>& e: bindings) {
     if (const auto sb = dynamic_cast<entity_symbol_binding_t*>(e.get())) {
-      auto sym = get_symbol(img.symtab, err, sb->elf_name, !sb->is_singularity, sb->optional);
-      if (sym != img.symtab.end()) {
+      if (auto sym = img.symtab.find(sb->elf_name, !sb->is_singularity, sb->optional, err); sym != img.symtab.end()) {
         // go ahead and mark it
         uint64_t end_addr;
         if (sb->is_singularity)
@@ -95,8 +73,8 @@ void md_entity(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, el
         }
       }
     } else if (const auto rb = dynamic_cast<entity_range_binding_t*>(e.get())) {
-      auto sym = get_symbol(img.symtab, err, rb->elf_start_name, false, false);
-      auto end = get_symbol(img.symtab, err, rb->elf_end_name, false, false);
+      auto sym = img.symtab.find(rb->elf_start_name, false, false, err);
+      auto end = img.symtab.find(rb->elf_end_name, false, false, err);
       if (sym != img.symtab.end() && end != img.symtab.end()) {
         if (!md_factory.apply_tag(md_map, sym->address, end->address, rb->entity_name)) {
           err.warning("Unable to apply tag %s\n", rb->entity_name);

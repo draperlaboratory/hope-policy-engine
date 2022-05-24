@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "reporter.h"
 #include "symbol_table.h"
 
 namespace policy_engine {
@@ -24,6 +25,22 @@ symbol_table_t::const_iterator symbol_table_t::find(uint64_t addr) const {
   if (addr_map.find(addr) == addr_map.end())
     return end();
   return begin() + addr_map.at(addr);
+}
+
+symbol_table_t::const_iterator symbol_table_t::find(const std::string& name, bool needs_size, bool optional, reporter_t& err) const {
+  auto sym = find(name);
+  if (sym != end()) {
+    if (needs_size && sym->size == 0) {
+      if (optional)
+        err.warning("symbol %s has zero size.\n", name);
+      else {
+        err.error("symbol %s has zero size.\n", name);
+        sym = end();
+      }
+    }
+  } else if (!optional)
+    err.error("symbol %s not found\n", name);
+  return sym;
 }
 
 symbol_table_t::const_iterator symbol_table_t::lower_bound(uint64_t addr) const {
