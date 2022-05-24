@@ -103,7 +103,7 @@ void coalesce_ranges(std::list<range_t>& ranges, reporter_t& err) {
   }
 }
 
-void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges, reporter_t& err) {
+void get_address_ranges(const elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges, reporter_t& err) {
 
   for (const elf_section_t& section : elf_image.sections) {
     if (section.flags & SHF_ALLOC) {
@@ -137,9 +137,7 @@ void get_address_ranges(elf_image_t& elf_image, std::list<range_t>& code_ranges,
   }
 }
 
-void md_header(const std::string& elf_filename, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, reporter_t& err) {
-  metadata_factory_t factory(policy_dir);
-  elf_image_t elf_image(elf_filename);
+void md_header(metadata_factory_t& factory, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, std::list<std::string>& soc_exclude, reporter_t& err) {
 
   YAML::Node soc_node = YAML::LoadFile(soc_filename);
   if (!soc_node["SOC"])

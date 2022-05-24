@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
   policy_engine::annotate_asm(md_factory, md_memory_map, asm_file_name);
 
   if (!FLAGS_soc_file.empty()) {
-    policy_engine::md_header(FLAGS_bin, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
+    policy_engine::md_header(md_factory, elf_image_post, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
     policy_engine::md_index(md_factory, md_memory_map, FLAGS_tag_file, err);
   }
 
