@@ -183,7 +183,7 @@ public:
   const_iterator cend() const noexcept { return const_iterator(this, false); }
 
   void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
-  std::shared_ptr<metadata_t> get_metadata(uint64_t addr);
+  std::shared_ptr<metadata_t> get_metadata(uint64_t addr) const;
 };
 
 } // namespace policy_engine

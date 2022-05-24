@@ -29,7 +29,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include "asm_annotater.h"
 #include "metadata.h"
 #include "metadata_memory_map.h"
 #include "metadata_factory.h"
@@ -38,35 +37,51 @@
 
 namespace policy_engine {
 
-class annotater_t : public asm_annotater_t {
-private:
-  metadata_factory_t& md_factory;
-  metadata_memory_map_t& md_map;
-
-public:
-  annotater_t(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, std::istream& in, std::ostream& out) :
-    asm_annotater_t(in, out), md_factory(md_factory), md_map(md_map) {}
-
-  std::string filter(uint64_t addr, std::string line) {
-    std::shared_ptr<const metadata_t> metadata = md_map.get_metadata(addr);
-    if (!metadata)
-      return line;
-    return asm_annotater_t::pad(line, 80) + md_factory.render(metadata, true);
+std::string pad(const std::string& str, int width) {
+  std::string res;
+  for (char c: str) {
+    if (c == '\t') {
+      res += "    ";
+    } else {
+      res += c;
+    }
   }
-};
+  while (res.size() < width) {
+    res += " ";
+  }
+  return res;
+}
 
-void md_asm_ann(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, const std::string& asm_file, const std::string& output_file) {
+void annotate_asm(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, const std::string& asm_file, const std::string& output_file) {
   std::ifstream asm_in(asm_file);
   if (!asm_in)
     throw std::ios::failure("couldn't open input file " + asm_file);
-
   const std::string fname = output_file.empty() ? asm_file + ".tagged" : output_file;
   std::ofstream asm_out(fname);
   if (!asm_out)
     throw std::ios::failure("couldn't open output file " + fname);
 
-  annotater_t ann(md_factory, md_map, asm_in, asm_out);
-  ann.execute();
+  std::string line;
+  while (std::getline(asm_in, line)) {
+    bool stop = false;
+    for (size_t i = 0; i < line.size() && !stop; i++) {
+      if (!isspace(line[i]) && !isxdigit(line[i])) {
+        stop = true;
+        if (i > 0 && line[i] == ':' && !isspace(line[i-1])) {
+          if (std::shared_ptr<const metadata_t> metadata = md_map.get_metadata(std::stoul(line, nullptr, 16)))
+            asm_out << pad(line, 80) + md_factory.render(metadata, true) << std::endl;
+          else
+            asm_out << line << std::endl;
+        } else {
+          asm_out << line << std::endl;
+        }
+      }
+    }
+    // edge case - entire line was nothing but numbers (can this happen?), or empty (just a newline)
+    if (!stop) {
+      asm_out << line << std::endl;
+    }
+  }
 }
 
 } // namespace policy_engine

@@ -10,10 +10,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <yaml-cpp/yaml.h>
+#include "annotate.h"
 #include "elf_loader.h"
 #include "embed.h"
 #include "llvm_metadata_tagger.h"
-#include "md_asm_ann.h"
 #include "md_header.h"
 #include "md_index.h"
 #include "metadata_factory.h"
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     exit(llvm_result);
   }
 
-  policy_engine::md_asm_ann(md_factory, md_memory_map, asm_file_name);
+  policy_engine::annotate_asm(md_factory, md_memory_map, asm_file_name);
 
   if (!FLAGS_soc_file.empty()) {
     policy_engine::md_index(md_factory, md_memory_map, FLAGS_tag_file, err);
