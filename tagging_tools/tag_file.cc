@@ -103,33 +103,63 @@ public:
   explicit operator bool() const { return static_cast<bool>(os); }
 };
 
+template<class Writer>
+bool write_headers(
+  Writer& writer,
+  std::list<range_t>& code_ranges,
+  std::list<std::pair<range_t, uint8_t>>& data_ranges,
+  bool is_64_bit
+) {
+  if (!write_uleb<Writer, uint8_t>(writer, (uint8_t)is_64_bit))
+    return false;
+
+  if (!write_uleb<Writer, uint32_t>(writer, (uint32_t)code_ranges.size()))
+    return false;
+  for (const range_t& range : code_ranges) {
+    if (!write_uleb<Writer, uint64_t>(writer, range.start))
+      return false;
+    if (!write_uleb<Writer, uint64_t>(writer, range.end))
+      return false;
+  }
+
+  if (!write_uleb<Writer, uint32_t>(writer, (uint32_t)data_ranges.size()))
+    return false;
+  for (const auto& [ range, gran ] : data_ranges) {
+    if (!write_uleb<Writer, uint64_t>(writer, range.start))
+      return false;
+    if (!write_uleb<Writer, uint64_t>(writer, range.end))
+      return false;
+    if (!write_uleb<Writer, uint64_t>(writer, (uint32_t)gran))
+      return false;
+  }
+
+  return true;
+}
+
+template<class Writer>
 bool save_tag_indexes(
+  Writer& writer,
   std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
   int32_t register_default, int32_t csr_default, int32_t env_default,
-  const std::string& file_name,
   reporter_t& err
 ) {
-  stream_writer_t writer(file_name, std::ios::binary | std::ios::app);
-  if (!writer)
-    return false;
-
-  if (!write_uleb<stream_writer_t, uint32_t>(writer, metadata_values.size()))
+  if (!write_uleb<Writer, uint32_t>(writer, metadata_values.size()))
     return false;
 
   for (const std::shared_ptr<metadata_t>& v : metadata_values) {
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, v->size()))
+    if (!write_uleb<Writer, uint32_t>(writer, v->size()))
       return false;
     for (const meta_t& m : *v)
-      if (!write_uleb<stream_writer_t, meta_t>(writer, m))
+      if (!write_uleb<Writer, meta_t>(writer, m))
         return false;
   }
 
-  if (!write_uleb<stream_writer_t, uint32_t>(writer, register_index_map.size()))
+  if (!write_uleb<Writer, uint32_t>(writer, register_index_map.size()))
     return false;
-  if (!write_uleb<stream_writer_t, int32_t>(writer, register_default))
+  if (!write_uleb<Writer, int32_t>(writer, register_default))
     return false;
 
   for (const auto& [ name, index ] : register_index_map) {
@@ -143,15 +173,15 @@ bool save_tag_indexes(
       return false;
     }
 
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, register_value))
+    if (!write_uleb<Writer, uint32_t>(writer, register_value))
       return false;
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, index))
+    if (!write_uleb<Writer, uint32_t>(writer, index))
       return false;
   }
 
-  if (!write_uleb<stream_writer_t, uint32_t>(writer, csr_index_map.size()))
+  if (!write_uleb<Writer, uint32_t>(writer, csr_index_map.size()))
     return false;
-  if (!write_uleb<stream_writer_t, int32_t>(writer, csr_default))
+  if (!write_uleb<Writer, int32_t>(writer, csr_default))
     return false;
 
   for (const auto& [ name, index ] : csr_index_map) {
@@ -165,61 +195,25 @@ bool save_tag_indexes(
       return false;
     }
 
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, csr_value))
+    if (!write_uleb<Writer, uint32_t>(writer, csr_value))
       return false;
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, index))
+    if (!write_uleb<Writer, uint32_t>(writer, index))
       return false;
   }
 
-  if (!write_uleb<stream_writer_t, int32_t>(writer, env_default))
+  if (!write_uleb<Writer, int32_t>(writer, env_default))
     return false;
 
-  if (!write_uleb<stream_writer_t, uint32_t>(writer, memory_index_map.size()))
+  if (!write_uleb<Writer, uint32_t>(writer, memory_index_map.size()))
     return false;
   for (const auto& [ range, index ] : memory_index_map) {
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.start))
+    if (!write_uleb<Writer, uint64_t>(writer, range.start))
       return false;
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.end))
+    if (!write_uleb<Writer, uint64_t>(writer, range.end))
       return false;
-    if (!write_uleb<stream_writer_t, uint32_t>(writer, index))
-      return false;
-  }
-  return true;
-}
-
-bool write_headers(
-  std::list<range_t>& code_ranges,
-  std::list<std::pair<range_t, uint8_t>>& data_ranges,
-  bool is_64_bit,
-  const std::string& tag_filename
-) {
-  stream_writer_t writer(tag_filename);
-  if (!writer)
-    return false;
-
-  if (!write_uleb<stream_writer_t, uint8_t>(writer, (uint8_t)is_64_bit))
-    return false;
-
-  if (!write_uleb<stream_writer_t, uint32_t>(writer, (uint32_t)code_ranges.size()))
-    return false;
-  for (const range_t& range : code_ranges) {
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.start))
-      return false;
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.end))
+    if (!write_uleb<Writer, uint32_t>(writer, index))
       return false;
   }
-
-  if (!write_uleb<stream_writer_t, uint32_t>(writer, (uint32_t)data_ranges.size()))
-    return false;
-  for (const auto& [ range, gran ] : data_ranges) {
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.start))
-      return false;
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, range.end))
-      return false;
-    if (!write_uleb<stream_writer_t, uint64_t>(writer, (uint32_t)gran))
-      return false;
-  }
-
   return true;
 }
 
@@ -320,74 +314,77 @@ void get_address_ranges(const elf_image_t& elf_image, std::list<range_t>& code_r
   }
 }
 
-void md_index(metadata_factory_t& metadata_factory, const metadata_memory_map_t& metadata_memory_map, const std::string& tag_filename, reporter_t& err) {
-  std::vector<std::shared_ptr<metadata_t>> metadata_values;
+void write_tag_file(
+  metadata_factory_t& factory,
+  const metadata_memory_map_t& metadata_memory_map,
+  const elf_image_t& elf_image,
+  const std::string& soc_filename,
+  const std::string& tag_filename,
+  const std::string& policy_dir,
+  const std::list<std::string>&
+  soc_exclude,
+  reporter_t& err
+) {
+  if (auto writer = stream_writer_t(tag_filename)) {
+    YAML::Node soc_node = YAML::LoadFile(soc_filename);
+    if (!soc_node["SOC"])
+      throw std::out_of_range("SOC root node not present");
 
-  metadata_register_map_t register_map = metadata_factory.lookup_metadata_map("ISA.RISCV.Reg");
-  metadata_register_map_t csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");
+    std::list<std::string> exclude(soc_exclude);
+    exclude_unused_soc(soc_node["SOC"], exclude, factory);
 
-  // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
-  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
-  metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
-  metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(register_map);
-  metadata_values.insert(metadata_values.end(), register_index_map.metadata.begin(), register_index_map.metadata.end());
-  metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(csr_map);
-  metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
+    std::list<range_t> soc_ranges = get_soc_ranges(soc_node["SOC"], exclude, err);
+    std::list<range_t> code_ranges, data_ranges;
+    data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+    get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
-  // Separate the default entries from those corresponding to actual registers/CSRs
-  int register_default = -1;
-  if (auto it = register_index_map.find("ISA.RISCV.Reg.Default"); it != register_index_map.end()) {
-    register_default = it->second;
-    register_index_map.erase(it);
-  }
-
-  int csr_default = -1;
-  if (auto it = csr_index_map.find("ISA.RISCV.CSR.Default"); it != csr_index_map.end()) {
-    csr_default = it->second;
-    csr_index_map.erase(it);
-  }
-
-  int env_default = register_index_map.at("ISA.RISCV.Reg.Env");
-  register_index_map.erase("ISA.RISCV.Reg.Env");
-
-  err.info("Metadata entries:\n");
-  for(size_t i = 0; i < metadata_values.size(); i++) {
-    err.info("%lu: { ", i);
-    for(const meta_t& m : *metadata_values[i]) {
-      err.info("%lx ", m);
+    std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
+    for (const range_t& range : data_ranges) {
+      data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
     }
-    err.info("}\n");
+
+    if (!write_headers(writer, code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8))
+      throw std::ios::failure("failed to write headers to tag file");
+
+    // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
+    std::vector<std::shared_ptr<metadata_t>> metadata_values;
+    metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
+    metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
+    metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(factory.lookup_metadata_map("ISA.RISCV.Reg"));
+    metadata_values.insert(metadata_values.end(), register_index_map.metadata.begin(), register_index_map.metadata.end());
+    metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(factory.lookup_metadata_map("ISA.RISCV.CSR"));
+    metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
+
+    // Separate the default entries from those corresponding to actual registers/CSRs
+    int register_default = -1;
+    if (auto it = register_index_map.find("ISA.RISCV.Reg.Default"); it != register_index_map.end()) {
+      register_default = it->second;
+      register_index_map.erase(it);
+    }
+
+    int csr_default = -1;
+    if (auto it = csr_index_map.find("ISA.RISCV.CSR.Default"); it != csr_index_map.end()) {
+      csr_default = it->second;
+      csr_index_map.erase(it);
+    }
+
+    int env_default = register_index_map.at("ISA.RISCV.Reg.Env");
+    register_index_map.erase("ISA.RISCV.Reg.Env");
+
+    err.info("Metadata entries:\n");
+    for(size_t i = 0; i < metadata_values.size(); i++) {
+      err.info("%lu: { ", i);
+      for(const meta_t& m : *metadata_values[i]) {
+        err.info("%lx ", m);
+      }
+      err.info("}\n");
+    }
+
+    if (!save_tag_indexes(writer, metadata_values, memory_index_map, register_index_map, csr_index_map, register_default, csr_default, env_default, err))
+      throw std::ios::failure("failed to save indexes to tag file");
+  } else {
+    throw std::ios::failure("could not open " + tag_filename + " for writing");
   }
-
-  if (!save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map, register_default, csr_default, env_default, tag_filename, err))
-    throw std::ios::failure("md_index: failed to save indexes to tag file");
-}
-
-void md_header(metadata_factory_t& factory, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, const std::list<std::string>& soc_exclude, reporter_t& err) {
-  YAML::Node soc_node = YAML::LoadFile(soc_filename);
-  if (!soc_node["SOC"])
-    throw std::out_of_range("md_header: SOC root node not present");
-
-  std::list<std::string> exclude(soc_exclude);
-  exclude_unused_soc(soc_node["SOC"], exclude, factory);
-
-  std::list<range_t> soc_ranges = get_soc_ranges(soc_node["SOC"], exclude, err);
-  std::list<range_t> code_ranges, data_ranges;
-  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
-  get_address_ranges(elf_image, code_ranges, data_ranges, err);
-
-  std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
-  for (const range_t& range : data_ranges) {
-    data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
-  }
-
-  if (!write_headers(code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8, std::string(tag_filename)))
-    throw std::ios::failure("md_header: failed to write headers to tag file");
-}
-
-void write_tag_file(metadata_factory_t& factory, const metadata_memory_map_t& metadata_memory_map, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, const std::list<std::string>& soc_exclude, reporter_t& err) {
-  md_header(factory, elf_image, soc_filename, tag_filename, policy_dir, soc_exclude, err);
-  md_index(factory, metadata_memory_map, tag_filename, err);
 }
 
 bool load_firmware_tag_file(

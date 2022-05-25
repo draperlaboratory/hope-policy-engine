@@ -40,7 +40,16 @@
 
 namespace policy_engine {
 
-void write_tag_file(metadata_factory_t& factory, const metadata_memory_map_t& metadata_memory_map, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, const std::list<std::string>& soc_exclude, reporter_t& err);
+void write_tag_file(
+  metadata_factory_t& factory,
+  const metadata_memory_map_t& metadata_memory_map,
+  const elf_image_t& elf_image,
+  const std::string& soc_filename,
+  const std::string& tag_filename,
+  const std::string& policy_dir,
+  const std::list<std::string>& soc_exclude,
+  reporter_t& err
+);
 
 bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
