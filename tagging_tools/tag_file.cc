@@ -164,16 +164,10 @@ bool save_tag_indexes(
 
   for (const auto& [ name, index ] : register_index_map) {
     std::string register_name = name.substr(name.find_last_of(".") + 1);
-    uint32_t register_value;
-    
-    try {
-      register_value = register_name_map.at(register_name);
-    } catch(std::out_of_range &oor) {
-      err.error("Invalid register name %s\n", register_name);
-      return false;
-    }
+    if (register_name_map.find(register_name) == register_name_map.end())
+      throw std::out_of_range(register_name);
 
-    if (!write_uleb<Writer, uint32_t>(writer, register_value))
+    if (!write_uleb<Writer, uint32_t>(writer, register_name_map.at(register_name)))
       return false;
     if (!write_uleb<Writer, uint32_t>(writer, index))
       return false;
@@ -186,16 +180,10 @@ bool save_tag_indexes(
 
   for (const auto& [ name, index ] : csr_index_map) {
     std::string csr_name = name.substr(name.find_last_of(".") + 1);
-    uint32_t csr_value;
-    
-    try {
-      csr_value = csr_name_map.at(csr_name);
-    } catch(std::out_of_range &oor) {
-      err.error("Invalid csr name %s\n", csr_name);
-      return false;
-    }
+    if (csr_name_map.find(csr_name) == csr_name_map.end())
+      throw std::out_of_range(csr_name);
 
-    if (!write_uleb<Writer, uint32_t>(writer, csr_value))
+    if (!write_uleb<Writer, uint32_t>(writer, csr_name_map.at(csr_name)))
       return false;
     if (!write_uleb<Writer, uint32_t>(writer, index))
       return false;
@@ -262,26 +250,26 @@ std::size_t get_soc_granularity(const YAML::Node& soc, const range_t& range, std
 }
 
 void coalesce_ranges(std::list<range_t>& ranges, reporter_t& err) {
-  auto it = std::next(ranges.begin());
-  while (it != ranges.end()) {
-    err.info("Range: 0x%lx = 0x%lx\n", it->start, it->end);
+  ranges.sort();
+  auto current = std::next(ranges.begin());
+  while (current != ranges.end()) {
+    err.info("Range: %#lx - %#lx\n", current->start, current->end);
 
     // this can't actually be bottom-factored, as the iterator has to be incremented before removing data from
     // the list
-    auto previous = std::prev(it);
-    if (it->end <= previous->end) {
-      ranges.erase(it++);
-    } else if ((it->start - previous->end) <= 1) {
-      previous->end = it->end;
-      ranges.erase(it++);
+    auto previous = std::prev(current);
+    if (current->end <= previous->end) {
+      ranges.erase(current++);
+    } else if ((current->start - previous->end) <= 1) {
+      previous->end = current->end;
+      ranges.erase(current++);
     } else {
-      it++;
+      current++;
     }
   }
 }
 
 void get_address_ranges(const elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges, reporter_t& err) {
-
   for (const elf_section_t& section : elf_image.sections) {
     if (section.flags & SHF_ALLOC) {
       if ((section.flags & (SHF_WRITE | SHF_EXECINSTR)) == SHF_EXECINSTR)
@@ -290,28 +278,18 @@ void get_address_ranges(const elf_image_t& elf_image, std::list<range_t>& code_r
         data_ranges.push_back(section.address_range());
     }
   }
-  code_ranges.sort();
-  data_ranges.sort();
   coalesce_ranges(code_ranges, err);
   coalesce_ranges(data_ranges, err);
 
+  const std::string format_base = "{ 0x%%0%dlx - 0x%%0%dlx }\n";
+  char format[format_base.size()];
+  std::sprintf(format, format_base.c_str(), elf_image.word_bytes()*2, elf_image.word_bytes()*2);
   err.info("Code ranges:\n");
-  if (elf_image.word_bytes() == 8) {
-    for (const range_t& range : code_ranges)
-      err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
-  } else {
-    for (const range_t& range : code_ranges)
-      err.info("{ 0x%08lx - 0x%08lx }\n", range.start, range.end);
-  }
-
+  for (const range_t& range : code_ranges)
+    err.info(format, range.start, range.end);
   err.info("Data ranges:\n");
-  if (elf_image.word_bytes() == 8) {
-    for(const range_t& range : data_ranges)
-      err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
-  } else {
-    for(const range_t& range : data_ranges)
-      err.info("{ 0x%08lx - 0x%08lx }\n", range.start, range.end);
-  }
+  for (const range_t& range : data_ranges)
+    err.info(format, range.start, range.end);
 }
 
 void write_tag_file(
@@ -333,9 +311,8 @@ void write_tag_file(
     std::list<std::string> exclude(soc_exclude);
     exclude_unused_soc(soc_node["SOC"], exclude, factory);
 
-    std::list<range_t> soc_ranges = get_soc_ranges(soc_node["SOC"], exclude, err);
-    std::list<range_t> code_ranges, data_ranges;
-    data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+    std::list<range_t> data_ranges = get_soc_ranges(soc_node["SOC"], exclude, err);
+    std::list<range_t> code_ranges;
     get_address_ranges(elf_image, code_ranges, data_ranges, err);
 
     std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
@@ -372,9 +349,9 @@ void write_tag_file(
     register_index_map.erase("ISA.RISCV.Reg.Env");
 
     err.info("Metadata entries:\n");
-    for(size_t i = 0; i < metadata_values.size(); i++) {
+    for (std::size_t i = 0; i < metadata_values.size(); i++) {
       err.info("%lu: { ", i);
-      for(const meta_t& m : *metadata_values[i]) {
+      for (const meta_t& m : *metadata_values[i]) {
         err.info("%lx ", m);
       }
       err.info("}\n");
