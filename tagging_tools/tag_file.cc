@@ -33,14 +33,20 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include "elf_loader.h"
 #include "metadata.h"
+#include "metadata_factory.h"
+#include "metadata_index_map.h"
+#include "metadata_memory_map.h"
+#include "metadata_register_map.h"
 #include "policy_meta_set.h"
 #include "register_name_map.h"
 #include "reporter.h"
 #include "tag_file.h"
 #include "uleb.h"
+#include "yaml_tools.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
 class stream_reader_t {
 private:
@@ -97,7 +103,7 @@ public:
   explicit operator bool() const { return static_cast<bool>(os); }
 };
 
-bool policy_engine::save_tag_indexes(
+bool save_tag_indexes(
   std::vector<std::shared_ptr<metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
@@ -181,7 +187,7 @@ bool policy_engine::save_tag_indexes(
   return true;
 }
 
-bool policy_engine::write_headers(
+bool write_headers(
   std::list<range_t>& code_ranges,
   std::list<std::pair<range_t, uint8_t>>& data_ranges,
   bool is_64_bit,
@@ -217,7 +223,174 @@ bool policy_engine::write_headers(
   return true;
 }
 
-bool policy_engine::load_firmware_tag_file(
+void exclude_unused_soc(const YAML::Node& soc, std::list<std::string>& exclude, metadata_factory_t& factory) {
+  std::map<std::string, std::shared_ptr<metadata_t>> soc_map = factory.lookup_metadata_map("SOC");
+
+  for (const auto& node : soc) {
+    if (!node.second["name"])
+      throw std::out_of_range("md_header: 'name' node not present");
+    std::string name = node.second["name"].as<std::string>();
+    if (soc_map.find(name) == soc_map.end()) {
+      exclude.push_back(name);
+    }
+  }
+}
+
+std::list<range_t> get_soc_ranges(const YAML::Node& soc, const std::list<std::string>& exclude, reporter_t& err) {
+  std::list<range_t> ranges;
+  for (const auto& node : soc) {
+    if (!node.second["name"])
+      throw std::out_of_range("md_header: 'name' node not present");
+    std::string name = node.second["name"].as<std::string>();
+    if (std::find(exclude.begin(), exclude.end(), name) != exclude.end()) {
+      err.info("Excluding %s from SOC ranges\n", name);
+    } else {
+      if (!node.second["start"])
+        throw std::out_of_range("md_header: 'start' node not present");
+      if (!node.second["end"])
+        throw std::out_of_range("md_header: 'end' node not present");
+      ranges.push_back(node.second.as<range_t>());
+    }
+  }
+  return ranges;
+}
+
+std::size_t get_soc_granularity(const YAML::Node& soc, const range_t& range, std::size_t default_granularity) {
+  for (const auto& node: soc) {
+    range_t current{node.second["start"].as<uint64_t>(), node.second["end"].as<uint64_t>()};
+    if (current == range) {
+      if (node.second["tag_granularity"])
+        return node.second["tag_granularity"].as<std::size_t>();
+      return default_granularity;
+    }
+  }
+  return default_granularity;
+}
+
+void coalesce_ranges(std::list<range_t>& ranges, reporter_t& err) {
+  auto it = std::next(ranges.begin());
+  while (it != ranges.end()) {
+    err.info("Range: 0x%lx = 0x%lx\n", it->start, it->end);
+
+    // this can't actually be bottom-factored, as the iterator has to be incremented before removing data from
+    // the list
+    auto previous = std::prev(it);
+    if (it->end <= previous->end) {
+      ranges.erase(it++);
+    } else if ((it->start - previous->end) <= 1) {
+      previous->end = it->end;
+      ranges.erase(it++);
+    } else {
+      it++;
+    }
+  }
+}
+
+void get_address_ranges(const elf_image_t& elf_image, std::list<range_t>& code_ranges, std::list<range_t>& data_ranges, reporter_t& err) {
+
+  for (const elf_section_t& section : elf_image.sections) {
+    if (section.flags & SHF_ALLOC) {
+      if ((section.flags & (SHF_WRITE | SHF_EXECINSTR)) == SHF_EXECINSTR)
+        code_ranges.push_back(section.address_range());
+      else
+        data_ranges.push_back(section.address_range());
+    }
+  }
+  code_ranges.sort();
+  data_ranges.sort();
+  coalesce_ranges(code_ranges, err);
+  coalesce_ranges(data_ranges, err);
+
+  err.info("Code ranges:\n");
+  if (elf_image.word_bytes() == 8) {
+    for (const range_t& range : code_ranges)
+      err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
+  } else {
+    for (const range_t& range : code_ranges)
+      err.info("{ 0x%08lx - 0x%08lx }\n", range.start, range.end);
+  }
+
+  err.info("Data ranges:\n");
+  if (elf_image.word_bytes() == 8) {
+    for(const range_t& range : data_ranges)
+      err.info("{ 0x%016lx - 0x%016lx }\n", range.start, range.end);
+  } else {
+    for(const range_t& range : data_ranges)
+      err.info("{ 0x%08lx - 0x%08lx }\n", range.start, range.end);
+  }
+}
+
+void md_index(metadata_factory_t& metadata_factory, const metadata_memory_map_t& metadata_memory_map, const std::string& tag_filename, reporter_t& err) {
+  std::vector<std::shared_ptr<metadata_t>> metadata_values;
+
+  metadata_register_map_t register_map = metadata_factory.lookup_metadata_map("ISA.RISCV.Reg");
+  metadata_register_map_t csr_map = metadata_factory.lookup_metadata_map("ISA.RISCV.CSR");
+
+  // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
+  metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
+  metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
+  metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(register_map);
+  metadata_values.insert(metadata_values.end(), register_index_map.metadata.begin(), register_index_map.metadata.end());
+  metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(csr_map);
+  metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
+
+  // Separate the default entries from those corresponding to actual registers/CSRs
+  int register_default = -1;
+  if (auto it = register_index_map.find("ISA.RISCV.Reg.Default"); it != register_index_map.end()) {
+    register_default = it->second;
+    register_index_map.erase(it);
+  }
+
+  int csr_default = -1;
+  if (auto it = csr_index_map.find("ISA.RISCV.CSR.Default"); it != csr_index_map.end()) {
+    csr_default = it->second;
+    csr_index_map.erase(it);
+  }
+
+  int env_default = register_index_map.at("ISA.RISCV.Reg.Env");
+  register_index_map.erase("ISA.RISCV.Reg.Env");
+
+  err.info("Metadata entries:\n");
+  for(size_t i = 0; i < metadata_values.size(); i++) {
+    err.info("%lu: { ", i);
+    for(const meta_t& m : *metadata_values[i]) {
+      err.info("%lx ", m);
+    }
+    err.info("}\n");
+  }
+
+  if (!save_tag_indexes(metadata_values, memory_index_map, register_index_map, csr_index_map, register_default, csr_default, env_default, tag_filename, err))
+    throw std::ios::failure("md_index: failed to save indexes to tag file");
+}
+
+void md_header(metadata_factory_t& factory, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, const std::list<std::string>& soc_exclude, reporter_t& err) {
+  YAML::Node soc_node = YAML::LoadFile(soc_filename);
+  if (!soc_node["SOC"])
+    throw std::out_of_range("md_header: SOC root node not present");
+
+  std::list<std::string> exclude(soc_exclude);
+  exclude_unused_soc(soc_node["SOC"], exclude, factory);
+
+  std::list<range_t> soc_ranges = get_soc_ranges(soc_node["SOC"], exclude, err);
+  std::list<range_t> code_ranges, data_ranges;
+  data_ranges.insert(data_ranges.end(), soc_ranges.begin(), soc_ranges.end());
+  get_address_ranges(elf_image, code_ranges, data_ranges, err);
+
+  std::list<std::pair<range_t, uint8_t>> data_ranges_granularity;
+  for (const range_t& range : data_ranges) {
+    data_ranges_granularity.push_back(std::make_pair(range, get_soc_granularity(soc_node["SOC"], range, elf_image.word_bytes())));
+  }
+
+  if (!write_headers(code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8, std::string(tag_filename)))
+    throw std::ios::failure("md_header: failed to write headers to tag file");
+}
+
+void write_tag_file(metadata_factory_t& factory, const metadata_memory_map_t& metadata_memory_map, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, const std::list<std::string>& soc_exclude, reporter_t& err) {
+  md_header(factory, elf_image, soc_filename, tag_filename, policy_dir, soc_exclude, err);
+  md_index(factory, metadata_memory_map, tag_filename, err);
+}
+
+bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,
   std::vector<std::shared_ptr<metadata_t>>& metadata_values,
@@ -345,4 +518,6 @@ bool policy_engine::load_firmware_tag_file(
   }
 
   return true;
+}
+
 }

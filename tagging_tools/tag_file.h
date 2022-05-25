@@ -30,29 +30,18 @@
 #include <list>
 #include <memory>
 #include <string>
+#include "elf_loader.h"
+#include "metadata_factory.h"
+#include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
-#include "metadata_index_map.h"
 #include "range.h"
 #include "reporter.h"
 
 namespace policy_engine {
 
-bool save_tag_indexes(
-  std::vector<std::shared_ptr<metadata_t>>& metadata_values,
-  metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
-  metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
-  metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
-  int32_t register_default, int32_t csr_default, int32_t env_default,
-  const std::string& file_name,
-  reporter_t& err
-);
-bool write_headers(
-  std::list<range_t>& code_ranges,
-  std::list<std::pair<range_t, uint8_t>>& data_ranges,
-  bool is_64_bit,
-  const std::string& tag_filename
-);
+void write_tag_file(metadata_factory_t& factory, const metadata_memory_map_t& metadata_memory_map, const elf_image_t& elf_image, const std::string& soc_filename, const std::string& tag_filename, const std::string& policy_dir, const std::list<std::string>& soc_exclude, reporter_t& err);
+
 bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,

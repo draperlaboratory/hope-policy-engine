@@ -14,16 +14,12 @@
 #include "elf_loader.h"
 #include "embed.h"
 #include "llvm_metadata_tagger.h"
-#include "md_header.h"
-#include "md_index.h"
 #include "metadata_factory.h"
 #include "metadata_memory_map.h"
 #include "range_map.h"
 #include "reporter.h"
 #include "tag_elf_file.h"
 #include "tag_file.h"
-
-std::list<std::string> soc_exclude = {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"};
 
 std::string get_isp_prefix() {
   if (std::getenv("ISP_PREFIX")) {
@@ -130,8 +126,7 @@ int main(int argc, char* argv[]) {
   policy_engine::annotate_asm(md_factory, md_memory_map, asm_file_name);
 
   if (!FLAGS_soc_file.empty()) {
-    policy_engine::md_header(md_factory, elf_image_post, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, soc_exclude, err);
-    policy_engine::md_index(md_factory, md_memory_map, FLAGS_tag_file, err);
+    policy_engine::write_tag_file(md_factory, md_memory_map, elf_image_post, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"}, err);
   }
 
   return 0;
