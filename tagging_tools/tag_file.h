@@ -51,6 +51,8 @@ void write_tag_file(
   reporter_t& err
 );
 
+bool load_tags(metadata_memory_map_t& map, const std::string& file_name);
+
 bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,

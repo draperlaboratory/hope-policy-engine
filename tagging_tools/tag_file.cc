@@ -39,6 +39,7 @@
 #include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
+#include "platform_types.h"
 #include "policy_meta_set.h"
 #include "register_name_map.h"
 #include "reporter.h"
@@ -362,6 +363,33 @@ void write_tag_file(
   } else {
     throw std::ios::failure("could not open " + tag_filename + " for writing");
   }
+}
+
+bool load_tags(metadata_memory_map_t& map, const std::string& file_name) {
+  stream_reader_t reader(file_name);
+  if (!reader)
+    return false;
+
+  while (!reader.eof()) {
+    uint64_t start, end;
+    uint32_t metadata_count;
+
+    if (!read_uleb<stream_reader_t, uint64_t>(reader, start))
+      return false;
+    if (!read_uleb<stream_reader_t, uint64_t>(reader, end))
+      return false;
+    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count))
+      return false;
+    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
+    for (uint32_t i = 0; i < metadata_count; i++) {
+      meta_t meta;
+      if (!read_uleb<stream_reader_t, meta_t>(reader, meta))
+        return false;
+      metadata->insert(meta);
+    }
+    map.add_range(start, end, metadata);
+  }
+  return true;
 }
 
 bool load_firmware_tag_file(
