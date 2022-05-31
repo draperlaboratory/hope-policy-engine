@@ -21,35 +21,18 @@ policy:
 		osv.$(DUMMY_POLICY).$(DUMMY_POLICY)Pol
 
 install: all
+	cp build/librv_validator.a build/librv32_validator.a
+	cp build/librv_validator.a build/librv64_validator.a
+	cp build/libvalidator.a build/libvalidator64.a
+	cp build/libtagging_tools.a build/libtagging_tools64.a
 	install -d $(ISP_PREFIX)/lib
 	install -d $(ISP_PREFIX)/bin
 	install -d $(ISP_PREFIX)/include
-	install -p build/dump_tags $(ISP_PREFIX)/bin/
-	install -p build/md_code $(ISP_PREFIX)/bin/
-	install -p build/md_range $(ISP_PREFIX)/bin/
-	install -p build/md_embed $(ISP_PREFIX)/bin/
-	install -p build/md_entity $(ISP_PREFIX)/bin/
-	install -p build/md_asm_ann $(ISP_PREFIX)/bin/
-	install -p build/md_header $(ISP_PREFIX)/bin/
-	install -p build/md_index $(ISP_PREFIX)/bin/
-	install -p build/dump_tags64 $(ISP_PREFIX)/bin/
-	install -p build/md_code64 $(ISP_PREFIX)/bin/
-	install -p build/md_range64 $(ISP_PREFIX)/bin/
-	install -p build/md_embed64 $(ISP_PREFIX)/bin/
-	install -p build/md_entity64 $(ISP_PREFIX)/bin/
-	install -p build/md_asm_ann64 $(ISP_PREFIX)/bin/
-	install -p build/md_header64 $(ISP_PREFIX)/bin/
-	install -p build/md_index64 $(ISP_PREFIX)/bin/
+#	install -p build/dump_tags $(ISP_PREFIX)/bin/
 	install -p scripts/md_firmware_test $(ISP_PREFIX)/bin/
 	install -p build/standalone $(ISP_PREFIX)/bin/
 	install -p build/standalone64 $(ISP_PREFIX)/bin/
-	install -p tagging_tools/gen_tag_info $(ISP_PREFIX)/bin/
-	install -p tagging_tools/TaggingUtils.py $(ISP_PREFIX)/bin/
-	install -p tagging_tools/OpCodeTagger.py $(ISP_PREFIX)/bin/
-	install -p tagging_tools/ELFSectionTagger.py $(ISP_PREFIX)/bin/
-	install -p tagging_tools/LLVMMetadataTagger.py $(ISP_PREFIX)/bin/
-	install -p tagging_tools/SOCTagger.py $(ISP_PREFIX)/bin/
-	install -p tagging_tools/TagElfFile.py $(ISP_PREFIX)/bin/
+	install -p build/gen_tag_info $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv_gdb $(ISP_PREFIX)/bin/
 	install -p build/librv32-sim-validator.so $(ISP_PREFIX)/lib/
