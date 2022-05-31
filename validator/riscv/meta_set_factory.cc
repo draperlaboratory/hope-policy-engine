@@ -24,6 +24,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <memory>
 #include <string.h>
 #include "meta_set_factory.h"
 #include "policy_meta_set.h"
@@ -36,16 +37,13 @@ meta_set_factory_t::meta_set_factory_t(meta_set_cache_t *ms_cache, std::string p
 }
 
 meta_set_t const *meta_set_factory_t::get_meta_set(std::string dotted_path) {
-  metadata_t const *metadata = lookup_metadata(dotted_path);
+  std::shared_ptr<metadata_t> metadata = lookup_metadata(dotted_path);
   if (metadata) {
     meta_set_t ms;
     memset(&ms, 0, sizeof(ms));
-//    printf("get_meta_set: %s = ", dotted_path.c_str());
     for (const meta_t& m: *metadata) {
       ms_bit_add(&ms, m);
-//      printf("0x%lx ", it.second);
     }
-//    printf("\n");
     return ms_cache->canonize(ms);
   } else {
     return nullptr;

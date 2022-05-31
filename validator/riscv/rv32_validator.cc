@@ -66,8 +66,6 @@ extern std::string render_metadata(metadata_t const *metadata);
 void rv32_validator_base_t::apply_metadata(metadata_memory_map_t *md_map) {
   for (auto &e: *md_map) {
     for (address_t start = e.first.start; start < e.first.end; start += 4) {
-//      std::string s = render_metadata(e.second);
-//      printf("0x%08x: %s\n", start, s.c_str());
       if (!tag_bus.store_insn_tag(start, m_to_t(ms_cache->canonize(e.second)))) {
 	throw configuration_exception_t("unable to apply metadata");
       }
@@ -292,13 +290,7 @@ void rv32_validator_t::set_mem_watch(address_t addr){
 }
 
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
-  uint32_t rs1, rs2, rs3;
-  int32_t imm;
-  const char *name;
-  uint32_t opdef;
-  address_t offset;
   tag_t ci_tag;
-//  char tag_name[1024];
   address_t pc_paddr = addr_fixer(pc);;
   address_t mem_paddr;
 
@@ -325,41 +317,40 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     res->csrResult = false;
   }
 
-  flags = decode(insn, &rs1, &rs2, &rs3, &pending_RD, &imm, &name, &opdef);
-  if (flags < 0) {
-    printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, name);
+  decoded_instruction_t inst = decode(insn);
+  if (!inst) {
+    printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, inst.name.c_str());
   }
+  pending_RD = inst.rd;
 
-  if (flags & HAS_RS1) ops->op1 = t_to_m(ireg_tags[rs1]);
-  if ((flags & HAS_CSR_LOAD) || (flags & HAS_CSR_STORE)) ops->op2 = t_to_m(csr_tags[imm]);
-  if (flags & HAS_RS2) ops->op2 = t_to_m(ireg_tags[rs2]);
-  if (flags & HAS_RS3) ops->op3 = t_to_m(ireg_tags[rs3]);
-  has_pending_CSR = (flags & HAS_CSR_STORE) != 0;
-  has_pending_RD = (flags & HAS_RD) != 0;
-  has_pending_mem = (flags & HAS_STORE) != 0;
-  pending_CSR = imm;
+  if (inst.rs1) ops->op1 = t_to_m(ireg_tags[inst.rs1]);
+  if (inst.flags.has_csr_load || inst.flags.has_csr_store) ops->op2 = t_to_m(csr_tags[inst.imm]);
+  if (inst.rs2) ops->op2 = t_to_m(ireg_tags[inst.rs2]);
+  if (inst.rs3) ops->op3 = t_to_m(ireg_tags[inst.rs3]);
+  has_pending_CSR = inst.flags.has_csr_store;
+  has_pending_RD = static_cast<bool>(inst.rd);
+  has_pending_mem = inst.flags.has_store;
+  pending_CSR = inst.imm;
 
   // Handle memory address calculation
-  if (flags & (HAS_LOAD | HAS_STORE)) {
-//    address_t maddr = reg_reader(rs1);
+  if (inst.flags.has_load || inst.flags.has_store) {
     if (has_insn_mem_addr) {
       //mem_addr has already been set
       has_insn_mem_addr = false;
     }
     else {
-      uint64_t reg_val = reg_reader(rs1);
+      uint64_t reg_val = reg_reader(inst.rs1);
 
       /* mask off upper bits, just in case */
-      mem_addr = (address_t)(reg_val & READER_MASK);
+      mem_addr = (address_t)(reg_val);
 
-      if (flags & HAS_IMM)
-        mem_addr += imm;
+      if (inst.imm)
+        mem_addr += inst.imm;
 
       /* mask off unaligned bits, just in case */
     }
     mem_paddr = addr_fixer(mem_addr);
     ctx->bad_addr = mem_addr;
-//    printf("  mem_addr = 0x%08x\n", mem_addr);
     tag_t mtag;
     if (!tag_bus.load_tag(mem_paddr, mtag)) {
         printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr, mem_addr, mem_paddr);
@@ -370,8 +361,6 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
                ". TMT misses are fatal.\n",mem_addr, mem_paddr, pc);
         exit(1);
       }
-//      printf("  mr tag = '%s'\n", tag_name(ops->mem));
-//      printf("mr tag = 0x%p\n", ops->mem);
     }
   }
 

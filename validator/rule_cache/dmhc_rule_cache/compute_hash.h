@@ -25,6 +25,8 @@
 #define HASH_HASH 1
 //#define DMHC_DEBUG 1
 
+namespace policy_engine {
+
 void init_hashes();
 
 struct compare_op {
@@ -92,4 +94,7 @@ class compute_hash_t {
   //operands_t *static_ops;
   std::map<operands_t, std::vector<int>, struct compare_op> hash_table;
 };
+
+} // namespace policy_engine
+
 #endif

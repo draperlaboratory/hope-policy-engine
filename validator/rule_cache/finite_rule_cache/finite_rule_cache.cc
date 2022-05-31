@@ -1,5 +1,8 @@
+#include <cstring>
 #include "finite_rule_cache.h"
-#include <string.h>
+#include "riscv_isa.h"
+
+namespace policy_engine {
 
 finite_rule_cache_t::finite_rule_cache_t(int capacity) : ideal_rule_cache_t() {
   this->capacity = capacity;
@@ -43,3 +46,5 @@ bool finite_rule_cache_t::allow(operands_t *ops, results_t *res) {
   }
   return !(existing_entry == rule_cache_table.end());
 }
+
+} // namespace policy_engine

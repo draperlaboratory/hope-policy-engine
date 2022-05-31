@@ -32,8 +32,9 @@
 #include "soc_tag_configuration.h"
 
 #include "policy_utils.h"
+#include "platform_types.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
 static void dump_node(const YAML::Node &node) {
 //  printf("node: %p\n", node);
@@ -51,8 +52,6 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   std::string elt_path;
   soc_element_t elt;
   elt.heterogeneous = false;
-//  printf("processing element %s\n", element_name.c_str());
-//  dump_node(n);
 
   if (n["name"]) {
     elt_path = n["name"].as<std::string>();
@@ -63,9 +62,9 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
   if (n["tag_granularity"]) {
     elt.tag_granularity = n["tag_granularity"].as<size_t>();
   } else {
-    elt.tag_granularity = sizeof(address_t);
+    elt.tag_granularity = ADDRESS_T_SIZE;
   }
-  elt.word_size = sizeof(address_t);
+  elt.word_size = ADDRESS_T_SIZE;
 
   if (n["start"]) {
     elt.start = n["start"].as<address_t>();
@@ -113,4 +112,6 @@ void soc_tag_configuration_t::apply(tag_bus_t *tag_bus, tag_converter_t *convert
 						       converter->m_to_t(e.meta_set), e.tag_granularity));
     }
   }
+}
+
 }

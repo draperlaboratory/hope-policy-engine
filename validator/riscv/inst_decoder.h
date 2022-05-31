@@ -27,7 +27,9 @@
 #ifndef INSTRUCTION_DECODER
 #define INSTRUCTION_DECODER
 
-namespace policy_engine{
+#ifdef __cplusplus
+namespace policy_engine {
+#endif
 
 enum op_t {
   RISCV_INVALID,
@@ -229,6 +231,8 @@ enum op_t {
   RISCV_REMUW
 };
 
+#ifdef __cplusplus
 } // namespace policy_engine
+#endif
 
 #endif

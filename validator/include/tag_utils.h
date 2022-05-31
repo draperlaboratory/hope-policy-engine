@@ -27,22 +27,22 @@
 #ifndef TAG_UTILS_H
 #define TAG_UTILS_H
 
-#include <assert.h>
-#include <stdint.h>
-#include <vector>
+#include <cassert>
+#include <inttypes.h>
 #include <map>
-
+#include <cstdint>
+#include <vector>
 #include "platform_types.h"
 
 namespace policy_engine {
 
 /**
-   This type is what we will maintain internally in the functional, in-process simulator for the PIPE.
-   The size of the type will allow for conversion to a native pointer in policy code.  It is not
-   necessarily the case that the actual data for the tag_t would be the size of a pointer on a
-   particular platform, in which case, there would be some conversion to policy data structures
-   required.
-*/
+ * This type is what we will maintain internally in the functional, in-process simulator for the PIPE.
+ * The size of the type will allow for conversion to a native pointer in policy code.  It is not
+ * necessarily the case that the actual data for the tag_t would be the size of a pointer on a
+ * particular platform, in which case, there would be some conversion to policy data structures
+ * required.
+ */
 typedef uintptr_t tag_t;
 #define PRItag PRIuPTR
 

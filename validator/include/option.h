@@ -1,6 +1,10 @@
 #ifndef __OPTION_H__
 #define __OPTION_H__
 
+#ifdef __cplusplus
+
+#include <stdexcept>
+
 namespace policy_engine {
 
 template<class T>
@@ -21,4 +25,5 @@ template<class T> static const option<T> when(bool b, T t) { return b ? some(t) 
 
 }
 
+#endif // __cplusplus
 #endif // __OPTION_H__

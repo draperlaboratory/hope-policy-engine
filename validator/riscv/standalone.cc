@@ -24,8 +24,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-
+#include <cstdio>
+#include <memory>
 #include "validator_exception.h"
 #include "soc_tag_configuration.h"
 #include "rv32_validator.h"
@@ -38,6 +38,15 @@
 #define DEFINE_REGISTER_CHANGE_MACROS
 #include "fake_riscv.h"
 
+// hack to correctly assign address max while the validator expects it to be statically determined
+#ifdef RV64_VALIDATOR
+uint64_t ADDRESS_T_MAX = UINT64_MAX;
+size_t ADDRESS_T_SIZE = 8;
+#else
+uint64_t ADDRESS_T_MAX = UINT32_MAX;
+size_t ADDRESS_T_SIZE = 4;
+#endif
+
 using namespace policy_engine;
 
 static meta_set_cache_t ms_cache;
@@ -48,18 +57,12 @@ static metadata_memory_map_t *md_map;
 
 static fake_riscv_t rv32;
 
-extern std::string render_metadata(metadata_t const *metadata);
-
-// so we can do debugging output with string representations of tags
-extern void init_metadata_renderer(metadata_factory_t *md_factory);
-
 static uint64_t reg_reader(uint32_t regno) { return (uint64_t)rv32.read_register(regno); }
 
 static void init(const char *policy_dir, const char *soc_cfg) {
   try {
     ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
     md_factory = new metadata_factory_t(policy_dir);
-    init_metadata_renderer(md_factory);
     soc_tag_configuration_t *soc_config =
       new soc_tag_configuration_t(ms_factory, soc_cfg);
     rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader, NULL);
@@ -78,7 +81,7 @@ static std::vector<fake_riscv_t::op_t> ops= {
 
 // utility function to apply a named tag to an address range
 static void apply_tag(address_t start, address_t end, const char *tag_name) {
-  metadata_t const *metadata = md_factory->lookup_metadata(tag_name);
+  std::shared_ptr<metadata_t> metadata = md_factory->lookup_metadata(tag_name);
   if (!metadata) {
     printf("tag %s not found\n", tag_name);
   } else {
@@ -138,14 +141,4 @@ int main(int argc, char **argv) {
     } while (rv32.step());
     rv32.reset();
   }
-#if 0
-    // for debugging things
-    metadata_t const *metadata = md_map->get_metadata(op.pc);
-    if (!metadata) {
-      printf("could not load metadata for PC 0x%" PRIaddr_pad "\n", op.pc);
-    } else {
-      std::string s = render_metadata(metadata);
-      printf("0x%" PRIaddr_pad ": %s\n", op.pc, s.c_str());
-    }
-#endif
 }

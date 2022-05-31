@@ -24,13 +24,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-
-#include <stdarg.h>
-
+#include <cstdarg>
+#include <cstdio>
 #include "policy_eval.h"
 #include "policy_utils.h"
 #include "riscv_isa.h"
+
+namespace policy_engine {
 
 extern "C" void debug_msg(context_t *ctx, const char *msg) {
   printf("%s", msg);
@@ -97,4 +97,6 @@ extern "C" void printm(const char* s, ...)
   va_end(vl);
 
   puts(buf);
+}
+
 }

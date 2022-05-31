@@ -27,6 +27,7 @@
 #ifndef TAG_CONVERTER_H
 #define TAG_CONVERTER_H
 
+#include <memory>
 #include "platform_types.h"
 #include "policy_meta_set.h"
 #include "tag_utils.h"

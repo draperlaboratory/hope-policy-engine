@@ -5,6 +5,8 @@
 // switch between 0-3 (original hashes) and 4-7 (random permutation hashes)
 #define HASH_BASE 4
 
+namespace policy_engine {
+
 int perm4[2048];
 //int perm47324[2048];
 int perm5172[2048];
@@ -428,3 +430,5 @@ int compute_hash_t::compute_hash(int which, int num_fields, int *field_widths, m
 
   return(result);
 }
+
+} // namespace policy_engine

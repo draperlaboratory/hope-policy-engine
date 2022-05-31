@@ -1,9 +1,12 @@
 #ifndef __FINITE_RULE_CACHE_H__
 #define __FINITE_RULE_CACHE_H__
 
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
 #include "ideal_rule_cache.h"
+#include "riscv_isa.h"
+
+namespace policy_engine {
 
 class finite_rule_cache_t : public ideal_rule_cache_t
 {
@@ -35,5 +38,7 @@ private:
   // array.
   int next_entry;
 };
+
+} // namespace policy_engine
 
 #endif// __FINITE_RULE_CACHE_H__

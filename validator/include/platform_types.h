@@ -27,14 +27,25 @@
 #ifndef PLATFORM_TYPES_H
 #define PLATFORM_TYPES_H
 
-#include <cstdint>
+#ifdef __cplusplus
+  #include <cstdint>
+#else
+  #include "stdint.h"
+#endif
+#include <inttypes.h>
 
 #define MIN_TAG_GRANULARITY 4
 
-namespace policy_engine {
-
+typedef uint64_t address_t; // big enough to fit addresses for both RV32 and RV64
 typedef uint32_t insn_bits_t;
+typedef uint64_t reg_t; // big enogh to fit data for both RV32 and RV64
 
-}
+#define PRIaddr PRIu64
+#define PRIaddr_pad "016lx"
+#define PRIreg PRIu64
+
+// hack to account for the validator expecting this to exist
+extern uint64_t ADDRESS_T_MAX;
+extern size_t ADDRESS_T_SIZE;
 
 #endif

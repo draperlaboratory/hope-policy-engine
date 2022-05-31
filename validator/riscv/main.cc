@@ -24,9 +24,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string>
-
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include "meta_cache.h"
 #include "meta_set_factory.h"
 #include "rv32_validator.h"
@@ -36,6 +36,16 @@
 #include "policy_utils.h"
 #include "platform_types.h"
 #include <yaml-cpp/yaml.h>
+#include <cinttypes>
+
+// hack to correctly assign address max while the validator expects it to be statically determined
+#ifdef RV64_VALIDATOR
+uint64_t ADDRESS_T_MAX = UINT64_MAX;
+size_t ADDRESS_T_SIZE = 8;
+#else
+uint64_t ADDRESS_T_MAX = UINT32_MAX;
+size_t ADDRESS_T_SIZE = 4;
+#endif
 
 using namespace policy_engine;
 
@@ -61,7 +71,7 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
       
       metadata_memory_map_t map;
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
-      if (!load_tags(&map, tags_file)) {
+      if (!load_tags(map, tags_file)) {
         printf("failed read\n");
       } else {
         rv_validator->apply_metadata(&map);

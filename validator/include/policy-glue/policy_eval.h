@@ -28,12 +28,12 @@
 #ifndef POLICY_EVAL_H
 #define POLICY_EVAL_H
 
-// pull in riscv definitions for context, operands and results
-#include "riscv_isa.h"
 #include "policy_meta_set.h"
+#include "riscv_isa.h"
 
 #ifdef __cplusplus 
 extern "C" {
+namespace policy_engine {
 #endif
 
 #define POLICY_EXP_FAILURE 0
@@ -108,7 +108,8 @@ void handle_violation(context_t *ctx, operands_t *ops, results_t *out);
 void handle_panic(const char *msg);
   
 #ifdef __cplusplus
-}
+} // namespace policy_engine
+} // extern "C"
 #endif
 
 #endif // POLICY_EVAL_H

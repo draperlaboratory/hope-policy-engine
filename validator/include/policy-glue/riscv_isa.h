@@ -28,13 +28,19 @@
 #ifndef RISCV_ISA_H
 #define RISCV_ISA_H
 
-#include <cstdint>
-#include <stdexcept>
-#include <string>
+#ifdef __cplusplus
+  #include <cstdint>
+  #include <string>
+#else
+  #include "stdint.h"
+  #include "string.h"
+#endif
 #include "inst_decoder.h"
 #include "option.h"
 #include "platform_types.h"
 #include "policy_meta_set.h"
+
+#ifdef __cplusplus
 
 namespace policy_engine {
 
@@ -71,6 +77,8 @@ struct decoded_instruction_t {
 };
 
 decoded_instruction_t decode(insn_bits_t bits);
+
+#endif // __cplusplus
 
 /**
  * Structure that holds any special evaluation context, for
@@ -110,6 +118,8 @@ typedef struct results {
   bool csrResult;
 } results_t;
 
+#ifdef __cplusplus
 } // namespace policy_engine
+#endif
 
 #endif // RISCV_ISA_H

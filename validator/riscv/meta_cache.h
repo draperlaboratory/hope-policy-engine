@@ -27,6 +27,7 @@
 #ifndef META_CACHE_H
 #define META_CACHE_H
 
+#include <memory>
 #include <string.h>
 #include <unordered_map>
 #include "policy_meta_set.h"
@@ -69,6 +70,9 @@ class meta_set_cache_t {
     for (auto e: *metadata)
       ms_bit_add(&ms, e);
     return canonize(ms);
+  }
+  const meta_set_t* canonize(std::shared_ptr<const metadata_t> metadata) {
+    return canonize(metadata.get());
   }
 };
 
