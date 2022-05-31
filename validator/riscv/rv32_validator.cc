@@ -321,16 +321,16 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   if (!inst) {
     printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, inst.name.c_str());
   }
-  pending_RD = inst.rd;
+  pending_RD = inst.rd.getOrElse(-1);
 
-  if (inst.rs1) ops->op1 = t_to_m(ireg_tags[inst.rs1]);
+  if (inst.rs1.exists) ops->op1 = t_to_m(ireg_tags[inst.rs1]);
   if (inst.flags.has_csr_load || inst.flags.has_csr_store) ops->op2 = t_to_m(csr_tags[inst.imm]);
-  if (inst.rs2) ops->op2 = t_to_m(ireg_tags[inst.rs2]);
-  if (inst.rs3) ops->op3 = t_to_m(ireg_tags[inst.rs3]);
+  if (inst.rs2.exists) ops->op2 = t_to_m(ireg_tags[inst.rs2]);
+  if (inst.rs3.exists) ops->op3 = t_to_m(ireg_tags[inst.rs3]);
   has_pending_CSR = inst.flags.has_csr_store;
-  has_pending_RD = static_cast<bool>(inst.rd);
+  has_pending_RD = inst.rd.exists;
   has_pending_mem = inst.flags.has_store;
-  pending_CSR = inst.imm;
+  pending_CSR = inst.imm.getOrElse(-1);
 
   // Handle memory address calculation
   if (inst.flags.has_load || inst.flags.has_store) {
@@ -344,7 +344,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
       /* mask off upper bits, just in case */
       mem_addr = (address_t)(reg_val);
 
-      if (inst.imm)
+      if (inst.imm.exists)
         mem_addr += inst.imm;
 
       /* mask off unaligned bits, just in case */
