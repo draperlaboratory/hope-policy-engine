@@ -616,7 +616,7 @@ decoded_instruction_t decode(insn_bits_t bits) {
   int rs1 = (bits & 0xf8000) >> 15;
   int rs2 = (bits & 0x1f00000) >> 20;
   int i_imm = static_cast<int>(bits) >> 20;
-  int s_imm = (f7 << 25) | rd;
+  int s_imm = (static_cast<int>(f7) << 5) | rd;
   int u_imm = static_cast<int>(bits) & ~0xfff;
 
   if (decoded_instruction_t r = decode_r_type(opcode, f3, f7, rd, rs1, rs2))
