@@ -51,6 +51,7 @@ void write_tag_file(
   reporter_t& err
 );
 
+bool save_tags(const metadata_memory_map_t& map, const std::string& filename);
 bool load_tags(metadata_memory_map_t& map, const std::string& file_name);
 
 bool load_firmware_tag_file(

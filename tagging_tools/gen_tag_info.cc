@@ -127,6 +127,8 @@ int main(int argc, char* argv[]) {
 
   if (!FLAGS_soc_file.empty()) {
     policy_engine::write_tag_file(md_factory, md_memory_map, elf_image_post, FLAGS_soc_file, FLAGS_tag_file, FLAGS_policy_dir, {"SOC.Memory.DDR4_0", "SOC.Memory.Ram_0"}, err);
+  } else {
+    policy_engine::save_tags(md_memory_map, FLAGS_tag_file);
   }
 
   return 0;

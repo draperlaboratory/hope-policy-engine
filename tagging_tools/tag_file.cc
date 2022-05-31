@@ -365,6 +365,24 @@ void write_tag_file(
   }
 }
 
+bool save_tags(const metadata_memory_map_t& map, const std::string& filename) {
+  if (auto writer = stream_writer_t(filename)) {
+    for (const auto& [ range, md ] : map) {
+      if (!write_uleb<stream_writer_t, uint64_t>(writer, range.start))
+        return false;
+      if (!write_uleb<stream_writer_t, uint64_t>(writer, range.end))
+        return false;
+      if (!write_uleb<stream_writer_t, uint64_t>(writer, md->size()))
+        return false;
+      for (const meta_t& m : *md) {
+        if (!write_uleb<stream_writer_t, meta_t>(writer, m))
+          return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool load_tags(metadata_memory_map_t& map, const std::string& file_name) {
   stream_reader_t reader(file_name);
   if (!reader)
