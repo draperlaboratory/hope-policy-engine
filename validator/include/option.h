@@ -16,7 +16,11 @@ public:
 
   option() : exists(false) {}
   option(T v) : value(v), exists(true) {}
-  operator T() const { if (exists) return value; else throw std::logic_error("not defined"); }
+
+  T get() const { if (exists) return value; else throw std::logic_error("not defined"); }
+  T getOrElse(T v) const { if (exists) return value; else return v; }
+
+  operator T() const { return get(); }
 };
 
 template<class T> static const option<T> none() { return option<T>(); }
