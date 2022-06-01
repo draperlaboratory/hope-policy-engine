@@ -34,15 +34,17 @@
 namespace policy_engine {
 
 class metadata_cache_t {
-  private:
+private:
   std::unordered_map<metadata_t, std::shared_ptr<metadata_t>, metadata_t::hasher_t, metadata_t::equal_t> map;
-  public:
-  std::shared_ptr<metadata_t> canonize(std::shared_ptr<const metadata_t> md) {
-    if (map.find(*md) == map.end()) {
-      map[*md] = std::make_shared<metadata_t>(*md);
-    }
-    return map[*md];
+public:
+  std::shared_ptr<metadata_t> canonize(metadata_t md) {
+    if (map.find(md) == map.end())
+      map[md] = std::make_shared<metadata_t>(md);
+    return map[md];
   }
+
+  template<class MetadataPtr>
+  std::shared_ptr<metadata_t> canonize(MetadataPtr md) { canonize(*md); }
 };
 
 } // namespace policy_engine

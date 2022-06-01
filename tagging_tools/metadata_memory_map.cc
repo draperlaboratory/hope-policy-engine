@@ -32,7 +32,7 @@
 
 namespace policy_engine {
   
-void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
+void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<const metadata_t> metadata) {
   if (range.start == range.end) {
     range.start = start;
     assert(mem.size() == 0); // first range added
@@ -52,13 +52,14 @@ void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end
   }
 
   while (s < e) {
+    metadata_t md(*metadata);
     if (mem[s])
-      metadata->insert(mem[s]);
-    mem[s++] = map->md_cache.canonize(metadata);
+      md.insert(mem[s]);
+    mem[s++] = map->md_cache.canonize(md);
   }
 }
 
-void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata) {
+void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_ptr<const metadata_t> metadata) {
   /* this is a meaningless call */
   if (start >= end)
     return;

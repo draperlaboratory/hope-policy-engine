@@ -70,7 +70,7 @@ private:
     bool contains(uint64_t addr) const { return (addr >= range.start) && (addr <= range.end); }
     size_t size() const { return mem.size(); }
     
-    void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
+    void add_range(uint64_t start, uint64_t end, std::shared_ptr<const metadata_t> metadata);
   };
 
   uint64_t base;
@@ -182,7 +182,7 @@ public:
   const_iterator cbegin() const noexcept { return const_iterator(this, true); }
   const_iterator cend() const noexcept { return const_iterator(this, false); }
 
-  void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
+  void add_range(uint64_t start, uint64_t end, std::shared_ptr<const metadata_t> metadata);
   std::shared_ptr<const metadata_t> get_metadata(uint64_t addr) const;
 };
 
