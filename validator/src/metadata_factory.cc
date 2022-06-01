@@ -245,13 +245,10 @@ void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_a
       continue;
     }
 
-    std::shared_ptr<metadata_t> metadata = lookup_group_metadata(inst.name, inst);
-
-    if (metadata == nullptr) {
-      err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
-    } else {
+    if (std::shared_ptr<metadata_t> metadata = lookup_group_metadata(inst.name, inst))
       map.add_range(code_address, code_address + 4, metadata);
-    }
+    else
+      err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
     code_address += 4;
   }
 }
