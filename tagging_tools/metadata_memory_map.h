@@ -66,7 +66,7 @@ private:
     uint64_t itr_to_addr(const_iterator itr) const { return index_to_addr(itr - cbegin()); }
     uint64_t index_to_addr(size_t idx) const { return range.start + (idx*stride); }
     size_t addr_to_index(uint64_t addr) const { return (addr - range.start)/stride; }
-    std::shared_ptr<metadata_t> getaddr(uint64_t addr) const { return mem[addr_to_index(addr)]; }
+    std::shared_ptr<const metadata_t> getaddr(uint64_t addr) const { return mem[addr_to_index(addr)]; }
     bool contains(uint64_t addr) const { return (addr >= range.start) && (addr <= range.end); }
     size_t size() const { return mem.size(); }
     
@@ -183,7 +183,7 @@ public:
   const_iterator cend() const noexcept { return const_iterator(this, false); }
 
   void add_range(uint64_t start, uint64_t end, std::shared_ptr<metadata_t> metadata);
-  std::shared_ptr<metadata_t> get_metadata(uint64_t addr) const;
+  std::shared_ptr<const metadata_t> get_metadata(uint64_t addr) const;
 };
 
 } // namespace policy_engine

@@ -73,7 +73,7 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, std::shared_
   }
 }
 
-std::shared_ptr<metadata_t> metadata_memory_map_t::get_metadata(uint64_t addr) const {
+std::shared_ptr<const metadata_t> metadata_memory_map_t::get_metadata(uint64_t addr) const {
   for (const auto& mr : mrs) {
     if (mr.contains(addr))
       return mr.getaddr(addr);
