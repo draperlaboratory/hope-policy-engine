@@ -140,7 +140,7 @@ bool write_headers(
 template<class Writer>
 bool save_tag_indexes(
   Writer& writer,
-  std::vector<std::shared_ptr<metadata_t>>& metadata_values,
+  std::vector<std::shared_ptr<const metadata_t>>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
@@ -150,7 +150,7 @@ bool save_tag_indexes(
   if (!write_uleb<Writer, uint32_t>(writer, metadata_values.size()))
     return false;
 
-  for (const std::shared_ptr<metadata_t>& v : metadata_values) {
+  for (std::shared_ptr<const metadata_t> v : metadata_values) {
     if (!write_uleb<Writer, uint32_t>(writer, v->size()))
       return false;
     for (const meta_t& m : *v)
@@ -325,7 +325,7 @@ void write_tag_file(
       throw std::ios::failure("failed to write headers to tag file");
 
     // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
-    std::vector<std::shared_ptr<metadata_t>> metadata_values;
+    std::vector<std::shared_ptr<const metadata_t>> metadata_values;
     metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
     metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
     metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(factory.lookup_metadata_map("ISA.RISCV.Reg"));

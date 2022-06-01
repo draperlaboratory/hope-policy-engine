@@ -84,7 +84,7 @@ public:
   template <class MMap, class MRIterator, class MRVIterator>
   class ForwardIterator {
   private:
-    using result_type_t = std::pair<range_t, std::shared_ptr<metadata_t>>;
+    using result_type_t = std::pair<range_t, std::shared_ptr<const metadata_t>>;
 
   public:
     using iterator_category = std::forward_iterator_tag;

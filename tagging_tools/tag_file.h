@@ -27,6 +27,7 @@
 #ifndef TAG_FILE_H
 #define TAG_FILE_H
 
+#include <iostream>
 #include <list>
 #include <memory>
 #include <string>
@@ -53,6 +54,14 @@ void write_tag_file(
 
 bool save_tags(const metadata_memory_map_t& map, const std::string& filename);
 bool load_tags(metadata_memory_map_t& map, const std::string& file_name);
+
+template<class OStream>
+void dump_tags(const metadata_memory_map_t& map, metadata_factory_t& factory, OStream&& out) {
+  out << std::hex;
+  for (const auto& [ range, metadata ] : map)
+    out << '[' << range.start << ',' << range.end << "]: " << factory.render(metadata, false) << std::endl;
+  out << std::dec;
+}
 
 bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,

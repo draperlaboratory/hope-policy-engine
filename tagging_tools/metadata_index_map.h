@@ -33,7 +33,7 @@ public:
   using const_iterator = typename parent::const_iterator;
   using size_type = typename parent::size_type;
 
-  std::vector<std::shared_ptr<metadata_t>> metadata;
+  std::vector<std::shared_ptr<const metadata_t>> metadata;
 
   metadata_index_map_t() {}
 
