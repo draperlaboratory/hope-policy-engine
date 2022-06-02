@@ -74,9 +74,9 @@ private:
 public:
   metadata_factory_t(const std::string& policy_dir);
 
-  std::shared_ptr<metadata_t> lookup_metadata(const std::string& dotted_path);
-  std::map<std::string, std::shared_ptr<metadata_t>> lookup_metadata_map(const std::string& dotted_path);
-  std::shared_ptr<metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
+  std::shared_ptr<const metadata_t> lookup_metadata(const std::string& dotted_path);
+  std::map<std::string, std::shared_ptr<const metadata_t>> lookup_metadata_map(const std::string& dotted_path);
+  std::shared_ptr<const metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
 
   bool apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name);
   template<class RangeMap=range_map_t>

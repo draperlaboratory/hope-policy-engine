@@ -207,7 +207,7 @@ bool save_tag_indexes(
 }
 
 void exclude_unused_soc(const YAML::Node& soc, std::list<std::string>& exclude, metadata_factory_t& factory) {
-  std::map<std::string, std::shared_ptr<metadata_t>> soc_map = factory.lookup_metadata_map("SOC");
+  std::map<std::string, std::shared_ptr<const metadata_t>> soc_map = factory.lookup_metadata_map("SOC");
 
   for (const auto& node : soc) {
     if (!node.second["name"])

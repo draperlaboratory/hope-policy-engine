@@ -108,7 +108,7 @@ static void dump_node(YAML::Node node) {
   }
 }
 
-std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
+std::shared_ptr<const metadata_t> metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
   if (const auto& it = path_map.find(dotted_path); it != path_map.end())
     return it->second;
 
@@ -121,15 +121,15 @@ std::shared_ptr<metadata_t> metadata_factory_t::lookup_metadata(const std::strin
   return nullptr;
 }
 
-std::map<std::string, std::shared_ptr<metadata_t>> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
-  std::map<std::string, std::shared_ptr<metadata_t>> results = std::map<std::string, std::shared_ptr<metadata_t>>();
+std::map<std::string, std::shared_ptr<const metadata_t>> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
+  std::map<std::string, std::shared_ptr<const metadata_t>> results;
   for (const auto& [ name, init ] : entity_initializers)
     if (name.rfind(dotted_path) == 0)
       results[name] = lookup_metadata(name);
   return results;
 }
 
-std::shared_ptr<metadata_t> metadata_factory_t::lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
+std::shared_ptr<const metadata_t> metadata_factory_t::lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
   const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
   if (it_opgroup_rule != opgroup_rule_map.end()) {
     if (it_opgroup_rule->second.matches(inst))
@@ -228,11 +228,11 @@ metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_d
 }
 
 bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
-  std::shared_ptr<metadata_t> md = lookup_metadata(tag_name);
-  if (!md)
-    return false;
-  map.add_range(start, end, md);
-  return true;
+  if (std::shared_ptr<const metadata_t> md = lookup_metadata(tag_name)) {
+    map.add_range(start, end, md);
+    return true;
+  }
+  return false;
 }
 
 void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err) {
@@ -245,7 +245,7 @@ void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_a
       continue;
     }
 
-    if (std::shared_ptr<metadata_t> metadata = lookup_group_metadata(inst.name, inst))
+    if (std::shared_ptr<const metadata_t> metadata = lookup_group_metadata(inst.name, inst))
       map.add_range(code_address, code_address + 4, metadata);
     else
       err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);

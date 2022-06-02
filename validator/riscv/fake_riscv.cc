@@ -7,7 +7,7 @@ using namespace policy_engine;
 void fake_riscv_t::apply_group_tags(metadata_factory_t *md_factory, metadata_memory_map_t *md_map) {
   for (auto &op: ops) {
     decoded_instruction_t inst = decode(op.insn);
-    std::shared_ptr<metadata_t> metadata = md_factory->lookup_group_metadata(inst.name, inst);
+    std::shared_ptr<const metadata_t> metadata = md_factory->lookup_group_metadata(inst.name, inst);
     if (!metadata) {
       printf("0x%" PRIaddr_pad
              ": 0x%08x  %s - no group found for instruction\n",
@@ -21,7 +21,7 @@ void fake_riscv_t::apply_group_tags(metadata_factory_t *md_factory, metadata_mem
 void fake_riscv_t::apply_tag(metadata_factory_t *md_factory,
 			     metadata_memory_map_t *md_map,
 			     const char *tag_name) {
-  std::shared_ptr<metadata_t> metadata = md_factory->lookup_metadata(tag_name);
+  std::shared_ptr<const metadata_t> metadata = md_factory->lookup_metadata(tag_name);
   if (!metadata) {
     printf("tag name %s not found\n", tag_name);
     return;
