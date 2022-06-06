@@ -108,7 +108,7 @@ void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, rang
       uint64_t start = ef.sections[i].address;
       uint64_t end = round_up(start + ef.sections[i].size, PTR_SIZE);
       if ((ef.sections[i].flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR)) {
-        err.info("saw code range = %lx:%lx\n", start, end);
+        err.info("saw code range = %#lx:%#lx\n", start, end);
         range_map.add_range(start, end);
       }
     }
@@ -119,7 +119,7 @@ void llvm_metadata_tagger_t::check_and_add_range(range_map_t& range_map, uint64_
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits, tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
-        err.info("saw tag %s = %lx:%lx\n", tags.at("name"), start, end);
+        err.info("saw tag %s = %#lx:%#lx\n", tags.at("name"), start, end);
         range_map.add_range(start, end, tags.at("name"));
       }
     }
@@ -181,11 +181,11 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
     } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK_WEAK_DECL_HACK")) {
       throw std::runtime_error("saw end weak decl tag");
     } else {
-      throw std::runtime_error("found unknown byt in metadata: " + std::to_string(metadata[i]));
+      throw std::runtime_error("found unknown byte in metadata: " + std::to_string(metadata[i]));
     }
   }
 
-  if (policy_inits["Require"]["llvm"].as<std::string>().find("NoCFI") != std::string::npos) {
+  if (policy_inits["Require"]["llvm"]["NoCFI"]) {
     range_map_t code_range_map;
     add_code_section_ranges(ef, code_range_map);
     for (auto& [ range, tags ] : code_range_map) {
