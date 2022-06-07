@@ -135,20 +135,22 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
     throw std::runtime_error("invalid metadata found in ELF file");
   
   uint64_t base_address = 0;
-  for (int i = 0; i < metadata_section->size; i++) {
-    if (metadata[i] == metadata_ops.at("DMD_SET_BASE_ADDRESS_OP")) {
+  for (int i = 0; i < metadata_section->size;) {
+    // Don't increment i at the end of the loop because it should point to the next op after the if block
+    uint8_t op = metadata[i++];
+    if (op == metadata_ops.at("DMD_SET_BASE_ADDRESS_OP")) {
       base_address = 0;
       for (int j = 0; j < 8; j++, i++)
         base_address += metadata[i] << (j*8);
       err.info("new base address is %#x\n", base_address);
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
+    } else if (op == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         address += metadata[i] << (j*8);
       uint8_t tag_specifier = metadata[i++];
       err.info("tag is %#x at address %#lx\n", tag_specifier, address);
       check_and_add_range(range_map, address, address + PTR_SIZE, tag_specifier, policy_inits);
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
+    } else if (op == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         start_address += metadata[i] << (j*8);
@@ -157,13 +159,13 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
       uint8_t tag_specifier = metadata[i++];
       err.info("tag is %#x for address range %#lx:%#lx\n", tag_specifier, start_address, end_address);
       check_and_add_range(range_map, start_address, end_address, tag_specifier, policy_inits);
-    } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK")) {
+    } else if (op == metadata_ops.at("DMD_END_BLOCK")) {
       uint64_t end_address = 0;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
       err.info("saw end block tag range = %#lx:%#lx\n", base_address, base_address + end_address);
       range_map.add_range(base_address, base_address = end_address, "COMPILER_GENERATED");
-    } else if (metadata[i] == metadata_ops.at("DMD_FUNCTION_RANGE")) {
+    } else if (op == metadata_ops.at("DMD_FUNCTION_RANGE")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
         start_address += metadata[i] << (j*8);
@@ -171,15 +173,15 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
         end_address += metadata[i] << (j*8);
       err.info("saw function range %#lx:%#lx\n", start_address, end_address);
       range_map.add_range(start_address, end_address, "COMPILER_GENERATED");
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
+    } else if (op == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
       throw std::runtime_error("saw policy symbol");
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
+    } else if (op == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
       throw std::runtime_error("saw policy range");
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_SYMBOL_RANKED")) {
+    } else if (op == metadata_ops.at("DMD_TAG_POLICY_SYMBOL_RANKED")) {
       throw std::runtime_error("saw policy symbol ranked");
-    } else if (metadata[i] == metadata_ops.at("DMD_TAG_POLICY_RANGE_RANKED")) {
+    } else if (op == metadata_ops.at("DMD_TAG_POLICY_RANGE_RANKED")) {
       throw std::runtime_error("saw policy range ranked");
-    } else if (metadata[i] == metadata_ops.at("DMD_END_BLOCK_WEAK_DECL_HACK")) {
+    } else if (op == metadata_ops.at("DMD_END_BLOCK_WEAK_DECL_HACK")) {
       throw std::runtime_error("saw end weak decl tag");
     } else {
       throw std::runtime_error("found unknown byte in metadata: " + std::to_string(metadata[i]));
