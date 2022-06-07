@@ -87,19 +87,23 @@ const std::map<std::string, std::map<std::string, std::string>> llvm_metadata_ta
   }}
 };
 
-bool llvm_metadata_tagger_t::policy_needs_tag(const YAML::Node& policy_inits, const std::string& tag) {
+bool llvm_metadata_tagger_t::policy_needs_tag(const YAML::Node& node, const std::string& tag) {
   if (needs_tag_cache.find(tag) != needs_tag_cache.end())
     return needs_tag_cache[tag];
   
-  std::istringstream iss(tag);
-  for (std::string d; std::getline(iss, d);) {
-    if (!policy_inits["Require"][d]) {
-      needs_tag_cache[tag] = false;
-      return false;
-    }
+  std::string::size_type pos = tag.find('.');
+  std::string item = tag.substr(0, pos);
+  if (!node[item]) {
+    needs_tag_cache[tag] = false;
+    return false;
+  } else if (pos == std::string::npos) {
+    needs_tag_cache[tag] = true;
+    return true;
+  } else {
+    bool needs_tag = policy_needs_tag(node[item], tag.substr(pos + 1, std::string::npos));
+    needs_tag_cache[tag] = needs_tag;
+    return needs_tag;
   }
-  needs_tag_cache[tag] = true;
-  return true;
 }
 
 void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, range_map_t& range_map) {
@@ -117,7 +121,7 @@ void llvm_metadata_tagger_t::add_code_section_ranges(const elf_image_t& ef, rang
 
 void llvm_metadata_tagger_t::check_and_add_range(range_map_t& range_map, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits) {
   for (const auto& [ policy, tags ] : policy_map) {
-    if (policy_needs_tag(policy_inits, tags.at("name"))) {
+    if (policy_needs_tag(policy_inits["Require"], tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
         err.info("saw tag %s = %#lx:%#lx\n", tags.at("name"), start, end);
         range_map.add_range(start, end, tags.at("name"));
@@ -171,7 +175,7 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
         start_address += metadata[i] << (j*8);
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
-      err.info("saw function range %#lx:%#lx\n", start_address, end_address);
+      err.info("saw function range = %#lx:%#lx\n", start_address, end_address);
       range_map.add_range(start_address, end_address, "COMPILER_GENERATED");
     } else if (op == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
       throw std::runtime_error("saw policy symbol");
