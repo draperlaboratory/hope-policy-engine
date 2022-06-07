@@ -123,7 +123,7 @@ void llvm_metadata_tagger_t::check_and_add_range(range_map_t& range_map, uint64_
   for (const auto& [ policy, tags ] : policy_map) {
     if (policy_needs_tag(policy_inits["Require"], tags.at("name"))) {
       if (tag_specifiers.at(tags.at("tag_specifier")) == tag_specifier) {
-        err.info("saw tag %s = %#lx:%#lx\n", tags.at("name"), start, end);
+        err.info("saw tag %s = %#lx:%#lx\n", tags.at("name").c_str(), start, end);
         range_map.add_range(start, end, tags.at("name"));
       }
     }
