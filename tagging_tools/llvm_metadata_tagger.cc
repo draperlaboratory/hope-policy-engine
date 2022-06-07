@@ -168,7 +168,6 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
       err.info("saw end block tag range = %#lx:%#lx\n", base_address, base_address + end_address);
-      range_map.add_range(base_address, base_address = end_address, "COMPILER_GENERATED");
     } else if (op == metadata_ops.at("DMD_FUNCTION_RANGE")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
@@ -176,7 +175,6 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
       err.info("saw function range = %#lx:%#lx\n", start_address, end_address);
-      range_map.add_range(start_address, end_address, "COMPILER_GENERATED");
     } else if (op == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
       throw std::runtime_error("saw policy symbol");
     } else if (op == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
