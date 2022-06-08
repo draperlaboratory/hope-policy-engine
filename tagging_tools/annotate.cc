@@ -61,14 +61,13 @@ void annotate_asm(metadata_factory_t& md_factory, metadata_memory_map_t& md_map,
   if (!asm_out)
     throw std::ios::failure("couldn't open output file " + fname);
 
-  std::string line;
-  while (std::getline(asm_in, line)) {
+  for (std::string line; std::getline(asm_in, line);) {
     bool stop = false;
-    for (size_t i = 0; i < line.size() && !stop; i++) {
+    for (std::size_t i = 0; i < line.size() && !stop; i++) {
       if (!isspace(line[i]) && !isxdigit(line[i])) {
         stop = true;
-        if (i > 0 && line[i] == ':' && !isspace(line[i-1])) {
-          if (std::shared_ptr<const metadata_t> metadata = md_map.get_metadata(std::stoul(line, nullptr, 16)))
+        if (i > 0 && line[i] == ':' && !isspace(line[i - 1])) {
+          if (std::shared_ptr<const metadata_t> metadata = md_map.get_metadata(std::stoul(line.substr(0, i - 1), nullptr, 16)))
             asm_out << pad(line, 80) + md_factory.render(metadata, true) << std::endl;
           else
             asm_out << line << std::endl;
