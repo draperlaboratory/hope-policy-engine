@@ -26,7 +26,7 @@ public:
   bool policy_needs_tag(const YAML::Node& policy_inits, const std::string& tag);
   void add_code_section_ranges(const elf_image_t& ef, range_map_t& range_map);
   void check_and_add_range(range_map_t& range_map, uint64_t start, uint64_t end, uint8_t tag_specifier, const YAML::Node& policy_inits);
-  void add_policy_ranges(range_map_t& range_map, const elf_image_t& ef, const YAML::Node& policy_inits);
+  range_map_t generate_policy_ranges(const elf_image_t& ef, const YAML::Node& policy_inits);
 };
 
 }

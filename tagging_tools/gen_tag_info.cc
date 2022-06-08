@@ -82,7 +82,8 @@ int main(int argc, char* argv[]) {
     if (policy_inits["Require"]["elf"])
       range_map.add_rwx_ranges(elf_image, err);
     if (policy_inits["Require"]["llvm"])
-      llvm_tagger.add_policy_ranges(range_map, elf_image, policy_inits);
+      for (const auto& [ range, tags ] : llvm_tagger.generate_policy_ranges(elf_image, policy_inits))
+        range_map.add_range(range.start, range.end, tags);
     if (policy_inits["Require"]["SOC"] && !FLAGS_soc_file.empty())
       range_map.add_soc_ranges(FLAGS_soc_file, policy_inits, err);
     if (!policy_engine::add_tag_array(range_map, FLAGS_bin, policy_base, policy_metas, elf_image.word_bytes()))

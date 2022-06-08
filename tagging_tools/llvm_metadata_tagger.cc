@@ -130,7 +130,7 @@ void llvm_metadata_tagger_t::check_and_add_range(range_map_t& range_map, uint64_
   }
 }
 
-void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf_image_t& ef, const YAML::Node& policy_inits) {
+range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef, const YAML::Node& policy_inits) {
   auto metadata_section = std::find_if(ef.sections.begin(), ef.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
   if (metadata_section == ef.sections.end())
     throw std::runtime_error("no metadata found in ELF file");
@@ -138,6 +138,7 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
   if (metadata[0] != metadata_ops.at("DMD_SET_BASE_ADDRESS_OP"))
     throw std::runtime_error("invalid metadata found in ELF file");
   
+  range_map_t range_map;
   uint64_t base_address = 0;
   for (int i = 0; i < metadata_section->size;) {
     // Don't increment i at the end of the loop because it should point to the next op after the if block
@@ -203,6 +204,8 @@ void llvm_metadata_tagger_t::add_policy_ranges(range_map_t& range_map, const elf
       }
     }
   }
+
+  return range_map;
 }
 
 } // namespace policy_engine
