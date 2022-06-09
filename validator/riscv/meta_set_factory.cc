@@ -37,7 +37,7 @@ meta_set_factory_t::meta_set_factory_t(meta_set_cache_t *ms_cache, std::string p
 }
 
 meta_set_t const *meta_set_factory_t::get_meta_set(std::string dotted_path) {
-  std::shared_ptr<const metadata_t> metadata = lookup_metadata(dotted_path);
+  const metadata_t* metadata = lookup_metadata(dotted_path);
   if (metadata) {
     meta_set_t ms;
     memset(&ms, 0, sizeof(ms));

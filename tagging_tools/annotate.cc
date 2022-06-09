@@ -67,7 +67,7 @@ void annotate_asm(metadata_factory_t& md_factory, metadata_memory_map_t& md_map,
       if (!isspace(line[i]) && !isxdigit(line[i])) {
         stop = true;
         if (i > 0 && line[i] == ':' && !isspace(line[i - 1])) {
-          if (std::shared_ptr<const metadata_t> metadata = md_map.get_metadata(std::stoul(line.substr(0, i - 1), nullptr, 16)))
+          if (const metadata_t* metadata = md_map.get_metadata(std::stoul(line.substr(0, i - 1), nullptr, 16)))
             asm_out << pad(line, 80) + md_factory.render(metadata, true) << std::endl;
           else
             asm_out << line << std::endl;

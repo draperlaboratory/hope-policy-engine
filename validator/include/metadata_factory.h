@@ -55,8 +55,8 @@ private:
   std::unordered_map<meta_t, std::string> reverse_encoding_map; // for rendering
   std::unordered_map<meta_t, std::string> abbrev_reverse_encoding_map; // for rendering
   std::unordered_map<std::string, meta_t> encoding_map;
-  std::unordered_map<std::string, std::shared_ptr<metadata_t>> path_map;
-  std::unordered_map<std::string, std::shared_ptr<metadata_t>> group_map;
+  std::unordered_map<std::string, std::unique_ptr<const metadata_t>> path_map;
+  std::unordered_map<std::string, std::unique_ptr<const metadata_t>> group_map;
   std::unordered_map<std::string, opgroup_rule_t> opgroup_rule_map;
 
   std::map<std::string, entity_init_t> entity_initializers;
@@ -74,9 +74,9 @@ private:
 public:
   metadata_factory_t(const std::string& policy_dir);
 
-  std::shared_ptr<const metadata_t> lookup_metadata(const std::string& dotted_path);
-  std::map<std::string, std::shared_ptr<const metadata_t>> lookup_metadata_map(const std::string& dotted_path);
-  std::shared_ptr<const metadata_t> lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
+  const metadata_t* lookup_metadata(const std::string& dotted_path);
+  std::map<std::string, const metadata_t*> lookup_metadata_map(const std::string& dotted_path);
+  const metadata_t* lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
 
   bool apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name);
   template<class RangeMap=range_map_t>
@@ -89,10 +89,23 @@ public:
 
   void tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err);
   void tag_entities(metadata_memory_map_t& md_map, const elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err);
+  std::vector<std::string> enumerate();
 
   std::string render(meta_t meta, bool abbrev=false) const;
-  std::string render(std::shared_ptr<const metadata_t> metadata, bool abbrev=false) const;
-  std::vector<std::string> enumerate();
+
+  template<class MetadataPtr>
+  std::string render(MetadataPtr metadata, bool abbrev=false) const {
+    std::ostringstream os;
+    bool first = true;
+    for (const meta_t& meta: *metadata) {
+      if (first)
+        first = false;
+      else
+        os << ", ";
+      os << render(meta, abbrev);
+    }
+    return os.str();
+  }
 };
 
 } // namespace policy_engine

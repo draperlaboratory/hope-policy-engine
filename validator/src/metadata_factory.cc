@@ -108,39 +108,39 @@ static void dump_node(YAML::Node node) {
   }
 }
 
-std::shared_ptr<const metadata_t> metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
+const metadata_t* metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
   if (const auto& it = path_map.find(dotted_path); it != path_map.end())
-    return it->second;
+    return it->second.get();
 
   if (const auto& it = entity_initializers.find(dotted_path); it != entity_initializers.end()) {
-    path_map[dotted_path] = std::make_shared<metadata_t>();
+    std::unique_ptr<metadata_t> md = std::make_unique<metadata_t>();
     for (const std::string& name : it->second.meta_names)
-      path_map[dotted_path]->insert(encoding_map[name]);
-    return path_map[dotted_path];
+      md->insert(encoding_map[name]);
+    return (path_map[dotted_path] = std::move(md)).get();
   }
   return nullptr;
 }
 
-std::map<std::string, std::shared_ptr<const metadata_t>> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
-  std::map<std::string, std::shared_ptr<const metadata_t>> results;
+std::map<std::string, const metadata_t*> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
+  std::map<std::string, const metadata_t*> results;
   for (const auto& [ name, init ] : entity_initializers)
     if (name.rfind(dotted_path) == 0)
       results[name] = lookup_metadata(name);
   return results;
 }
 
-std::shared_ptr<const metadata_t> metadata_factory_t::lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
+const metadata_t* metadata_factory_t::lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
   const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
   if (it_opgroup_rule != opgroup_rule_map.end()) {
     if (it_opgroup_rule->second.matches(inst))
-      return it_opgroup_rule->second.metadata;
+      return it_opgroup_rule->second.metadata.get();
   }
 
   const auto& it_group = group_map.find(opgroup);
   if (it_group == group_map.end()) {
     return nullptr;
   }
-  return it_group->second;
+  return it_group->second.get();
 }
 
 static const std::unordered_map<std::string, operand_rule_match_t> operand_match_yaml_ids {
@@ -154,7 +154,7 @@ static const std::unordered_map<std::string, operand_rule_match_t> operand_match
 void metadata_factory_t::update_rule_map(std::string key, const YAML::Node& node) {
   std::string name;
   YAML::Node operand_rules;
-  std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
+  std::unique_ptr<metadata_t> metadata = std::make_unique<metadata_t>();
   for (const auto& it : node) {
     name = it.first.as<std::string>();
     operand_rules = it.second;
@@ -189,19 +189,20 @@ void metadata_factory_t::update_rule_map(std::string key, const YAML::Node& node
 void metadata_factory_t::init_group_map(const YAML::Node& node) {
   for (const auto& it : node["Groups"]) {
     const std::string key = it.first.as<std::string>();
-    group_map[key] = std::make_shared<metadata_t>();
+    std::unique_ptr<metadata_t> md = std::make_unique<metadata_t>();
     const YAML::Node& instruction_node = it.second;
 
     for (const YAML::Node& opgroup_node : instruction_node) {
       if (opgroup_node.IsScalar()) {
         std::string name = opgroup_node.as<std::string>();
-        group_map[key]->insert(encoding_map[name]);
+        md->insert(encoding_map[name]);
       }
 
       if (opgroup_node.IsMap()) {
         update_rule_map(key, opgroup_node);
       }
     }
+    group_map[key] = std::move(md);
   }
 }
 
@@ -228,8 +229,8 @@ metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_d
 }
 
 bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
-  if (std::shared_ptr<const metadata_t> md = lookup_metadata(tag_name)) {
-    map.add_range(start, end, md);
+  if (const metadata_t* md = lookup_metadata(tag_name)) {
+    map.add_range(start, end, *md);
     return true;
   }
   return false;
@@ -245,8 +246,8 @@ void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_a
       continue;
     }
 
-    if (std::shared_ptr<const metadata_t> metadata = lookup_group_metadata(inst.name, inst))
-      map.add_range(code_address, code_address + 4, metadata);
+    if (const metadata_t* metadata = lookup_group_metadata(inst.name, inst))
+      map.add_range(code_address, code_address + 4, *metadata);
     else
       err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
     code_address += 4;
@@ -289,6 +290,13 @@ void metadata_factory_t::tag_entities(metadata_memory_map_t& md_map, const elf_i
   }
 }
 
+std::vector<std::string> metadata_factory_t::enumerate() {
+  std::vector<std::string> elts;
+  for (const auto& [ name, init ] : entity_initializers)
+    elts.push_back(name);
+  return elts;
+}
+
 std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
   if (abbrev) {
     const auto iter = abbrev_reverse_encoding_map.find(meta);
@@ -303,26 +311,6 @@ std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
     else
       return iter->second;
   }
-}
-
-std::string metadata_factory_t::render(std::shared_ptr<const metadata_t> metadata, bool abbrev) const {
-  std::ostringstream os;
-  bool first = true;
-  for (const meta_t& meta: *metadata) {
-    if (first)
-      first = false;
-    else
-      os << ", ";
-    os << render(meta, abbrev);
-  }
-  return os.str();
-}
-
-std::vector<std::string> metadata_factory_t::enumerate() {
-  std::vector<std::string> elts;
-  for (const auto& [ name, init ] : entity_initializers)
-    elts.push_back(name);
-  return elts;
 }
 
 }

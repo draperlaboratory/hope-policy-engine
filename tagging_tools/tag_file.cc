@@ -30,7 +30,6 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
-#include <memory>
 #include <string>
 #include <utility>
 #include "elf_loader.h"
@@ -140,7 +139,7 @@ bool write_headers(
 template<class Writer>
 bool save_tag_indexes(
   Writer& writer,
-  std::vector<std::shared_ptr<const metadata_t>>& metadata_values,
+  const std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
@@ -150,7 +149,7 @@ bool save_tag_indexes(
   if (!write_uleb<Writer, uint32_t>(writer, metadata_values.size()))
     return false;
 
-  for (std::shared_ptr<const metadata_t> v : metadata_values) {
+  for (const metadata_t* v : metadata_values) {
     if (!write_uleb<Writer, uint32_t>(writer, v->size()))
       return false;
     for (const meta_t& m : *v)
@@ -207,7 +206,7 @@ bool save_tag_indexes(
 }
 
 void exclude_unused_soc(const YAML::Node& soc, std::list<std::string>& exclude, metadata_factory_t& factory) {
-  std::map<std::string, std::shared_ptr<const metadata_t>> soc_map = factory.lookup_metadata_map("SOC");
+  std::map<std::string, const metadata_t*> soc_map = factory.lookup_metadata_map("SOC");
 
   for (const auto& node : soc) {
     if (!node.second["name"])
@@ -325,7 +324,7 @@ void write_tag_file(
       throw std::ios::failure("failed to write headers to tag file");
 
     // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
-    std::vector<std::shared_ptr<const metadata_t>> metadata_values;
+    std::vector<const metadata_t*> metadata_values;
     metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
     metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
     metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(factory.lookup_metadata_map("ISA.RISCV.Reg"));
@@ -398,12 +397,12 @@ bool load_tags(metadata_memory_map_t& map, const std::string& file_name) {
       return false;
     if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count))
       return false;
-    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
+    metadata_t metadata;
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
       if (!read_uleb<stream_reader_t, meta_t>(reader, meta))
         return false;
-      metadata->insert(meta);
+      metadata.insert(meta);
     }
     map.add_range(start, end, metadata);
   }
@@ -413,7 +412,7 @@ bool load_tags(metadata_memory_map_t& map, const std::string& file_name) {
 bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,
-  std::vector<std::shared_ptr<metadata_t>>& metadata_values,
+  std::vector<metadata_t>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
@@ -468,12 +467,12 @@ bool load_firmware_tag_file(
     if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count))
       return false;
 
-    std::shared_ptr<metadata_t> metadata = std::make_shared<metadata_t>();
+    metadata_t metadata;
     for (size_t j = 0; j < metadata_count; j++) {
       meta_t meta;
       if(!read_uleb<stream_reader_t, meta_t>(reader, meta))
         return false;
-      metadata->insert(meta);
+      metadata.insert(meta);
     }
     metadata_values.push_back(metadata);
   }

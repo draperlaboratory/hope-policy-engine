@@ -43,7 +43,7 @@ private:
 
   private:
     range_t range;
-    std::vector<std::shared_ptr<metadata_t>> mem;
+    std::vector<metadata_t*> mem;
     metadata_memory_map_t* map; // must be a raw pointer so it doesn't get cleaned up when mem_region_t does
 
   public:
@@ -51,7 +51,7 @@ private:
     using iterator = typename decltype(mem)::iterator;
     using const_iterator = typename decltype(mem)::const_iterator;
 
-    static const int stride = sizeof(uint32_t); // platform word size
+    static constexpr int stride = sizeof(uint32_t); // platform word size
 
     mem_region_t(metadata_memory_map_t& m) : range({0, 0}), map(&m) {}
     
@@ -62,15 +62,15 @@ private:
     const_iterator cbegin() const noexcept { return mem.cbegin(); }
     const_iterator cend() const noexcept { return mem.cend(); }
 
+    constexpr uint64_t index_to_addr(size_t idx) const { return range.start + (idx*stride); }
     uint64_t itr_to_addr(iterator itr) const { return index_to_addr(itr - begin()); }
     uint64_t itr_to_addr(const_iterator itr) const { return index_to_addr(itr - cbegin()); }
-    uint64_t index_to_addr(size_t idx) const { return range.start + (idx*stride); }
     size_t addr_to_index(uint64_t addr) const { return (addr - range.start)/stride; }
-    std::shared_ptr<const metadata_t> getaddr(uint64_t addr) const { return mem[addr_to_index(addr)]; }
+    const metadata_t* getaddr(uint64_t addr) const { return mem[addr_to_index(addr)]; }
     bool contains(uint64_t addr) const { return (addr >= range.start) && (addr <= range.end); }
     size_t size() const { return mem.size(); }
     
-    void add_range(uint64_t start, uint64_t end, std::shared_ptr<const metadata_t> metadata);
+    void add_range(uint64_t start, uint64_t end, const metadata_t& metadata);
   };
 
   uint64_t base;
@@ -84,7 +84,7 @@ public:
   template <class MMap, class MRIterator, class MRVIterator>
   class ForwardIterator {
   private:
-    using result_type_t = std::pair<range_t, std::shared_ptr<const metadata_t>>;
+    using result_type_t = std::pair<range_t, const metadata_t*>;
 
   public:
     using iterator_category = std::forward_iterator_tag;
@@ -182,8 +182,8 @@ public:
   const_iterator cbegin() const noexcept { return const_iterator(this, true); }
   const_iterator cend() const noexcept { return const_iterator(this, false); }
 
-  void add_range(uint64_t start, uint64_t end, std::shared_ptr<const metadata_t> metadata);
-  std::shared_ptr<const metadata_t> get_metadata(uint64_t addr) const;
+  void add_range(uint64_t start, uint64_t end, const metadata_t& metadata);
+  const metadata_t* get_metadata(uint64_t addr) const;
 };
 
 } // namespace policy_engine

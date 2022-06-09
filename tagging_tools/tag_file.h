@@ -29,7 +29,6 @@
 
 #include <iostream>
 #include <list>
-#include <memory>
 #include <string>
 #include "elf_loader.h"
 #include "metadata_factory.h"
@@ -66,7 +65,7 @@ void dump_tags(const metadata_memory_map_t& map, metadata_factory_t& factory, OS
 bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,
-  std::vector<std::shared_ptr<metadata_t>>& metadata_values,
+  std::vector<metadata_t>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,

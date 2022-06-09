@@ -33,13 +33,13 @@ public:
   using const_iterator = typename parent::const_iterator;
   using size_type = typename parent::size_type;
 
-  std::vector<std::shared_ptr<const metadata_t>> metadata;
+  std::vector<const metadata_t*> metadata;
 
   metadata_index_map_t() {}
 
   metadata_index_map_t(const M& metadata_map) {
     for (const auto& [ key, value ] : metadata_map) {
-      const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](std::shared_ptr<const metadata_t> v){ return *v == *value; });
+      const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](const metadata_t* v){ return *v == *value; });
       (*this)[key] = std::distance(metadata.begin(), it);
       if (it == metadata.end())
         metadata.push_back(value);
