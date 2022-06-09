@@ -130,6 +130,8 @@ void llvm_metadata_tagger_t::check_and_add_range(range_map_t& range_map, uint64_
   }
 }
 
+static const std::string COMPILER_GENERATED = "COMPILER_GENERATED";
+
 range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef, const YAML::Node& policy_inits) {
   auto metadata_section = std::find_if(ef.sections.begin(), ef.sections.end(), [](const elf_section_t& s){ return s.name == ".dover_metadata"; });
   if (metadata_section == ef.sections.end())
@@ -138,7 +140,7 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef
   if (metadata[0] != metadata_ops.at("DMD_SET_BASE_ADDRESS_OP"))
     throw std::runtime_error("invalid metadata found in ELF file");
   
-  range_map_t range_map;
+  range_map_t range_map, compiler_generated_map;
   uint64_t base_address = 0;
   for (int i = 0; i < metadata_section->size;) {
     // Don't increment i at the end of the loop because it should point to the next op after the if block
@@ -169,6 +171,7 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
       err.info("saw end block tag range = %#lx:%#lx\n", base_address, base_address + end_address);
+      compiler_generated_map.add_range(base_address, base_address + end_address, COMPILER_GENERATED);
     } else if (op == metadata_ops.at("DMD_FUNCTION_RANGE")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
@@ -176,6 +179,7 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef
       for (int j = 0; j < PTR_SIZE; j++, i++)
         end_address += metadata[i] << (j*8);
       err.info("saw function range = %#lx:%#lx\n", start_address, end_address);
+      compiler_generated_map.add_range(start_address, end_address, COMPILER_GENERATED);
     } else if (op == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
       throw std::runtime_error("saw policy symbol");
     } else if (op == metadata_ops.at("DMD_TAG_POLICY_RANGE")) {
@@ -197,7 +201,8 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef
     for (auto& [ range, tags ] : code_range_map) {
       for (uint64_t s = range.start; s < range.end; s += PTR_SIZE) {
         uint64_t e = s + PTR_SIZE;
-        if (!range_map.contains(tagged_range_t{{s, e}, tags})) {
+        tagged_range_t r{{s, e}, tags};
+        if (!range_map.contains(r) && !compiler_generated_map.contains(r)) {
           err.info("llvm.NoCFI range = %lx:%lx\n", s, e);
           range_map.add_range(s, e, "llvm.NoCFI");
         }
