@@ -67,7 +67,7 @@ class metadata_t {
     tags.insert(rhs);
   }
 
-  template<class P> void insert(const P rhs) {
+  template<class MetadataPtr> void insert(const MetadataPtr rhs) {
     hash += rhs->hash;
     tags.insert(rhs->begin(), rhs->end());
   }
