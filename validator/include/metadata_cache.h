@@ -35,9 +35,9 @@ namespace policy_engine {
 
 class metadata_cache_t {
 private:
-  std::unordered_map<metadata_t, std::unique_ptr<metadata_t>, metadata_t::hasher_t, metadata_t::equal_t> map;
+  std::unordered_map<metadata_t, std::unique_ptr<metadata_t>> map;
 public:
-  metadata_t* canonize(metadata_t md) {
+  metadata_t* canonize(const metadata_t& md) {
     if (map.find(md) == map.end())
       map[md] = std::make_unique<metadata_t>(md);
     return map[md].get();

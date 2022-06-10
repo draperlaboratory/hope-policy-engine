@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <set>
@@ -38,24 +39,9 @@
 
 namespace policy_engine {
 
-class metadata_t {
-  std::size_t hash;
+struct metadata_t {
+  std::size_t hash = 0;
   std::set<meta_t> tags;
-
-  public:
-  struct hasher_t {
-    std::size_t operator()(const metadata_t &k) const {
-      return k.hash;
-    }
-  };
-
-  struct equal_t {
-    bool operator()(metadata_t const &l, metadata_t const &r) const {
-      return l.tags == r.tags;
-    }
-  };
-  
-  metadata_t() : hash(0) { }
 
   size_t size() const { return tags.size(); }
 
@@ -82,5 +68,19 @@ class metadata_t {
 };
 
 } // namespace policy_engine
+
+namespace std {
+
+template<>
+struct hash<policy_engine::metadata_t> {
+  std::size_t operator ()(const policy_engine::metadata_t& k) const { return k.hash; }
+};
+
+template<>
+struct equal_to<policy_engine::metadata_t> {
+  bool operator ()(const policy_engine::metadata_t& lhs, const policy_engine::metadata_t& rhs) const { return lhs.tags == rhs.tags; }
+};
+
+} // namespace std
 
 #endif
