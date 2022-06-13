@@ -11,14 +11,15 @@ template<class T>
 class option {
 private:
   T value;
+
 public:
   const bool exists;
 
   option() : exists(false) {}
   option(T v) : value(v), exists(true) {}
 
-  T get() const { if (exists) return value; else throw std::logic_error("not defined"); }
-  T getOrElse(T v) const { if (exists) return value; else return v; }
+  const T& get() const { if (exists) return value; else throw std::logic_error("not defined"); }
+  const T& getOrElse(const T& v) const { if (exists) return value; else return v; }
 
   operator T() const { return get(); }
 };
