@@ -25,6 +25,7 @@
  */
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include "inst_decoder.h"
@@ -34,7 +35,10 @@
 
 namespace policy_engine {
 
-static const decoded_instruction_t invalid_inst{.name=""};
+static constexpr int x0 = 0;
+static constexpr int x1 = 1;
+static constexpr int x2 = 2;
+static const decoded_instruction_t invalid_inst{.name="", .op=RISCV_INVALID};
 
 static decoded_instruction_t r_type_inst(const std::string& name, op_t op, int rd, int rs1, int rs2, flags_t flags=flags_t{}) { return decoded_instruction_t{
   .name=name,
@@ -608,7 +612,189 @@ static decoded_instruction_t decode_system(uint8_t code, uint8_t f7, uint8_t f3,
   }
 }
 
-decoded_instruction_t decode(insn_bits_t bits) {
+static decoded_instruction_t decode_ci_type(int xlen, uint8_t quad, uint8_t f3, int rds1, int imm) {
+  unsigned int uimm = imm & 0x3f;
+  unsigned int wuimm = (uimm & 0x3c) | ((uimm & 0x3) << 6);
+  unsigned int duimm = (uimm & 0x38) | ((uimm & 0x7) << 6);
+
+  switch (quad) {
+    case 0x1: switch (f3) {
+      case 0x0: switch (rds1) {
+        case 0: return imm != 0 ? i_type_inst("c.nop", RISCV_ADDI, x0, x0, imm, is_compressed) : invalid_inst;
+        default: return imm != 0 ? i_type_inst("c.addi", RISCV_ADDI, rds1, rds1, imm, is_compressed) : invalid_inst;
+      }
+      case 0x1: switch (xlen) {
+        case 32: return invalid_inst;
+        case 64: return rds1 != 0 ? i_type_inst("c.addiw", RISCV_ADDIW, rds1, rds1, imm, is_compressed) : invalid_inst;
+      }
+      case 0x2: return rds1 != 0 ? i_type_inst("c.li", RISCV_ADDI, rds1, x0, imm, is_compressed) : invalid_inst;
+      case 0x3: switch (rds1) {
+        case 0: return invalid_inst;
+        case 2: return imm != 0 ? i_type_inst("c.addi16sp", RISCV_ADDI, x2, x2, imm, is_compressed) : invalid_inst;
+        default: return imm != 0 ? u_type_inst("c.lui", RISCV_LUI, rds1, imm << 12, is_compressed) : invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    case 0x2: switch (f3) {
+      case 0x0: return imm != 0 && (xlen > 32 || (uimm >> 5) == 0) ? i_type_inst("c.slli", RISCV_SLLI, rds1, rds1, uimm, is_compressed) : invalid_inst;
+      case 0x1: switch (xlen) {
+        case 32: case 64: return i_type_inst("c.fldsp", RISCV_FLD, rds1, x2, duimm, has_load | is_compressed);
+      }
+      case 0x2: return rds1 != 0 ? i_type_inst("c.lwsp", RISCV_LW, rds1, x2, wuimm, has_load | is_compressed) : invalid_inst;
+      case 0x3: switch (xlen) {
+        case 32: return i_type_inst("c.flwsp", RISCV_FLW, rds1, x2, wuimm, has_load | is_compressed);
+        case 64: return rds1 != 0 ? i_type_inst("c.ldsp", RISCV_LD, rds1, x2, duimm, has_load | is_compressed) : invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_css_type(int xlen, uint8_t quad, uint8_t f3, int rs2, unsigned int uimm) {
+  unsigned int wuimm = (uimm & 0x3c) | ((uimm & 0x3) << 6);
+  unsigned int duimm = (uimm & 0x38) | ((uimm & 0x7) << 6);
+
+  switch (quad) {
+    case 0x2: switch (f3) {
+      case 0x5: switch (xlen) {
+        case 32: case 64: return s_type_inst("c.fsdsp", RISCV_FSD, x2, rs2, duimm, has_store | is_compressed);
+      }
+      case 0x6: return s_type_inst("c.swsp", RISCV_SW, x2, rs2, wuimm, has_store | is_compressed);
+      case 0x7: switch (xlen) {
+        case 32: return s_type_inst("c.fswsp", RISCV_FSW, x2, rs2, wuimm, has_store | is_compressed);
+        case 64: return s_type_inst("c.sdsp", RISCV_SD, x2, rs2, duimm, has_store | is_compressed);
+      }
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_cl_type(int xlen, uint8_t quad, uint8_t f3, int rdp, int rs1p, unsigned int uimm) {
+  unsigned int wuimm = ((uimm & 0x1e) << 1) | ((uimm & 0x1) << 6);
+  unsigned int duimm = ((uimm & 0x1c) << 1) | ((uimm & 0x3) << 6);
+
+  switch (quad) {
+    case 0x0: switch (f3) {
+      case 0x1: switch (xlen) {
+        case 32: case 64: return i_type_inst("c.fld", RISCV_FLD, rdp, rs1p, duimm << 3, has_load | is_compressed);
+      }
+      case 0x2: return i_type_inst("c.lw", RISCV_LW, rdp, rs1p, wuimm << 2, has_load | is_compressed);
+      case 0x3: switch (xlen) {
+        case 32: return i_type_inst("c.flw", RISCV_FLW, rdp, rs1p, wuimm << 2, has_load | is_compressed);
+        case 64: return i_type_inst("c.ld", RISCV_LD, rdp, rs1p, duimm << 3, has_load | is_compressed);
+      }
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_cs_type(int xlen, uint8_t quad, uint8_t f3, int rs1p, int rs2p, unsigned int uimm) {
+  unsigned int wuimm = ((uimm & 0x1e) << 1) | ((uimm & 0x1) << 6);
+  unsigned int duimm = ((uimm & 0x1c) << 1) | ((uimm & 0x3) << 6);
+
+  switch (quad) {
+    case 0x0: switch (f3) {
+      case 0x5: switch (xlen) {
+        case 32: case 64: return s_type_inst("c.fsd", RISCV_FSD, rs1p, rs2p, duimm, has_store | is_compressed);
+      }
+      case 0x6: return s_type_inst("c.sw", RISCV_SW, rs1p, rs2p, wuimm, has_store | is_compressed);
+      case 0x7: switch (xlen) {
+        case 32: return s_type_inst("c.fsw", RISCV_FSW, rs1p, rs2p, wuimm, has_store | is_compressed);
+        case 64: return s_type_inst("c.sd", RISCV_SD, rs1p, rs2p, duimm, has_store | is_compressed);
+      }
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_cj_type(int xlen, uint8_t quad, uint8_t f3, int imm) {
+  switch (quad) {
+    case 0x1: switch (f3) {
+      case 0x1: switch (xlen) {
+        case 32: return u_type_inst("c.jal", RISCV_JAL, x1, imm, is_compressed);
+        default: return invalid_inst;
+      }
+      case 0x5: return u_type_inst("c.j", RISCV_JAL, x0, imm, is_compressed);
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_cr_type(int xlen, uint8_t quad, uint8_t f4, int rs1, int rs2) {
+  switch (quad) {
+    case 0x2: switch (f4) {
+      case 0x8: switch (rs2) {
+        case 0: return rs1 != 0 ? i_type_inst("c.jr", RISCV_JALR, x0, rs1, 0, is_compressed) : invalid_inst;
+        default: return rs1 != 0 ? r_type_inst("c.mv", RISCV_ADD, rs1, x0, rs2, is_compressed) : invalid_inst;
+      }
+      case 0x9: switch (rs2) {
+        case 0: return rs1 != 0 ? i_type_inst("c.jalr", RISCV_JALR, x1, rs1, 0, is_compressed) : invalid_inst;
+        default: return rs1 != 0 ? r_type_inst("c.add", RISCV_ADD, rs1, rs1, rs2, is_compressed) : invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_cb_type(int xlen, uint8_t quad, uint8_t f3, int rs1p, int imm) {
+  switch (quad) {
+    case 0x1: switch (f3) {
+      case 0x6: return s_type_inst("c.beqz", RISCV_BEQ, rs1p, x0, imm, is_compressed);
+      case 0x7: return s_type_inst("c.bnez", RISCV_BNE, rs1p, x0, imm, is_compressed);
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_ciw_type(int xlen, uint8_t quad, uint8_t f3, int rdp, int imm) {
+  switch (quad) {
+    case 0x0: switch (f3) {
+      case 0x0: rdp != 0 && imm != 0 ? i_type_inst("c.addi4spn", RISCV_ADDI, rdp, x2, imm << 2, is_compressed) : invalid_inst;
+      default: return invalid_inst;
+    }
+    default: return invalid_inst;
+  }
+}
+
+static decoded_instruction_t decode_ca_type(int xlen, uint8_t quad, uint8_t f6, uint8_t f2, int rds1p, int rs2p) {
+  unsigned int shamt = (f6 & 0x4 << 2) | (f2 << 3) | (rs2p & 0x7);
+
+  switch (quad) {
+    case 0x1: switch (f6) {
+      case 0x23: switch (f2) {
+        case 0x0: return r_type_inst("c.sub", RISCV_SUB, rds1p, rds1p, rs2p, is_compressed);
+        case 0x1: return r_type_inst("c.xor", RISCV_XOR, rds1p, rds1p, rs2p, is_compressed);
+        case 0x2: return r_type_inst("c.or", RISCV_OR, rds1p, rds1p, rs2p, is_compressed);
+        case 0x3: return r_type_inst("c.and", RISCV_AND, rds1p, rds1p, rs2p, is_compressed);
+        default: return invalid_inst;
+      }
+      case 0x27: switch (f2) {
+        case 0x0: return r_type_inst("c.subw", RISCV_SUBW, rds1p, rds1p, rs2p, is_compressed);
+        case 0x1: return r_type_inst("c.addw", RISCV_ADDW, rds1p, rds1p, rs2p, is_compressed);
+        default: return invalid_inst;
+      }
+      default: return invalid_inst;
+    }
+    case 0x20: case 0x24: return shamt != 0 ? i_type_inst("c.srli", RISCV_SRLI, rds1p, rds1p, shamt, is_compressed) : invalid_inst; // actually cb-type, but easier to decode here
+    case 0x21: case 0x25: return shamt != 0 ? i_type_inst("c.srai", RISCV_SRAI, rds1p, rds1p, shamt, is_compressed) : invalid_inst; // actually cb-type, but easier to decode here
+    case 0x22: case 0x26: return i_type_inst("c.andi", RISCV_ANDI, rds1p, rds1p, (shamt >> 5) ? (shamt | ~0x3f) : shamt, is_compressed);
+    default: return invalid_inst;
+  }
+}
+
+decoded_instruction_t decode(insn_bits_t bits, int xlen) {
+  if (xlen != 32 && xlen != 64) {
+    throw std::invalid_argument("only RV32 and RV64 are supported");
+  }
+
+  // full instructions
   uint8_t opcode = bits & 0x7f;
   uint8_t f3 = (bits & 0x7000) >> 12;
   uint8_t f7 = (bits & 0xfe000000) >> 25;
@@ -631,6 +817,41 @@ decoded_instruction_t decode(insn_bits_t bits) {
     return fp;
   if (decoded_instruction_t sys = decode_system(opcode, f7, f3, rs1, rs2))
     return sys;
+
+  // compressed instructions
+  uint8_t quad = bits & 0x3;
+  uint8_t c_f2 = (bits & 0x60) >> 5;
+  uint8_t c_f3 = (bits & 0xe000) >> 13;
+  uint8_t c_f4 = (bits & 0xf000) >> 12;
+  uint8_t c_f6 = (bits & 0xfc00) >> 10;
+  int c_rs2 = (bits & 0x7c) >> 2;
+  int rdp = ((bits & 0x1c) >> 2) | 0x8;
+  int rs1p = ((bits & 0x380) >> 7) | 0x8;
+  int ci_imm = c_rs2 | ((bits & 0x1000) ? ~0x1f : 0);
+  unsigned int cls_imm = ((bits & 0x1c00) >> 8) | ((bits & 0x60) >> 5);
+  int cj_imm = ((bits & 0x4) << 3) | ((bits & 0x38) >> 2) | ((bits & 0x40) << 1) | ((bits & 0x80) >> 1) | ((bits & 0x100) << 2) | ((bits & 0x600) >> 1) | ((bits & 0x800) >> 7) | ((bits & 0x1000) ? ~0x7ff : 0);
+  int cb_imm = ((bits & 0x4) << 3) | ((bits & 0x18) >> 2) | ((bits & 0x60) << 1) | ((bits & 0xc00) >> 7) | ((bits & 0x1000) ? ~0x7ff : 0);
+  unsigned int ciw_imm = ((bits & 0x20) >> 2) | ((bits & 0x40) >> 4) | ((bits & 0x78) >> 1) | ((bits & 0x1800) >> 7);
+
+  if (decoded_instruction_t ci = decode_ci_type(xlen, quad, c_f3, rd, ci_imm))
+    return ci;
+  if (decoded_instruction_t css = decode_css_type(xlen, quad, c_f3, c_rs2, rd))
+    return css;
+  if (decoded_instruction_t cl = decode_cl_type(xlen, quad, c_f3, rdp, rs1p, cls_imm))
+    return cl;
+  if (decoded_instruction_t cs = decode_cs_type(xlen, quad, c_f3, rs1p, rdp, cls_imm))
+    return cs;
+  if (decoded_instruction_t cj = decode_cj_type(xlen, quad, c_f3, cj_imm))
+    return cj;
+  if (decoded_instruction_t cr = decode_cr_type(xlen, quad, c_f4, rd, c_rs2))
+    return cr;
+  if (decoded_instruction_t cb = decode_cb_type(xlen, quad, c_f3, rs1p, cb_imm))
+    return cb;
+  if (decoded_instruction_t ciw = decode_ciw_type(xlen, quad, c_f3, rdp, ciw_imm))
+    return ciw;
+  if (decoded_instruction_t ca = decode_ca_type(xlen, quad, c_f6, c_f2, rs1p, rdp))
+    return ca;
+
   return invalid_inst;
 }
 

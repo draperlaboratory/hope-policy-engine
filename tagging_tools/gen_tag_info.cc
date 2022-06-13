@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
   for (const policy_engine::elf_section_t& section : elf_image_post.sections)
     if (section.flags & SHF_EXECINSTR)
-      md_factory.tag_opcodes(md_memory_map, section.address, section.data, section.size, err);
+      md_factory.tag_opcodes(md_memory_map, section.address, elf_image_post.word_bytes()*8, section.data, section.size, err);
 
   std::vector<std::string> entities{FLAGS_policy_dir + "/policy_entities.yml"};
   for (int i = 1; i < argc; i++)

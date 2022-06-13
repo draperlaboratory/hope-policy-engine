@@ -1,11 +1,12 @@
 #include "riscv_isa.h"
 #include "fake_riscv.h"
+#include "platform_types.h"
 
 using namespace policy_engine;
 
 void fake_riscv_t::apply_group_tags(metadata_factory_t *md_factory, metadata_memory_map_t *md_map) {
   for (auto &op: ops) {
-    decoded_instruction_t inst = decode(op.insn);
+    decoded_instruction_t inst = decode(op.insn, ADDRESS_T_SIZE*8);
     const metadata_t* metadata = md_factory->lookup_group_metadata(inst.name, inst);
     if (!metadata) {
       printf("0x%" PRIaddr_pad

@@ -236,10 +236,10 @@ bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, u
   return false;
 }
 
-void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, void* bytes, int n, reporter_t& err) {
+void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, int xlen, void* bytes, int n, reporter_t& err) {
   insn_bits_t* bits = reinterpret_cast<insn_bits_t*>(bytes);
   for (int i = 0; i < n/sizeof(insn_bits_t); i++) {
-    decoded_instruction_t inst = decode(bits[i]);
+    decoded_instruction_t inst = decode(bits[i], xlen);
     if (!inst) {
       err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits[i], code_address);
       code_address += 4;

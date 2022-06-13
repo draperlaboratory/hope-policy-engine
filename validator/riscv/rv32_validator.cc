@@ -31,6 +31,7 @@
 #include "policy_utils.h"
 #include "policy_eval.h"
 #include "csr_list.h"
+#include "platform_types.h"
 
 using namespace policy_engine;
 
@@ -317,7 +318,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     res->csrResult = false;
   }
 
-  decoded_instruction_t inst = decode(insn);
+  decoded_instruction_t inst = decode(insn, ADDRESS_T_SIZE*8);
   if (!inst) {
     printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, inst.name.c_str());
   }

@@ -49,6 +49,7 @@ struct flags_t {
   bool has_store = false;
   bool has_csr_load = false;
   bool has_csr_store = false;
+  bool is_compressed = false;
 
   flags_t operator |(const flags_t& other) const { return flags_t{
     .has_load=has_load || other.has_load,
@@ -58,10 +59,11 @@ struct flags_t {
   }; }
 };
 
-static const flags_t has_load{true, false, false, false};
-static const flags_t has_store{false, true, false, false};
-static const flags_t has_csr_load{false, false, true, false};
-static const flags_t has_csr_store{false, false, false, true};
+static const flags_t has_load{true, false, false, false, false};
+static const flags_t has_store{false, true, false, false, false};
+static const flags_t has_csr_load{false, false, true, false, false};
+static const flags_t has_csr_store{false, false, false, true, false};
+static const flags_t is_compressed{false, false, false, false, true};
 
 struct decoded_instruction_t {
   const std::string name; // instruction name
@@ -76,7 +78,7 @@ struct decoded_instruction_t {
   explicit operator bool() const { return !name.empty(); }
 };
 
-decoded_instruction_t decode(insn_bits_t bits);
+decoded_instruction_t decode(insn_bits_t bits, int xlen);
 
 #endif // __cplusplus
 
