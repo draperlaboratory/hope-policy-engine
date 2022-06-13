@@ -28,35 +28,41 @@
 #define META_CACHE_H
 
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include "metadata.h"
 #include "policy_meta_set.h"
 
+namespace std {
+
+template<>
+struct hash<meta_set_t> {
+  size_t operator ()(const meta_set_t& k) const {
+    size_t hash = 0;
+    for (int i = 0; i < META_SET_WORDS; i++)
+      hash += k.tags[i];
+    return hash;
+  }
+};
+
+template<>
+struct equal_to<meta_set_t> {
+  bool operator ()(const meta_set_t& lhs, const meta_set_t& rhs) const {
+    for (int i = 0; i < META_SET_WORDS; i++)
+      if (lhs.tags[i] != rhs.tags[i])
+        return false;
+    return true;
+  }
+};
+
+} // namespace std
+
 namespace policy_engine {
 
 class meta_set_cache_t {
-public:
-  struct meta_set_hasher_t {
-    std::size_t operator ()(const meta_set_t& k) const {
-      size_t hash = 0;
-      for (int i = 0; i < META_SET_WORDS; i++)
-	      hash += k.tags[i];
-      return hash;
-    }
-  };
-
-  struct meta_set_equal_t {
-    bool operator ()(const meta_set_t& l, const meta_set_t& r) const {
-      for (int i = 0; i < META_SET_WORDS; i++)
-        if (l.tags[i] != r.tags[i])
-          return false;
-      return true;
-    }
-  };
-
 private:
-  std::unordered_map<meta_set_t, std::unique_ptr<meta_set_t>, meta_set_hasher_t, meta_set_equal_t> map;
+  std::unordered_map<meta_set_t, std::unique_ptr<meta_set_t>> map;
 
 public:
   const meta_set_t* canonize(const meta_set_t& ts) {
