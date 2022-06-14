@@ -87,7 +87,7 @@ public:
           throw std::out_of_range("could not find tag " + tag);
   }
 
-  void tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, int xlen, void* bytes, int n, reporter_t& err);
+  void tag_opcodes(metadata_memory_map_t& map, uint64_t base_address, int xlen, const void* bytes, int n, reporter_t& err);
   void tag_entities(metadata_memory_map_t& md_map, const elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err);
   std::vector<std::string> enumerate();
 

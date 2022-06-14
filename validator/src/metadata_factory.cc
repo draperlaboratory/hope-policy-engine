@@ -236,21 +236,20 @@ bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, u
   return false;
 }
 
-void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_address, int xlen, void* bytes, int n, reporter_t& err) {
-  insn_bits_t* bits = reinterpret_cast<insn_bits_t*>(bytes);
-  for (int i = 0; i < n/sizeof(insn_bits_t); i++) {
-    decoded_instruction_t inst = decode(bits[i], xlen);
+void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t base_address, int xlen, const void* bytes, int n, reporter_t& err) {
+  for (int pc = 0, npc = 0; pc < n; pc = npc) {
+    insn_bits_t bits = *reinterpret_cast<const insn_bits_t*>(bytes + pc);
+    decoded_instruction_t inst = decode(bits, xlen);
     if (!inst) {
-      err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits[i], code_address);
-      code_address += 4;
-      continue;
+      err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits, base_address + pc);
+      npc = pc + 4;
+    } else {
+      npc = pc + (inst.flags.is_compressed ? 2 : 4);
+      if (const metadata_t* metadata = lookup_group_metadata(inst.name, inst))
+        map.add_range(base_address + pc, base_address + npc, *metadata);
+      else
+        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", base_address + pc, inst.flags.is_compressed ? bits & 0xffff : bits, inst.name);
     }
-
-    if (const metadata_t* metadata = lookup_group_metadata(inst.name, inst))
-      map.add_range(code_address, code_address + 4, *metadata);
-    else
-      err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
-    code_address += inst.flags.is_compressed ? 2 : 4;
   }
 }
 
