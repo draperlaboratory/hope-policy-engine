@@ -250,7 +250,7 @@ void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t code_a
       map.add_range(code_address, code_address + 4, *metadata);
     else
       err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", code_address, bits[i], inst.name);
-    code_address += 4;
+    code_address += inst.flags.is_compressed ? 2 : 4;
   }
 }
 
