@@ -479,11 +479,11 @@ static decoded_instruction_t decode_fp(uint8_t code, int f7, int f3, int rd, int
         case 0x08: switch (fmt) {
           case 0x0: switch (rs2) {
             case 0x01: return fp_conv_inst("fcvt.s.d", RISCV_FCVT_S_D, rd, rs1);
-            case 0x02: return fp_conv_inst("fcvt.d.s", RISCV_FCVT_D_S, rd, rs1);
             case 0x03: return fp_conv_inst("fcvt.s.q", RISCV_FCVT_S_Q, rd, rs1);
             default: return invalid_inst;
           }
           case 0x1: switch (rs2) {
+            case 0x00: return fp_conv_inst("fcvt.d.s", RISCV_FCVT_D_S, rd, rs1);
             case 0x03: return fp_conv_inst("fcvt.d.q", RISCV_FCVT_D_Q, rd, rs1);
             default: return invalid_inst;
           }
