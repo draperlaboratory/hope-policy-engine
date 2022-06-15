@@ -85,18 +85,14 @@ void rv32_validator_t::setup_validation() {
 rv32_validator_t::rv32_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, soc_tag_configuration_t* config, RegisterReader_t rr, AddressFixer_t af) : tag_based_validator_t(ms_cache, ms_factory, rr, af), watch_pc(false) {
   ctx = new context_t;
   ops = new operands_t;
-  res = new results_t;
-  res->pc = new meta_set_t;
-  res->rd = new meta_set_t;
-  res->csr = new meta_set_t;
-
-  memset(res->pc, 0, sizeof(meta_set_t));
-  memset(res->rd, 0, sizeof(meta_set_t));
-  memset(res->csr, 0, sizeof(meta_set_t));
-  // true causes initial clear of results
-  res->pcResult = true;
-  res->rdResult = true;
-  res->csrResult = true;
+  res = new results_t{
+    .pc = new meta_set_t{0},
+    .rd = new meta_set_t{0},
+    .csr = new meta_set_t{0},
+    .pcResult = true,
+    .rdResult = true,
+    .csrResult = true
+  };
 
   const meta_set_t* ms;
   ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
