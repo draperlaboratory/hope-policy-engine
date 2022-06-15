@@ -80,6 +80,7 @@ struct decoded_instruction_t {
 
 decoded_instruction_t decode(insn_bits_t bits, int xlen);
 
+extern "C" {
 #endif // __cplusplus
 
 /**
@@ -99,21 +100,21 @@ typedef struct context {
  * Structure that holds input operands for rule eval
  */  
 typedef struct operands {
-  meta_set_t const *pc;
-  meta_set_t const *ci;
-  meta_set_t const *op1;
-  meta_set_t const *op2;
-  meta_set_t const *op3;
-  meta_set_t const *mem;
+  const meta_set_t* pc;
+  const meta_set_t* ci;
+  const meta_set_t* op1;
+  const meta_set_t* op2;
+  const meta_set_t* op3;
+  const meta_set_t* mem;
 } operands_t;
 
 /**
  * Structure that holds results after rule eval
  */  
 typedef struct results {
-  meta_set_t *pc;
-  meta_set_t *rd;
-  meta_set_t *csr;
+  meta_set_t* pc;
+  meta_set_t* rd;
+  meta_set_t* csr;
   // flags indicate results are present
   bool pcResult;
   bool rdResult;
@@ -121,6 +122,7 @@ typedef struct results {
 } results_t;
 
 #ifdef __cplusplus
+} // extern "C"
 } // namespace policy_engine
 #endif
 
