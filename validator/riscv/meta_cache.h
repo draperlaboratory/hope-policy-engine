@@ -33,6 +33,7 @@
 #include <unordered_map>
 #include "metadata.h"
 #include "policy_meta_set.h"
+#include "tag_utils.h"
 
 namespace std {
 
@@ -81,6 +82,16 @@ public:
       ms_bit_add(&ms, e);
     return canonize(ms);
   }
+
+  const meta_set_t* operator [](tag_t tag) const {
+    for (const auto& [ ms, msp ] : map) {
+      if (msp.get() == reinterpret_cast<const meta_set_t*>(tag))
+        return msp.get();
+    }
+    return nullptr;
+  }
+
+  tag_t to_tag(const meta_set_t* msp) const { return reinterpret_cast<tag_t>(msp); }
 };
 
 } // namespace policy_engine

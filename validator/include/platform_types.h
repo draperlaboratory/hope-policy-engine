@@ -28,6 +28,7 @@
 #define PLATFORM_TYPES_H
 
 #include <inttypes.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define MIN_TAG_GRANULARITY 4

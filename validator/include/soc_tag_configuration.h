@@ -30,9 +30,9 @@
 #include <list>
 #include <string>
 #include <yaml-cpp/yaml.h>
+#include "meta_cache.h"
 #include "meta_set_factory.h"
 #include "platform_types.h"
-#include "tag_converter.h"
 #include "tag_utils.h"
 
 namespace policy_engine {
@@ -60,7 +60,7 @@ private:
 public:
   soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name);
 
-  void apply(tag_bus_t* tag_bus, tag_converter_t* converter);
+  void apply(tag_bus_t* tag_bus, meta_set_cache_t* ms_cache);
 
   iterator begin() { return elements.begin(); }
   iterator end() { return elements.end(); }
