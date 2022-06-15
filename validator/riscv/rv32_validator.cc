@@ -30,9 +30,12 @@
 #include "policy_utils.h"
 #include "rv32_validator.h"
 #include "soc_tag_configuration.h"
+#include "tag_based_validator.h"
 #include "validator_exception.h"
 
 namespace policy_engine {
+
+extern std::string render_metadata(const metadata_t* metadata);
 
 static const char* tag_name(meta_set_t const* tag) {
   static char tag_name[1024];
@@ -40,26 +43,7 @@ static const char* tag_name(meta_set_t const* tag) {
   return tag_name;
 }
 
-rv32_validator_base_t::rv32_validator_base_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, RegisterReader_t rr, AddressFixer_t af) : tag_based_validator_t(ms_cache, ms_factory, rr, af) {
-  ctx = new context_t;
-  ops = new operands_t;
-  res = new results_t;
-  res->pc = new meta_set_t;
-  res->rd = new meta_set_t;
-  res->csr = new meta_set_t;
-
-  memset(res->pc, 0, sizeof(meta_set_t));
-  memset(res->rd, 0, sizeof(meta_set_t));
-  memset(res->csr, 0, sizeof(meta_set_t));
-  // true causes initial clear of results
-  res->pcResult = true;
-  res->rdResult = true;
-  res->csrResult = true;
-}
-
-extern std::string render_metadata(const metadata_t* metadata);
-
-void rv32_validator_base_t::apply_metadata(const metadata_memory_map_t* md_map) {
+void rv32_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   for (const auto [ range, metadata ]: *md_map) {
     for (address_t start = range.start; start < range.end; start += 4) {
       if (!tag_bus.store_insn_tag(start, ms_cache->to_tag(ms_cache->canonize(metadata)))) {
@@ -77,7 +61,7 @@ void rv32_validator_t::handle_violation(context_t* ctx, operands_t* ops){
   }
 }
 
-void rv32_validator_base_t::setup_validation() {
+void rv32_validator_t::setup_validation() {
   memset(ctx, 0, sizeof(*ctx));
   memset(ops, 0, sizeof(*ops));
   ctx->cached = true;
@@ -98,7 +82,17 @@ void rv32_validator_base_t::setup_validation() {
   }
 }
 
-rv32_validator_t::rv32_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, soc_tag_configuration_t* config, RegisterReader_t rr, AddressFixer_t af) : rv32_validator_base_t(ms_cache, ms_factory, rr, af), watch_pc(false) {
+rv32_validator_t::rv32_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, soc_tag_configuration_t* config, RegisterReader_t rr, AddressFixer_t af) : tag_based_validator_t(ms_cache, ms_factory, rr, af), watch_pc(false) {
+  ctx = new context_t;
+  ops = new operands_t;
+  res = new results_t;
+  res->pc = new meta_set_t;
+  res->rd = new meta_set_t;
+  res->csr = new meta_set_t;
+
+  memset(res->pc, 0, sizeof(meta_set_t));
+  memset(res->rd, 0, sizeof(meta_set_t));
+  memset(res->csr, 0, sizeof(meta_set_t));
   // true causes initial clear of results
   res->pcResult = true;
   res->rdResult = true;
@@ -156,12 +150,10 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
     if (rule_cache->allow(ops, res)) {
       rule_cache_hits++;
       rule_cache_hit = true;
-      //fprintf(stderr, "Hit: Validating 0x%x %d\n", pc, rule_cache_hits);
       return true;
     }
     else {
       rule_cache_misses++;
-      //fprintf(stderr, "Miss: Validating 0x%x %d\n", pc, rule_cache_misses);
       rule_cache_hit = false;
     }
   }
@@ -200,8 +192,6 @@ bool rv32_validator_t::commit() {
         hit_watch = true;
       }
     }
-    // printf("Update reg: %d\n", pending_RD);
-    //fflush(stdout);
 
     // dont update metadata on regZero
     if(pending_RD)
@@ -219,7 +209,6 @@ bool rv32_validator_t::commit() {
       // might as well halt
       hit_watch = true;
     }
-//    printf("  committing tag '%s' to 0x%" PRIaddr " (0x%" PRIaddr ")\n", tag_name(res->rd), mem_addr, mem_paddr);
     for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
       if(mem_addr == *it && old_tag != new_tag){
         address_t epc_addr = ctx->epc;

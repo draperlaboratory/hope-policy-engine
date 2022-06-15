@@ -36,12 +36,12 @@
 namespace policy_engine {
 
 class tag_based_validator_t : public abstract_sim_validator_t {
-  protected:
+protected:
 
   meta_set_cache_t* ms_cache;
   meta_set_factory_t* ms_factory;
   
-  public:
+public:
   tag_based_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, RegisterReader_t rr, AddressFixer_t af);
   virtual ~tag_based_validator_t() { }
 

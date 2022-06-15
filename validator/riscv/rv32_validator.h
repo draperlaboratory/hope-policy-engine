@@ -40,28 +40,10 @@
 
 namespace policy_engine {
 
-class rv32_validator_base_t : public tag_based_validator_t {
-protected: 
+class rv32_validator_t : public tag_based_validator_t {
+private:
   tag_bus_t tag_bus;
 
-public:
-  context_t *ctx;
-  operands_t *ops;
-  results_t *res;
-
-  rv32_validator_base_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, RegisterReader_t rr, AddressFixer_t af);
-
-  void apply_metadata(const metadata_memory_map_t* md_map);
-  
-  // called before we call the policy code - initializes ground state of input/output structures
-  void setup_validation();
-  
-  // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t& tag) { return tag_bus.load_tag(addr, tag); }
-};
-
-#define REG_SP 2
-class rv32_validator_t : public rv32_validator_base_t {
   uint32_t pending_RD;
   address_t mem_addr;
   uint32_t pending_CSR;
@@ -73,11 +55,13 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool rule_cache_hit;
 
 public:
+  context_t *ctx;
+  operands_t *ops;
+  results_t *res;
+
   tag_t pc_tag;
   tag_file_t<32> ireg_tags;
   tag_file_t<0x1000> csr_tags;
-
-  void handle_violation(context_t* ctx, operands_t* ops);
   
   bool watch_pc;
   std::vector<address_t> watch_regs;
@@ -94,6 +78,13 @@ public:
       delete rule_cache;
     }
   }
+
+  // called before we call the policy code - initializes ground state of input/output structures
+  void setup_validation();
+
+  void apply_metadata(const metadata_memory_map_t* md_map);
+
+  void handle_violation(context_t* ctx, operands_t* ops);
 
   bool validate(address_t pc, insn_bits_t insn);
   bool validate(address_t pc, insn_bits_t insn, address_t mem_addr, bool* hit);
