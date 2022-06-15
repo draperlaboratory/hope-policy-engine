@@ -76,14 +76,26 @@ bool embed_tags_in_elf(
   const std::string section_temp_file = "initial_tag_map";
   save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, err);
 
-  char command_string[512];
   const char base_command[] = "%sobjcopy --target elf%d-littleriscv --%s-section .initial_tag_map=%s %s %s %s";
+  std::string op = update ? "update" : "add";
+  std::string section_flags = update ? "" : "--set-section-flags .initial_tag_map=readonly,data";
+  char command_string[
+    sizeof(base_command) +
+    riscv_prefix.length() +
+    3 + // big enough to fit max xlen of "128"
+    op.length() +
+    section_temp_file.length() +
+    section_flags.length() +
+    old_elf.name.length() +
+    new_elf_name.length() +
+    1 // ensure enough space to fit null terminator
+  ];
   std::sprintf(command_string, base_command,
     riscv_prefix.c_str(),
     old_elf.word_bytes()*8,
-    update ? "update" : "add",
+    op.c_str(),
     section_temp_file.c_str(),
-    update ? "" : "--set-section-flags .initial_tag_map=readonly,data",
+    section_flags.c_str(),
     old_elf.name.c_str(), new_elf_name.c_str()
   );
 
