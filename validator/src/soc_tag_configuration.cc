@@ -24,31 +24,29 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-
+#include <iostream>
+#include <string>
 #include <yaml-cpp/yaml.h>
-
-#include "validator_exception.h"
-#include "soc_tag_configuration.h"
 
 #include "policy_utils.h"
 #include "platform_types.h"
+#include "soc_tag_configuration.h"
+#include "validator_exception.h"
 
 namespace policy_engine {
 
-static void dump_node(const YAML::Node &node) {
-//  printf("node: %p\n", node);
+static void dump_node(const YAML::Node& node) {
   switch (node.Type()) {
-    case YAML::NodeType::Null: printf("  null\n"); break;
-    case YAML::NodeType::Scalar: printf("  scalar\n"); break;
-    case YAML::NodeType::Sequence: printf("  sequence\n"); break;
-    case YAML::NodeType::Map: printf("  map\n"); break;
-    case YAML::NodeType::Undefined: printf("  undefined\n"); break;
-      default: printf("  unknown\n"); break;
+    case YAML::NodeType::Null: std::cout << "  null" << std::endl; break;
+    case YAML::NodeType::Scalar: std::cout << "  scalar" << std::endl; break;
+    case YAML::NodeType::Sequence: std::cout << "  sequence" << std::endl; break;
+    case YAML::NodeType::Map: std::cout << "  map" << std::endl; break;
+    case YAML::NodeType::Undefined: std::cout << "  undefined" << std::endl; break;
+    default: std::cout << "  unknown" << std::endl; break;
   }
 }
 
-void soc_tag_configuration_t::process_element(std::string element_name, const YAML::Node &n) {
+void soc_tag_configuration_t::process_element(const std::string& element_name, const YAML::Node& n) {
   std::string elt_path;
   soc_element_t elt;
   elt.heterogeneous = false;
@@ -81,27 +79,22 @@ void soc_tag_configuration_t::process_element(std::string element_name, const YA
     elt.heterogeneous = n["heterogeneous"].as<bool>();
   }
   elt.meta_set = factory->get_meta_set(elt_path);
-//  print_meta_set((meta_set_t *)elt.meta_set);
   elements.push_back(elt);
-//  printf("done processing element %s\n", element_name.c_str());
 }
 
-soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t * factory,
-						 std::string file_name)
-  : factory(factory) {
+soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name) : factory(factory) {
   YAML::Node n = YAML::LoadFile(file_name);
   if (n["SOC"]) {
-    YAML::Node soc = n["SOC"];
-    for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-      process_element(it->first.as<std::string>(), it->second);
+    for (const auto& it : n["SOC"]) {
+      process_element(it.first.as<std::string>(), it.second);
     }
   } else {
     throw configuration_exception_t("Expected a root SOC node");
   }
 }
 
-void soc_tag_configuration_t::apply(tag_bus_t *tag_bus, tag_converter_t *converter) {
-  for (auto &e: elements) {
+void soc_tag_configuration_t::apply(tag_bus_t* tag_bus, tag_converter_t* converter) {
+  for (const auto& e: elements) {
     if (e.heterogeneous) {
       tag_bus->add_provider(e.start, e.end,
 			    new platform_ram_tag_provider_t(e.end - e.start, 
