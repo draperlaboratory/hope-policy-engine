@@ -40,7 +40,7 @@
 
 namespace policy_engine {
 
-class rv32_validator_t : public tag_based_validator_t {
+class rv32_validator_t : public sim_validator_t, public tag_based_validator_t {
 private:
   tag_bus_t tag_bus;
 
@@ -69,15 +69,7 @@ public:
   std::vector<address_t> watch_addrs;
 
   rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
-
-  virtual ~rv32_validator_t() {
-    delete res.pc;
-    delete res.rd;
-    delete res.csr;
-    if (rule_cache) {
-      delete rule_cache;
-    }
-  }
+  virtual ~rv32_validator_t();
 
   // called before we call the policy code - initializes ground state of input/output structures
   void setup_validation();
@@ -93,10 +85,10 @@ public:
   // Provides the tag for a given address.  Used for debugging.
   virtual bool get_tag(address_t addr, tag_t &tag) { return tag_bus.load_tag(addr, tag); }
 
-  void set_pc_watch(bool watching);
-  void set_reg_watch(address_t addr);
-  void set_csr_watch(address_t addr);
-  void set_mem_watch(address_t addr);
+  void set_pc_watch(bool watching) { watch_pc = watching; }
+  void set_reg_watch(address_t addr) { watch_regs.push_back(addr); }
+  void set_csr_watch(address_t addr) { watch_csrs.push_back(addr); }
+  void set_mem_watch(address_t addr) { watch_addrs.push_back(addr); }
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();

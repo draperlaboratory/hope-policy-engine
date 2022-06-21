@@ -84,7 +84,7 @@ void rv32_validator_t::setup_validation() {
 }
 
 rv32_validator_t::rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af) :
-    tag_based_validator_t(policy_dir, rr, af), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}), watch_pc(false) {
+    sim_validator_t(rr, af), tag_based_validator_t(policy_dir), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}), watch_pc(false) {
   meta_set_t* ms;
   ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(ms_cache.to_tag(ms));
@@ -108,6 +108,15 @@ rv32_validator_t::rv32_validator_t(const std::string& policy_dir, const std::str
   has_insn_mem_addr = false;
   rule_cache_hits = 0;
   rule_cache_misses = 0;
+}
+
+rv32_validator_t::~rv32_validator_t() {
+  delete res.pc;
+  delete res.rd;
+  delete res.csr;
+  if (rule_cache) {
+    delete rule_cache;
+  }
 }
 
 bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
@@ -242,19 +251,6 @@ bool rv32_validator_t::commit() {
     }
   }
   return hit_watch;
-}
-
-void rv32_validator_t::set_pc_watch(bool watching){
-  watch_pc = watching;
-}
-void rv32_validator_t::set_reg_watch(address_t addr){
-  watch_regs.push_back(addr);
-}
-void rv32_validator_t::set_csr_watch(address_t addr){
-  watch_csrs.push_back(addr);
-}
-void rv32_validator_t::set_mem_watch(address_t addr){
-  watch_addrs.push_back(addr);
 }
 
 void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {

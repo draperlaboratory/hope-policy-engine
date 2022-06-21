@@ -35,15 +35,14 @@
 
 namespace policy_engine {
 
-class tag_based_validator_t : public abstract_sim_validator_t {
+class tag_based_validator_t : public abstract_validator_t {
 protected:
-
   meta_set_cache_t ms_cache;
   meta_set_factory_t ms_factory;
   
 public:
-  tag_based_validator_t(const std::string& policy_dir, RegisterReader_t rr, AddressFixer_t af) : abstract_sim_validator_t(rr, af), ms_factory(meta_set_factory_t(&ms_cache, policy_dir)) {}
-  virtual ~tag_based_validator_t() { }
+  tag_based_validator_t(const std::string& policy_dir) : ms_factory(meta_set_factory_t(&ms_cache, policy_dir)) {}
+  virtual ~tag_based_validator_t() {}
 
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
   virtual bool commit() = 0;
