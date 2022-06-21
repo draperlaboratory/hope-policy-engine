@@ -108,7 +108,7 @@ void embed_tags(metadata_memory_map_t& metadata_memory_map, elf_image_t& img, co
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
   const char base_command[] = "%sobjdump --target elf%d-littleriscv -d -j .initial_tag_map %s >/dev/null 2>&1";
-  char command_string[256];
+  char command_string[sizeof(base_command)+riscv_prefix.length() + 3 + elf_filename.length()+1];
   std::sprintf(command_string, base_command, riscv_prefix.c_str(), img.word_bytes()*8, elf_filename.c_str());
   int ret = std::system(command_string);
 
