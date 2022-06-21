@@ -225,15 +225,13 @@ extern "C" void e_v_reg_tag(char* dest, int n, uint64_t addr) {
 extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
   if(addr <= ADDRESS_T_MAX){
     address_t a = (address_t)addr;
-    tag_t t;
-    if(rv_validator->get_tag(a, t)){
-      const meta_set_t *ms = (const meta_set_t*) t;
-      meta_set_to_string((const meta_set_t*)ms, dest, n);
-    }
-    else {
+    meta_set_t* ms;
+    if (rv_validator->get_tag(a, ms)) {
+      meta_set_to_string(ms, dest, n);
+    } else {
       char tmp[128];
-      snprintf(&tmp[0], 128, "Bad Address: %lx\n", addr);
-      strncpy(dest, &tmp[0], n);
+      snprintf(tmp, 128, "Bad Address: %lx\n", addr);
+      strncpy(dest, tmp, n);
     }
   }
   else

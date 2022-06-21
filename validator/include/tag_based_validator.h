@@ -48,7 +48,7 @@ public:
   virtual bool commit() = 0;
 
   // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t& tag) = 0;
+  virtual bool get_tag(address_t addr, meta_set_t*& ms) = 0;
 };
 
 } // namespace policy_engine

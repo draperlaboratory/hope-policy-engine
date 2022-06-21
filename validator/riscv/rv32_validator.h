@@ -86,7 +86,16 @@ public:
   bool commit();
 
   // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t &tag) { return tag_bus.load_tag(addr, tag); }
+  virtual bool get_tag(address_t addr, meta_set_t*& ms) {
+    tag_t tag;
+    if (tag_bus.load_tag(addr, tag)) {
+      ms = ms_cache[tag];
+      return true;
+    } else {
+      ms = nullptr;
+      return false;
+    }
+  }
 
   void set_pc_watch(bool watching) { watch_pc = watching; }
   void set_reg_watch(address_t addr) { watch_regs.push_back(addr); }

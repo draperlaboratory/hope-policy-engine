@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   #define NREPS 4
   for (int reps = 0; reps < NREPS; reps++) {
     do {
-      tag_t ci_tag;
+      meta_set_t* ci_tag;
       
       // get the CI tag
       if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
