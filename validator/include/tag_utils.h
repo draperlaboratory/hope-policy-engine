@@ -46,6 +46,8 @@ namespace policy_engine {
 typedef uintptr_t tag_t;
 #define PRItag PRIuPTR
 
+static const tag_t BAD_TAG_VALUE = -1;
+
 struct tag_provider_t {
   virtual ~tag_provider_t() { }
   virtual bool get_insn_tag(address_t addr, tag_t &tag) = 0;
@@ -191,36 +193,6 @@ class tag_bus_t {
     if (tp)
       return tp->set_tag(offset, tag);
     return false;
-  }
-};
-
-#define tassert(b) if (!(b)) { printf("bad register index: %lx\n", i); return bad_value; }
-#define BAD_TAG_VALUE (-1)
-template <size_t N> class tag_file_t {
-  tag_t tags[N];
-
-  tag_t bad_value;
-  public:
-
-  tag_file_t() : bad_value(BAD_TAG_VALUE) { }
-
-  tag_file_t(tag_t initial_tag) : bad_value(BAD_TAG_VALUE) {
-    reset(initial_tag);
-  }
-
-  void reset(tag_t initial_tag) {
-    for (size_t i = 0; i < N; i++)
-      tags[i] = initial_tag;
-  }
-
-  tag_t &operator[](size_t i) {
-    tassert(i >= 0 && i < N);
-    return tags[i];
-  }
-
-  const tag_t &operator[](size_t i) const {
-    tassert(i >= 0 && i < N);
-    return tags[i];
   }
 };
 

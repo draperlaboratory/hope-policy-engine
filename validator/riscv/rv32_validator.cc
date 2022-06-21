@@ -87,11 +87,11 @@ rv32_validator_t::rv32_validator_t(const std::string& policy_dir, const std::str
     sim_validator_t(rr, af), tag_based_validator_t(policy_dir), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}), watch_pc(false) {
   meta_set_t* ms;
   ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Default");
-  ireg_tags.reset(ms_cache.to_tag(ms));
+  ireg_tags.fill(ms_cache.to_tag(ms));
   ms = ms_factory.get_meta_set("ISA.RISCV.Reg.RZero");
   ireg_tags[0] = ms_cache.to_tag(ms);
   ms = ms_factory.get_meta_set("ISA.RISCV.CSR.Default");
-  csr_tags.reset(ms_cache.to_tag(ms));
+  csr_tags.fill(ms_cache.to_tag(ms));
   ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Env");
   pc_tag = ms_cache.to_tag(ms);
   // set initial tags for specific CSRs

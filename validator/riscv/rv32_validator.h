@@ -27,6 +27,7 @@
 #ifndef RV32_VALIDATOR_H
 #define RV32_VALIDATOR_H
 
+#include <array>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -62,8 +63,8 @@ public:
   results_t res;
 
   tag_t pc_tag;
-  tag_file_t<32> ireg_tags;
-  tag_file_t<0x1000> csr_tags;
+  std::array<tag_t, 32> ireg_tags;
+  std::array<tag_t, 0x1000> csr_tags;
   
   bool watch_pc;
   std::vector<address_t> watch_regs;
