@@ -288,7 +288,7 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
     msg = msg + "    Op3   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.mem, tmp, s);
     msg = msg + "    Mem   : " + tmp + "\n";
-    msg = msg + eval_status(rv_validator->ctx->policy_result) + "\n";
+    msg = msg + eval_status(rv_validator->ctx.policy_result) + "\n";
 
     if(rv_validator->failed_ctx.fail_msg)
       msg = msg + rv_validator->failed_ctx.fail_msg + "\n";
@@ -306,11 +306,11 @@ extern "C" void e_v_meta_log_short(char* dest, int n) {
     std::string msg = "";
     const char* rule;
 
-    meta_set_to_string(rv_validator->ops->ci, tmp, s);
+    meta_set_to_string(rv_validator->ops.ci, tmp, s);
     msg = msg + "C " + tmp;
-    meta_set_to_string(rv_validator->ops->pc, tmp, s);
+    meta_set_to_string(rv_validator->ops.pc, tmp, s);
     msg = msg + " E " + tmp;
-    meta_set_to_string(rv_validator->res->pc, tmp, s);
+    meta_set_to_string(rv_validator->res.pc, tmp, s);
     msg = msg + " -> E " + tmp;
     
     strncpy(dest, msg.c_str(), n);
@@ -323,28 +323,28 @@ extern "C" void e_v_rule_eval_log(char* dest, int n) {
     const char* rule;
 
     msg = msg + "\n" + "Metadata:\n";
-    meta_set_to_string(rv_validator->ops->pc, tmp, s);
+    meta_set_to_string(rv_validator->ops.pc, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops->ci, tmp, s);
+    meta_set_to_string(rv_validator->ops.ci, tmp, s);
     msg = msg + "    Code  : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops->op1, tmp, s);
+    meta_set_to_string(rv_validator->ops.op1, tmp, s);
     msg = msg + "    Op1   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops->op2, tmp, s);
+    meta_set_to_string(rv_validator->ops.op2, tmp, s);
     msg = msg + "    Op2   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops->op3, tmp, s);
+    meta_set_to_string(rv_validator->ops.op3, tmp, s);
     msg = msg + "    Op3   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops->mem, tmp, s);
+    meta_set_to_string(rv_validator->ops.mem, tmp, s);
     msg = msg + "    Mem   : " + tmp + "\n";
 
     msg = msg + "\n" + "Results:\n";
-    meta_set_to_string(rv_validator->res->pc, tmp, s);
+    meta_set_to_string(rv_validator->res.pc, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
-    if(rv_validator->res->rdResult){
-        meta_set_to_string(rv_validator->res->rd, tmp, s);
+    if (rv_validator->res.rdResult){
+        meta_set_to_string(rv_validator->res.rd, tmp, s);
         msg = msg + "    RD    : " + tmp + "\n";
     }
-    if(rv_validator->res->csrResult){
-        meta_set_to_string(rv_validator->res->csr, tmp, s);
+    if (rv_validator->res.csrResult){
+        meta_set_to_string(rv_validator->res.csr, tmp, s);
         msg = msg + "    CSR   : " + tmp + "\n";
     }
     

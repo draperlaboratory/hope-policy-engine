@@ -55,9 +55,9 @@ private:
   bool rule_cache_hit;
 
 public:
-  context_t *ctx;
-  operands_t *ops;
-  results_t *res;
+  context_t ctx;
+  operands_t ops;
+  results_t res;
 
   tag_t pc_tag;
   tag_file_t<32> ireg_tags;
@@ -71,9 +71,9 @@ public:
   rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
 
   virtual ~rv32_validator_t() {
-    free(ctx);
-    free(ops);
-    free(res);
+    delete res.pc;
+    delete res.rd;
+    delete res.csr;
     if (rule_cache) {
       delete rule_cache;
     }
