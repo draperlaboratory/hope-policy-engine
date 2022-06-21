@@ -35,12 +35,14 @@
 #include "ideal_rule_cache.h"
 #include "metadata_memory_map.h"
 #include "policy_eval.h"
+#include "reader.h"
+#include "sim_validator.h"
 #include "soc_tag_configuration.h"
 #include "tag_based_validator.h"
 
 namespace policy_engine {
 
-class rv32_validator_t : public sim_validator_t, public tag_based_validator_t {
+class rv32_validator_t : public sim_validator_t<RegisterReader_t, AddressFixer_t>, public tag_based_validator_t {
 private:
   tag_bus_t tag_bus;
 
