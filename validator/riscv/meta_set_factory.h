@@ -40,8 +40,8 @@ private:
 
 public:
   meta_set_factory_t(meta_set_cache_t* ms_cache, const std::string& policy_dir) : metadata_factory_t(policy_dir), ms_cache(ms_cache) {}
-  const meta_set_t* get_meta_set(const std::string& dotted_path);
-  const meta_set_t* get_group_meta_set(const std::string& opgroup) { return nullptr; }
+  meta_set_t* get_meta_set(const std::string& dotted_path);
+  meta_set_t* get_group_meta_set(const std::string& opgroup) { return nullptr; }
 };
 
 } // namespace policy_engine

@@ -85,7 +85,7 @@ void rv32_validator_t::setup_validation() {
 
 rv32_validator_t::rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af) :
     tag_based_validator_t(policy_dir, rr, af), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}), watch_pc(false) {
-  const meta_set_t* ms;
+  meta_set_t* ms;
   ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(ms_cache.to_tag(ms));
   ms = ms_factory.get_meta_set("ISA.RISCV.Reg.RZero");
@@ -229,9 +229,9 @@ bool rv32_validator_t::commit() {
 
   if (rule_cache) {
     results_t res_copy = {
-      .pc = (meta_set_t*)ms_cache.canonize(*res.pc),
-      .rd = (meta_set_t*)ms_cache.canonize(*res.rd),
-      .csr = (meta_set_t*)ms_cache.canonize(*res.csr),
+      .pc = ms_cache.canonize(*res.pc),
+      .rd = ms_cache.canonize(*res.rd),
+      .csr = ms_cache.canonize(*res.csr),
       .pcResult = res.pcResult,
       .rdResult = res.rdResult,
       .csrResult = res.csrResult

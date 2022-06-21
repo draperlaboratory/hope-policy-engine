@@ -66,7 +66,7 @@ private:
   std::unordered_map<meta_set_t, std::unique_ptr<meta_set_t>> map;
 
 public:
-  const meta_set_t* canonize(const meta_set_t& ts) {
+  meta_set_t* canonize(const meta_set_t& ts) {
     if (map.find(ts) == map.end()) {
       map[ts] = std::make_unique<meta_set_t>();
       *map[ts] = ts;
@@ -75,23 +75,23 @@ public:
   }
 
   template<class MetaSetPtr>
-  const meta_set_t* canonize(MetaSetPtr metaset) {
+  meta_set_t* canonize(MetaSetPtr metaset) {
     meta_set_t ms;
     memset(&ms, 0, sizeof(ms));
-    for (auto e: *metaset)
+    for (const meta_t& e: *metaset)
       ms_bit_add(&ms, e);
     return canonize(ms);
   }
 
-  const meta_set_t* operator [](tag_t tag) const {
+  meta_set_t* operator [](tag_t tag) const {
     for (const auto& [ ms, msp ] : map) {
-      if (msp.get() == reinterpret_cast<const meta_set_t*>(tag))
+      if (msp.get() == reinterpret_cast<meta_set_t*>(tag))
         return msp.get();
     }
     return nullptr;
   }
 
-  tag_t to_tag(const meta_set_t* msp) const { return reinterpret_cast<tag_t>(msp); }
+  tag_t to_tag(meta_set_t* msp) const { return reinterpret_cast<tag_t>(msp); }
 };
 
 } // namespace policy_engine
