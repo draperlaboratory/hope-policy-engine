@@ -49,8 +49,6 @@ size_t ADDRESS_T_SIZE = 4;
 
 using namespace policy_engine;
 
-static meta_set_cache_t ms_cache;
-static meta_set_factory_t *ms_factory;
 static metadata_factory_t *md_factory;
 static rv32_validator_t *rv_validator;
 static metadata_memory_map_t *md_map;
@@ -61,11 +59,8 @@ static uint64_t reg_reader(uint32_t regno) { return (uint64_t)rv32.read_register
 
 static void init(const char *policy_dir, const char *soc_cfg) {
   try {
-    ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
     md_factory = new metadata_factory_t(policy_dir);
-    soc_tag_configuration_t *soc_config =
-      new soc_tag_configuration_t(ms_factory, soc_cfg);
-    rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader, NULL);
+    rv_validator = new rv32_validator_t(policy_dir, soc_cfg, reg_reader, NULL);
   } catch (exception_t &e) {
     printf("exception: %s\n", e.what());
   }

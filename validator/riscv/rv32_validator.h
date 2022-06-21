@@ -68,7 +68,7 @@ public:
   std::vector<address_t> watch_csrs;
   std::vector<address_t> watch_addrs;
 
-  rv32_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, soc_tag_configuration_t* tag_config, RegisterReader_t rr, AddressFixer_t af);
+  rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
 
   virtual ~rv32_validator_t() {
     free(ctx);

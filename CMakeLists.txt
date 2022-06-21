@@ -39,7 +39,6 @@ target_include_directories(tagging_tools PRIVATE
 add_library(validator
   validator/src/metadata_factory.cc
   validator/src/opgroup_rule.cc
-  validator/src/tag_based_validator.cc
   validator/src/soc_tag_configuration.cc
   )
 set_property(TARGET validator PROPERTY POSITION_INDEPENDENT_CODE ON)

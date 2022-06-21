@@ -24,6 +24,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <string>
 #include "csr_list.h"
 #include "platform_types.h"
 #include "policy_eval.h"
@@ -46,7 +47,7 @@ static const char* tag_name(meta_set_t const* tag) {
 void rv32_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   for (const auto [ range, metadata ]: *md_map) {
     for (address_t start = range.start; start < range.end; start += 4) {
-      if (!tag_bus.store_insn_tag(start, ms_cache->to_tag(ms_cache->canonize(metadata)))) {
+      if (!tag_bus.store_insn_tag(start, ms_cache.to_tag(ms_cache.canonize(metadata)))) {
 	      throw configuration_exception_t("unable to apply metadata");
       }
     }
@@ -82,7 +83,7 @@ void rv32_validator_t::setup_validation() {
   }
 }
 
-rv32_validator_t::rv32_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_t* ms_factory, soc_tag_configuration_t* config, RegisterReader_t rr, AddressFixer_t af) : tag_based_validator_t(ms_cache, ms_factory, rr, af), watch_pc(false) {
+rv32_validator_t::rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af) : tag_based_validator_t(policy_dir, rr, af), watch_pc(false) {
   ctx = new context_t;
   ops = new operands_t;
   res = new results_t{
@@ -95,23 +96,24 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t* ms_cache, meta_set_factory_
   };
 
   const meta_set_t* ms;
-  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
-  ireg_tags.reset(ms_cache->to_tag(ms));
-  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.RZero");
-  ireg_tags[0] = ms_cache->to_tag(ms);
-  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.Default");
-  csr_tags.reset(ms_cache->to_tag(ms));
-  ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Env");
-  pc_tag = ms_cache->to_tag(ms);
+  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Default");
+  ireg_tags.reset(ms_cache.to_tag(ms));
+  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.RZero");
+  ireg_tags[0] = ms_cache.to_tag(ms);
+  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.Default");
+  csr_tags.reset(ms_cache.to_tag(ms));
+  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Env");
+  pc_tag = ms_cache.to_tag(ms);
   // set initial tags for specific CSRs
-  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.MEPC");
-  csr_tags[CSR_MEPC] = ms_cache->to_tag(ms);
-  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.MTVal");
-  csr_tags[CSR_MTVAL] = ms_cache->to_tag(ms);
-  ms = ms_factory->get_meta_set("ISA.RISCV.CSR.MTVec");
-  csr_tags[CSR_MTVEC] = ms_cache->to_tag(ms);
+  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.MEPC");
+  csr_tags[CSR_MEPC] = ms_cache.to_tag(ms);
+  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.MTVal");
+  csr_tags[CSR_MTVAL] = ms_cache.to_tag(ms);
+  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.MTVec");
+  csr_tags[CSR_MTVEC] = ms_cache.to_tag(ms);
 
-  config->apply(&tag_bus, ms_cache);
+  soc_tag_configuration_t config(&ms_factory, soc_cfg);
+  config.apply(&tag_bus, &ms_cache);
   failed = false;
   has_insn_mem_addr = false;
   rule_cache_hits = 0;
@@ -170,7 +172,7 @@ bool rv32_validator_t::commit() {
   bool hit_watch = false;
 
   if (res->pcResult) {
-    tag_t new_tag = ms_cache->to_tag(ms_cache->canonize(*res->pc));
+    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res->pc));
     if(watch_pc && pc_tag != new_tag){
       printf("Watch tag pc\n");
       fflush(stdout);
@@ -180,7 +182,7 @@ bool rv32_validator_t::commit() {
   }
 
   if (has_pending_RD && res->rdResult) {
-    tag_t new_tag = ms_cache->to_tag(ms_cache->canonize(*res->rd));
+    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res->rd));
     for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
       if(pending_RD == *it && ireg_tags[pending_RD] != new_tag){
         printf("Watch tag reg\n");
@@ -195,7 +197,7 @@ bool rv32_validator_t::commit() {
   }
   
   if (has_pending_mem && res->rdResult) {
-    tag_t new_tag = ms_cache->to_tag(ms_cache->canonize(*res->rd));
+    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res->rd));
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
     if (!tag_bus.load_tag(mem_paddr, old_tag)) {
@@ -224,7 +226,7 @@ bool rv32_validator_t::commit() {
     }
   }
   if (has_pending_CSR && res->csrResult) {
-    tag_t new_tag = ms_cache->to_tag(ms_cache->canonize(*res->csr));
+    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res->csr));
     for(std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
       if(pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR\n");
@@ -237,9 +239,9 @@ bool rv32_validator_t::commit() {
 
   if (rule_cache) {
     results_t res_copy = {
-      .pc = (meta_set_t *)ms_cache->canonize(*res->pc),
-      .rd = (meta_set_t *)ms_cache->canonize(*res->rd),
-      .csr = (meta_set_t *)ms_cache->canonize(*res->csr),
+      .pc = (meta_set_t *)ms_cache.canonize(*res->pc),
+      .rd = (meta_set_t *)ms_cache.canonize(*res->rd),
+      .csr = (meta_set_t *)ms_cache.canonize(*res->csr),
       .pcResult = res->pcResult,
       .rdResult = res->rdResult,
       .csrResult = res->csrResult
@@ -299,10 +301,10 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   }
   pending_RD = inst.rd.getOrElse(-1);
 
-  if (inst.rs1.exists) ops->op1 = (*ms_cache)[ireg_tags[inst.rs1]];
-  if (inst.flags.has_csr_load || inst.flags.has_csr_store) ops->op2 = (*ms_cache)[csr_tags[inst.imm]];
-  if (inst.rs2.exists) ops->op2 = (*ms_cache)[ireg_tags[inst.rs2]];
-  if (inst.rs3.exists) ops->op3 = (*ms_cache)[ireg_tags[inst.rs3]];
+  if (inst.rs1.exists) ops->op1 = ms_cache[ireg_tags[inst.rs1]];
+  if (inst.flags.has_csr_load || inst.flags.has_csr_store) ops->op2 = ms_cache[csr_tags[inst.imm]];
+  if (inst.rs2.exists) ops->op2 = ms_cache[ireg_tags[inst.rs2]];
+  if (inst.rs3.exists) ops->op3 = ms_cache[ireg_tags[inst.rs3]];
   has_pending_CSR = inst.flags.has_csr_store;
   has_pending_RD = inst.rd.exists;
   has_pending_mem = inst.flags.has_store;
@@ -331,7 +333,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     if (!tag_bus.load_tag(mem_paddr, mtag)) {
       printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr, mem_addr, mem_paddr);
     } else {
-      ops->mem = (*ms_cache)[mtag];
+      ops->mem = ms_cache[mtag];
       if (!ops->mem) {
         printf("Error: TMT miss for memory (0x%" PRIaddr " (0x%" PRIaddr ")) at instruction 0x%" PRIaddr ". TMT misses are fatal.\n", mem_addr, mem_paddr, pc);
         exit(1);
@@ -343,8 +345,8 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     printf("failed to load CI tag for PC 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr);
   }
   ctx->epc = pc;
-  ops->ci = (*ms_cache)[ci_tag];
-  ops->pc = (*ms_cache)[pc_tag];
+  ops->ci = ms_cache[ci_tag];
+  ops->pc = ms_cache[pc_tag];
 }
 
 void rv32_validator_t::complete_eval() {}

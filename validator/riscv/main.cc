@@ -49,8 +49,6 @@ size_t ADDRESS_T_SIZE = 4;
 
 using namespace policy_engine;
 
-meta_set_cache_t ms_cache;
-meta_set_factory_t *ms_factory;
 rv32_validator_t *rv_validator;
 std::string policy_dir;
 std::string tags_file;
@@ -64,10 +62,7 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
   if (!DOA) {
     try {
       printf("setting callbacks\n");
-      ms_factory = new meta_set_factory_t(&ms_cache, policy_dir);
-      soc_tag_configuration_t *soc_config =
-        new soc_tag_configuration_t(ms_factory, soc_cfg_path);
-      rv_validator = new rv32_validator_t(&ms_cache, ms_factory, soc_config, reg_reader, addr_fixer);
+      rv_validator = new rv32_validator_t(policy_dir, soc_cfg_path, reg_reader, addr_fixer);
       
       metadata_memory_map_t map;
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
