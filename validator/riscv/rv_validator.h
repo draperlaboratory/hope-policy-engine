@@ -30,6 +30,7 @@
 #include <array>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 #include "dmhc_rule_cache.h"
 #include "finite_rule_cache.h"
@@ -43,7 +44,7 @@
 
 namespace policy_engine {
 
-class rv32_validator_t : public sim_validator_t<RegisterReader_t, AddressFixer_t>, public tag_based_validator_t {
+class rv_validator_t : public sim_validator_t<RegisterReader_t, AddressFixer_t>, public tag_based_validator_t {
 private:
   tag_bus_t tag_bus;
 
@@ -71,8 +72,8 @@ public:
   std::vector<address_t> watch_csrs;
   std::vector<address_t> watch_addrs;
 
-  rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
-  virtual ~rv32_validator_t();
+  rv_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
+  virtual ~rv_validator_t();
 
   // called before we call the policy code - initializes ground state of input/output structures
   void setup_validation();
@@ -82,7 +83,7 @@ public:
   void handle_violation(context_t* ctx, operands_t* ops);
 
   bool validate(address_t pc, insn_bits_t insn);
-  bool validate(address_t pc, insn_bits_t insn, address_t mem_addr, bool* hit);
+  std::pair<bool, bool> validate(address_t pc, insn_bits_t insn, address_t mem_addr);
   bool commit();
 
   // Provides the tag for a given address.  Used for debugging.
@@ -110,7 +111,7 @@ public:
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
-  rule_cache_t* rule_cache = nullptr;
+  rule_cache_t* rule_cache;
   uint64_t rule_cache_hits;
   uint64_t rule_cache_misses;
 };

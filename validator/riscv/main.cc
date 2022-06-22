@@ -29,7 +29,7 @@
 #include <cstring>
 #include "meta_cache.h"
 #include "meta_set_factory.h"
-#include "rv32_validator.h"
+#include "rv_validator.h"
 #include "metadata_memory_map.h"
 #include "tag_file.h"
 #include "validator_exception.h"
@@ -49,7 +49,7 @@ size_t ADDRESS_T_SIZE = 4;
 
 using namespace policy_engine;
 
-rv32_validator_t *rv_validator;
+rv_validator_t *rv_validator;
 std::string policy_dir;
 std::string tags_file;
 std::string soc_cfg_path;
@@ -62,7 +62,7 @@ extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t me
   if (!DOA) {
     try {
       printf("setting callbacks\n");
-      rv_validator = new rv32_validator_t(policy_dir, soc_cfg_path, reg_reader, addr_fixer);
+      rv_validator = new rv_validator_t(policy_dir, soc_cfg_path, reg_reader, addr_fixer);
       
       metadata_memory_map_t map;
       //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
@@ -168,7 +168,9 @@ extern "C" uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t me
 //  printf("cached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      return rv_validator->validate(ap, instr, am, hit);
+      auto [ success, h ] = rv_validator->validate(ap, instr, am);
+      *hit = h;
+      return success ? 1 : 0;
     } catch (...) {
       printf("c++ exception while validating - policy code DOA\n");
       DOA = true;

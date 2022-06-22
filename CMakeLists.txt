@@ -52,7 +52,7 @@ target_include_directories(validator PRIVATE
 add_library(rv_validator
   validator/riscv/debug.cc
   validator/riscv/inst_decoder.cc
-  validator/riscv/rv32_validator.cc
+  validator/riscv/rv_validator.cc
   validator/riscv/meta_set_factory.cc
   validator/riscv/fake_riscv.cc
   validator/rule_cache/ideal_rule_cache/ideal_rule_cache.cc

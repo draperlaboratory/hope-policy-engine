@@ -28,7 +28,7 @@
 #include <memory>
 #include "validator_exception.h"
 #include "soc_tag_configuration.h"
-#include "rv32_validator.h"
+#include "rv_validator.h"
 #include "tag_file.h"
 #include "metadata_memory_map.h"
 #include "meta_cache.h"
@@ -50,7 +50,7 @@ size_t ADDRESS_T_SIZE = 4;
 using namespace policy_engine;
 
 static metadata_factory_t *md_factory;
-static rv32_validator_t *rv_validator;
+static rv_validator_t *rv_validator;
 static metadata_memory_map_t *md_map;
 
 static fake_riscv_t rv32;
@@ -60,7 +60,7 @@ static uint64_t reg_reader(uint32_t regno) { return (uint64_t)rv32.read_register
 static void init(const char *policy_dir, const char *soc_cfg) {
   try {
     md_factory = new metadata_factory_t(policy_dir);
-    rv_validator = new rv32_validator_t(policy_dir, soc_cfg, reg_reader, nullptr);
+    rv_validator = new rv_validator_t(policy_dir, soc_cfg, reg_reader, nullptr);
   } catch (exception_t &e) {
     printf("exception: %s\n", e.what());
   }

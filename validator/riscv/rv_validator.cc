@@ -24,13 +24,17 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <algorithm>
+#include <cctype>
+#include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include "csr_list.h"
 #include "platform_types.h"
 #include "policy_eval.h"
 #include "policy_utils.h"
-#include "rv32_validator.h"
+#include "rv_validator.h"
 #include "soc_tag_configuration.h"
 #include "tag_based_validator.h"
 #include "validator_exception.h"
@@ -39,13 +43,13 @@ namespace policy_engine {
 
 extern std::string render_metadata(const metadata_t* metadata);
 
-static const char* tag_name(meta_set_t const* tag) {
+static std::string tag_name(const meta_set_t* tag) {
   static char tag_name[1024];
   meta_set_to_string(tag, tag_name, sizeof(tag_name));
-  return tag_name;
+  return std::string(tag_name);
 }
 
-void rv32_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
+void rv_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   for (const auto [ range, metadata ]: *md_map) {
     for (address_t start = range.start; start < range.end; start += 4) {
       try {
@@ -57,7 +61,7 @@ void rv32_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   }
 }
 
-void rv32_validator_t::handle_violation(context_t* ctx, operands_t* ops){
+void rv_validator_t::handle_violation(context_t* ctx, operands_t* ops){
   if (!failed) {
     failed = true;
     memcpy(&failed_ctx, ctx, sizeof(context_t));
@@ -65,10 +69,9 @@ void rv32_validator_t::handle_violation(context_t* ctx, operands_t* ops){
   }
 }
 
-void rv32_validator_t::setup_validation() {
-  ctx = {0, 0, 0, "", "", false};
+void rv_validator_t::setup_validation() {
+  ctx = {0, 0, 0, "", "", true};
   ops = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-  ctx.cached = true;
 
   if (res.pcResult) {
     memset(res.pc, 0, sizeof(meta_set_t));
@@ -86,34 +89,23 @@ void rv32_validator_t::setup_validation() {
   }
 }
 
-rv32_validator_t::rv32_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af) :
-    sim_validator_t(rr, af), tag_based_validator_t(policy_dir), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}), watch_pc(false) {
-  meta_set_t* ms;
-  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Default");
-  ireg_tags.fill(ms_cache.to_tag(ms));
-  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.RZero");
-  ireg_tags[0] = ms_cache.to_tag(ms);
-  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.Default");
-  csr_tags.fill(ms_cache.to_tag(ms));
-  ms = ms_factory.get_meta_set("ISA.RISCV.Reg.Env");
-  pc_tag = ms_cache.to_tag(ms);
+rv_validator_t::rv_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af) :
+    sim_validator_t(rr, af), tag_based_validator_t(policy_dir), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}),
+    watch_pc(false), rule_cache(nullptr), failed(false), has_insn_mem_addr(false), rule_cache_hits(0), rule_cache_misses(0) {
+  ireg_tags.fill(ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.Reg.Default")));
+  ireg_tags[0] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.Reg.RZero"));
+  csr_tags.fill(ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.Default")));
+  pc_tag = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.Reg.Env"));
   // set initial tags for specific CSRs
-  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.MEPC");
-  csr_tags[CSR_MEPC] = ms_cache.to_tag(ms);
-  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.MTVal");
-  csr_tags[CSR_MTVAL] = ms_cache.to_tag(ms);
-  ms = ms_factory.get_meta_set("ISA.RISCV.CSR.MTVec");
-  csr_tags[CSR_MTVEC] = ms_cache.to_tag(ms);
+  csr_tags[CSR_MEPC] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.MEPC"));
+  csr_tags[CSR_MTVAL] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.MTVal"));
+  csr_tags[CSR_MTVEC] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.MTVec"));
 
   soc_tag_configuration_t config(&ms_factory, soc_cfg);
   config.apply(&tag_bus, &ms_cache);
-  failed = false;
-  has_insn_mem_addr = false;
-  rule_cache_hits = 0;
-  rule_cache_misses = 0;
 }
 
-rv32_validator_t::~rv32_validator_t() {
+rv_validator_t::~rv_validator_t() {
   delete res.pc;
   delete res.rd;
   delete res.csr;
@@ -122,26 +114,26 @@ rv32_validator_t::~rv32_validator_t() {
   }
 }
 
-bool rv32_validator_t::validate(address_t pc, insn_bits_t insn,
-                                address_t memory_addr, bool *hit) {
+std::pair<bool, bool> rv_validator_t::validate(address_t pc, insn_bits_t insn, address_t memory_addr) {
   has_insn_mem_addr = true;
   mem_addr = memory_addr;
 
   bool result = validate(pc, insn);
   if (rule_cache) {
-    *hit = rule_cache_hit;
-    if (rule_cache_hit) rule_cache_hits++;
-    else rule_cache_misses++;
+    if (rule_cache_hit)
+      rule_cache_hits++;
+    else
+      rule_cache_misses++;
   }
-  return result;
+  return std::make_pair(result, rule_cache_hit);
 }
 
-void rv32_validator_t::flush_rule_cache() {
+void rv_validator_t::flush_rule_cache() {
   if (rule_cache)
     rule_cache->flush();
 }
 
-bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
+bool rv_validator_t::validate(address_t pc, insn_bits_t insn) {
   int policy_result = POLICY_EXP_FAILURE;
 
   setup_validation();
@@ -151,8 +143,7 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
       rule_cache_hits++;
       rule_cache_hit = true;
       return true;
-    }
-    else {
+    } else {
       rule_cache_misses++;
       rule_cache_hit = false;
     }
@@ -163,21 +154,19 @@ bool rv32_validator_t::validate(address_t pc, insn_bits_t insn) {
   if (policy_result == POLICY_SUCCESS) {
     complete_eval();
   } else {
-    printf("violation address: 0x%" PRIaddr "\n",pc);
-
+    std::printf("violation address: 0x%" PRIaddr "\n",pc);
     handle_violation(&ctx, &ops);
   }
   return policy_result == POLICY_SUCCESS;
 }
 
-bool rv32_validator_t::commit() {
+bool rv_validator_t::commit() {
   bool hit_watch = false;
 
   if (res.pcResult) {
     tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.pc));
-    if(watch_pc && pc_tag != new_tag){
-      printf("Watch tag pc\n");
-      fflush(stdout);
+    if (watch_pc && pc_tag != new_tag) {
+      std::cout << "Watch tag pc" << std::endl;
       hit_watch = true;
     }
     pc_tag = new_tag;
@@ -185,10 +174,9 @@ bool rv32_validator_t::commit() {
 
   if (has_pending_RD && res.rdResult) {
     tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.rd));
-    for(std::vector<address_t>::iterator it = watch_regs.begin(); it != watch_regs.end(); ++it) {
-      if(pending_RD == *it && ireg_tags[pending_RD] != new_tag){
-        printf("Watch tag reg\n");
-        fflush(stdout);
+    for (const address_t& reg : watch_regs) {
+      if (pending_RD == reg && ireg_tags[pending_RD] != new_tag) {
+        std::cout << "Watch tag reg" << std::endl;
         hit_watch = true;
       }
     }
@@ -205,21 +193,18 @@ bool rv32_validator_t::commit() {
     try {
       old_tag = tag_bus.data_tag_at(mem_paddr);
     } catch (const std::out_of_range& e) {
-      printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
-      fflush(stdout);
+      std::printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
       hit_watch = true; // might as well halt
     }
 
-    for (std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
-      if (mem_addr == *it && old_tag != new_tag){
+    for (const address_t& addr : watch_addrs) {
+      if (mem_addr == addr && old_tag != new_tag){
         address_t epc_addr = ctx.epc;
-
-        printf("Watch tag mem at PC 0x%" PRIaddr "\n", epc_addr);
-
-        fflush(stdout);
+        std::printf("Watch tag mem at PC 0x%" PRIaddr "\n", epc_addr);
         hit_watch = true;
       }
     }
+
     try {
       tag_bus.data_tag_at(mem_paddr) = new_tag;
     } catch (const std::out_of_range& e) {
@@ -228,10 +213,11 @@ bool rv32_validator_t::commit() {
       hit_watch = true; // might as well halt
     }
   }
+
   if (has_pending_CSR && res.csrResult) {
     tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.csr));
-    for (std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
-      if (pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
+    for (const address_t& csr : watch_csrs) {
+      if (pending_CSR == csr && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR\n");
         fflush(stdout);
         hit_watch = true;
@@ -257,17 +243,11 @@ bool rv32_validator_t::commit() {
   return hit_watch;
 }
 
-void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
-  tag_t ci_tag;
-  address_t pc_paddr = addr_fixer(pc);
-  address_t mem_paddr;
-
-  int32_t flags;
-
+void rv_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   failed = false;
-  
   setup_validation();
 
+  address_t pc_paddr = addr_fixer(pc);
   decoded_instruction_t inst = decode(insn, ADDRESS_T_SIZE*8);
   if (!inst) {
     printf("Couldn't decode instruction at 0x%" PRIaddr " (0x%" PRIaddr "): 0x%08x   %s\n", pc, pc_paddr, insn, inst.name.c_str());
@@ -300,7 +280,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
 
       /* mask off unaligned bits, just in case */
     }
-    mem_paddr = addr_fixer(mem_addr);
+    address_t mem_paddr = addr_fixer(mem_addr);
     ctx.bad_addr = mem_addr;
     try {
       tag_t mtag = tag_bus.data_tag_at(mem_paddr);
@@ -315,6 +295,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     }
   }
 
+  tag_t ci_tag;
   try {
     ci_tag = tag_bus.insn_tag_at(pc_paddr);
   } catch (const std::out_of_range& e) {
@@ -325,29 +306,28 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   ops.pc = ms_cache[pc_tag];
 }
 
-void rv32_validator_t::complete_eval() {}
+void rv_validator_t::complete_eval() {}
 
-void rv32_validator_t::config_rule_cache(const std::string& rule_cache_name, int capacity) {
+void rv_validator_t::config_rule_cache(const std::string& rule_cache_name, int capacity) {
   printf("%s rule cache with capacity %d!\n", rule_cache_name.c_str(), capacity);
-  for (auto s : rule_cache_name)
-    s = tolower(s);
-  if (rule_cache_name == "ideal") {
+  std::string name_lower;
+  std::transform(rule_cache_name.begin(), rule_cache_name.end(), name_lower.begin(), [](char c){ return std::tolower(c); });
+  if (name_lower == "ideal") {
     rule_cache = new ideal_rule_cache_t();
-  } else if (rule_cache_name == "finite") {
+  } else if (name_lower == "finite") {
     rule_cache = new finite_rule_cache_t(capacity);
-  } else if (rule_cache_name == "dmhc") {
+  } else if (name_lower == "dmhc") {
     rule_cache = new dmhc_rule_cache_t(capacity, DMHC_RULE_CACHE_IWIDTH, DMHC_RULE_CACHE_OWIDTH, DMHC_RULE_CACHE_K, DMHC_RULE_CACHE_NO_EVICT);
   } else if (rule_cache_name.size() != 0) {
     throw configuration_exception_t("Invalid rule cache name");
   }
 }
 
-void rv32_validator_t::rule_cache_stats() {
+void rv_validator_t::rule_cache_stats() {
   if (rule_cache) {
-    fprintf(stderr, "rule cache: hits %ld misses %ld total %ld\n",
-	rule_cache_hits, rule_cache_misses, rule_cache_hits + rule_cache_misses);
-    double hit_rate = (double)rule_cache_hits / (rule_cache_hits + rule_cache_misses);
-    fprintf(stderr, "rule cache hit rate was %f%%!\n", hit_rate * 100);
+    std::cerr << "rule cache: hits " << rule_cache_hits << " misses " << rule_cache_misses << " total " << (rule_cache_hits + rule_cache_misses) << std::endl;
+    double hit_rate = (double)rule_cache_hits/(rule_cache_hits + rule_cache_misses);
+    std::cerr << "rule cache hit rate was " << (hit_rate*100) << "%!" << std::endl;
   }
 };
 
