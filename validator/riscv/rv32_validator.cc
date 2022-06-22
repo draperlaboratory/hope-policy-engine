@@ -24,6 +24,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdexcept>
 #include <string>
 #include "csr_list.h"
 #include "platform_types.h"
@@ -47,8 +48,10 @@ static const char* tag_name(meta_set_t const* tag) {
 void rv32_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   for (const auto [ range, metadata ]: *md_map) {
     for (address_t start = range.start; start < range.end; start += 4) {
-      if (!tag_bus.store_insn_tag(start, ms_cache.to_tag(ms_cache.canonize(metadata)))) {
-	      throw configuration_exception_t("unable to apply metadata");
+      try {
+        tag_bus.insn_tag_at(start) = ms_cache.to_tag(ms_cache.canonize(metadata));
+      } catch (const std::out_of_range& e) {
+        throw configuration_exception_t("unable to apply metadata");
       }
     }
   }
@@ -199,15 +202,16 @@ bool rv32_validator_t::commit() {
     tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.rd));
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
-    if (!tag_bus.load_tag(mem_paddr, old_tag)) {
-        printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
-
+    try {
+      old_tag = tag_bus.tag_at(mem_paddr);
+    } catch (const std::out_of_range& e) {
+      printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
       fflush(stdout);
-      // might as well halt
-      hit_watch = true;
+      hit_watch = true; // might as well halt
     }
-    for(std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
-      if(mem_addr == *it && old_tag != new_tag){
+
+    for (std::vector<address_t>::iterator it = watch_addrs.begin(); it != watch_addrs.end(); ++it) {
+      if (mem_addr == *it && old_tag != new_tag){
         address_t epc_addr = ctx.epc;
 
         printf("Watch tag mem at PC 0x%" PRIaddr "\n", epc_addr);
@@ -216,18 +220,18 @@ bool rv32_validator_t::commit() {
         hit_watch = true;
       }
     }
-    if (!tag_bus.store_tag(mem_paddr, new_tag)) {
-        printf("failed to store MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
-
+    try {
+      tag_bus.tag_at(mem_paddr) = new_tag;
+    } catch (const std::out_of_range& e) {
+      printf("failed to store MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
       fflush(stdout);
-      // might as well halt
-      hit_watch = true;
+      hit_watch = true; // might as well halt
     }
   }
   if (has_pending_CSR && res.csrResult) {
     tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.csr));
-    for(std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
-      if(pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
+    for (std::vector<address_t>::iterator it = watch_csrs.begin(); it != watch_csrs.end(); ++it) {
+      if (pending_CSR == *it && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR\n");
         fflush(stdout);
         hit_watch = true;
@@ -298,19 +302,22 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     }
     mem_paddr = addr_fixer(mem_addr);
     ctx.bad_addr = mem_addr;
-    tag_t mtag;
-    if (!tag_bus.load_tag(mem_paddr, mtag)) {
-      printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr, mem_addr, mem_paddr);
-    } else {
+    try {
+      tag_t mtag = tag_bus.tag_at(mem_paddr);
       ops.mem = ms_cache[mtag];
       if (!ops.mem) {
-        printf("Error: TMT miss for memory (0x%" PRIaddr " (0x%" PRIaddr ")) at instruction 0x%" PRIaddr ". TMT misses are fatal.\n", mem_addr, mem_paddr, pc);
-        exit(1);
+        char buf[128];
+        sprintf(buf, "TMT miss for memory (0x%" PRIaddr " (0x%" PRIaddr ")) at instruction 0x%" PRIaddr ". TMT misses are fatal.\n", mem_addr, mem_paddr, pc);
+        throw std::runtime_error(buf);
       }
+    } catch (const std::out_of_range& e) {
+      printf("failed to load MR tag -- pc: 0x%" PRIaddr " (0x%" PRIaddr ") addr: 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr, mem_addr, mem_paddr);
     }
   }
 
-  if (!tag_bus.load_insn_tag(pc_paddr, ci_tag)) {
+  try {
+    ci_tag = tag_bus.insn_tag_at(pc_paddr);
+  } catch (const std::out_of_range& e) {
     printf("failed to load CI tag for PC 0x%" PRIaddr " (0x%" PRIaddr ")\n", pc, pc_paddr);
   }
   ctx.epc = pc;
