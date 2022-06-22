@@ -25,6 +25,7 @@
  */
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include "meta_cache.h"
@@ -96,9 +97,9 @@ soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t* factory, co
 void soc_tag_configuration_t::apply(tag_bus_t* tag_bus, meta_set_cache_t* ms_cache) {
   for (const auto& e: elements) {
     if (e.heterogeneous) {
-      tag_bus->add_provider(e.start, e.end, new platform_ram_tag_provider_t(e.end - e.start, ms_cache->to_tag(e.meta_set), e.word_size, e.tag_granularity));
+      tag_bus->add_provider(e.start, e.end, std::make_unique<platform_ram_tag_provider_t>(e.end - e.start, ms_cache->to_tag(e.meta_set), e.word_size, e.tag_granularity));
     } else {
-      tag_bus->add_provider(e.start, e.end, new uniform_tag_provider_t(e.end - e.start, ms_cache->to_tag(e.meta_set), e.tag_granularity));
+      tag_bus->add_provider(e.start, e.end, std::make_unique<uniform_tag_provider_t>(e.end - e.start, ms_cache->to_tag(e.meta_set), e.tag_granularity));
     }
   }
 }

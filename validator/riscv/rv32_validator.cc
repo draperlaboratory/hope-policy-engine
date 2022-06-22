@@ -203,7 +203,7 @@ bool rv32_validator_t::commit() {
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
     try {
-      old_tag = tag_bus.tag_at(mem_paddr);
+      old_tag = tag_bus.data_tag_at(mem_paddr);
     } catch (const std::out_of_range& e) {
       printf("failed to load MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
       fflush(stdout);
@@ -221,7 +221,7 @@ bool rv32_validator_t::commit() {
       }
     }
     try {
-      tag_bus.tag_at(mem_paddr) = new_tag;
+      tag_bus.data_tag_at(mem_paddr) = new_tag;
     } catch (const std::out_of_range& e) {
       printf("failed to store MR tag @ 0x%" PRIaddr " (0x%" PRIaddr ")\n", mem_addr, mem_paddr);
       fflush(stdout);
@@ -303,7 +303,7 @@ void rv32_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     mem_paddr = addr_fixer(mem_addr);
     ctx.bad_addr = mem_addr;
     try {
-      tag_t mtag = tag_bus.tag_at(mem_paddr);
+      tag_t mtag = tag_bus.data_tag_at(mem_paddr);
       ops.mem = ms_cache[mtag];
       if (!ops.mem) {
         char buf[128];

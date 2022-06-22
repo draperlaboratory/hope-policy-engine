@@ -88,7 +88,7 @@ public:
   // Provides the tag for a given address.  Used for debugging.
   virtual bool get_tag(address_t addr, meta_set_t*& ms) {
     try {
-      ms = ms_cache[tag_bus.tag_at(addr)];
+      ms = ms_cache[tag_bus.data_tag_at(addr)];
       return true;
     } catch (...) {
       ms = nullptr;

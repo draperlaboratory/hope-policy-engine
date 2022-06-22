@@ -31,6 +31,7 @@
 #include <cinttypes>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -53,7 +54,7 @@ static const tag_t BAD_TAG_VALUE = -1;
 struct tag_provider_t {
   virtual ~tag_provider_t() {}
 
-  virtual tag_t& tag_at(address_t addr) = 0;
+  virtual tag_t& data_tag_at(address_t addr) = 0;
   virtual tag_t& insn_tag_at(address_t addr) = 0;
 };
 
@@ -62,9 +63,6 @@ private:
   size_t tag_granularity; // number of bytes a tag applies to
   address_t size;
   tag_t tag;
-
-public:
-  uniform_tag_provider_t(address_t size, tag_t tag, size_t tag_granularity) : size(size), tag(tag), tag_granularity(tag_granularity) {}
 
   tag_t& tag_at(address_t addr) {
     if (addr < size)
@@ -76,6 +74,10 @@ public:
     }
   }
 
+public:
+  uniform_tag_provider_t(address_t size, tag_t tag, size_t tag_granularity) : size(size), tag(tag), tag_granularity(tag_granularity) {}
+
+  tag_t& data_tag_at(address_t addr) { return tag_at(addr); }
   tag_t& insn_tag_at(address_t addr) { return tag_at(addr); }
 };
 
@@ -90,7 +92,7 @@ public:
   platform_ram_tag_provider_t(address_t size, tag_t tag, size_t word_size, size_t tag_granularity) :
     size(size), word_size(word_size), tags(size/MIN_TAG_GRANULARITY + 1, tag), tag_granularity(tag_granularity) {}
   
-  tag_t& tag_at(address_t addr) {
+  tag_t& data_tag_at(address_t addr) {
     if (addr < size)
       return tags[(addr & -tag_granularity)/MIN_TAG_GRANULARITY];
     else {
@@ -111,54 +113,34 @@ public:
   }
 };
 
-class tag_provider_map_t {
+class tag_bus_t : public tag_provider_t {
 private:
-  std::map<int64_t, tag_provider_t*> providers;
+  std::map<int64_t, std::unique_ptr<tag_provider_t>> provider_map;
 
-public:
-  void add_provider(address_t start_addr, address_t end_addr, tag_provider_t* provider) {
-    providers[-start_addr] = provider;
-  }
-
-  tag_provider_t* get_provider(address_t addr, address_t& offset) {
-    auto it = providers.lower_bound(-addr);
-    if (it == providers.end()) {
-      return nullptr;
-    }
-    offset = addr - -it->first;
-    return it->second;
-  }
-};
-
-class tag_bus_t {
-private:
-  tag_provider_map_t provider_map;
-
-public:
-  void add_provider(address_t start_addr, address_t end_addr, tag_provider_t* provider) {
-    provider_map.add_provider(start_addr, end_addr, provider);
-  }
-
-  tag_t& tag_at(address_t addr) {
-    address_t offset;
-    if (tag_provider_t* tp = provider_map.get_provider(addr, offset)) {
-      return tp->tag_at(offset);
+  decltype(provider_map)::reference get_provider(address_t addr) {
+    if (auto it = provider_map.lower_bound(-addr); it != provider_map.end()) {
+      //return tf(it->second, addr - -it->first);
+      return *it;
     } else {
       char buf[64];
       std::sprintf(buf, "bad address %#lx", addr);
       throw std::out_of_range(buf);
     }
+  }
+
+public:
+  void add_provider(address_t start_addr, address_t end_addr, std::unique_ptr<tag_provider_t>&& provider) {
+    provider_map[-start_addr] = std::move(provider);
+  }
+
+  tag_t& data_tag_at(address_t addr) {
+    auto& [ base, tp ] = get_provider(addr);
+    return tp->data_tag_at(addr - -base);
   }
 
   tag_t& insn_tag_at(address_t addr) {
-    address_t offset;
-    if (tag_provider_t* tp = provider_map.get_provider(addr, offset)) {
-      return tp->insn_tag_at(offset);
-    } else {
-      char buf[64];
-      std::sprintf(buf, "bad address %#lx", addr);
-      throw std::out_of_range(buf);
-    }
+    auto& [ base, tp ] = get_provider(addr);
+    return tp->insn_tag_at(addr - -base);
   }
 };
 
