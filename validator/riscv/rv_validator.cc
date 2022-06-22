@@ -41,8 +41,6 @@
 
 namespace policy_engine {
 
-extern std::string render_metadata(const metadata_t* metadata);
-
 static std::string tag_name(const meta_set_t* tag) {
   static char tag_name[1024];
   meta_set_to_string(tag, tag_name, sizeof(tag_name));
