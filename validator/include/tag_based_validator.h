@@ -30,6 +30,7 @@
 #include <string>
 #include "meta_cache.h"
 #include "meta_set_factory.h"
+#include "policy_meta_set.h"
 #include "sim_validator.h"
 #include "tag_utils.h"
 
@@ -48,7 +49,7 @@ public:
   virtual bool commit() = 0;
 
   // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, meta_set_t*& ms) = 0;
+  virtual meta_set_t* get_tag(address_t addr) = 0;
 };
 
 } // namespace policy_engine

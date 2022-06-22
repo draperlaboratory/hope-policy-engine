@@ -60,7 +60,7 @@ static uint64_t reg_reader(uint32_t regno) { return (uint64_t)rv32.read_register
 static void init(const char *policy_dir, const char *soc_cfg) {
   try {
     md_factory = new metadata_factory_t(policy_dir);
-    rv_validator = new rv32_validator_t(policy_dir, soc_cfg, reg_reader, NULL);
+    rv_validator = new rv32_validator_t(policy_dir, soc_cfg, reg_reader, nullptr);
   } catch (exception_t &e) {
     printf("exception: %s\n", e.what());
   }
@@ -120,15 +120,10 @@ int main(int argc, char **argv) {
   #define NREPS 4
   for (int reps = 0; reps < NREPS; reps++) {
     do {
-      meta_set_t* ci_tag;
-      
-      // get the CI tag
-      if (!rv_validator->get_tag(rv32.get_pc(), ci_tag)) {
-         printf("could not load tag for PC 0x%" PRIaddr_pad "\n",
-                rv32.get_pc());
-      } else {
-	// we can print the tag here
-      }
+      if (meta_set_t* ci_tag = rv_validator->get_tag(rv32.get_pc())) {
+        // we can print the tag here
+      } else
+        printf("could not load tag for PC 0x%" PRIaddr_pad "\n", rv32.get_pc());
       
       // call the validator
       rv_validator->validate(rv32.get_pc(), rv32.get_insn());

@@ -86,13 +86,11 @@ public:
   bool commit();
 
   // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, meta_set_t*& ms) {
+  virtual meta_set_t* get_tag(address_t addr) {
     try {
-      ms = ms_cache[tag_bus.data_tag_at(addr)];
-      return true;
+      return ms_cache[tag_bus.data_tag_at(addr)];
     } catch (...) {
-      ms = nullptr;
-      return false;
+      return nullptr;
     }
   }
 

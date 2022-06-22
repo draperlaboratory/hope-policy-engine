@@ -223,18 +223,15 @@ extern "C" void e_v_reg_tag(char* dest, int n, uint64_t addr) {
 }
 
 extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
-  if(addr <= ADDRESS_T_MAX){
-    address_t a = (address_t)addr;
-    meta_set_t* ms;
-    if (rv_validator->get_tag(a, ms)) {
+  if (addr <= ADDRESS_T_MAX) {
+    if (meta_set_t* ms = rv_validator->get_tag(static_cast<address_t>(addr))) {
       meta_set_to_string(ms, dest, n);
     } else {
       char tmp[128];
       snprintf(tmp, 128, "Bad Address: %lx\n", addr);
       strncpy(dest, tmp, n);
     }
-  }
-  else
+  } else
     strncpy(dest, "Out of range", n);
 }
 
