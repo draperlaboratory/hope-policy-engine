@@ -54,7 +54,6 @@ add_library(rv_validator
   validator/riscv/inst_decoder.cc
   validator/riscv/rv_validator.cc
   validator/riscv/meta_set_factory.cc
-  validator/riscv/fake_riscv.cc
   validator/rule_cache/ideal_rule_cache/ideal_rule_cache.cc
   validator/rule_cache/finite_rule_cache/finite_rule_cache.cc
   validator/rule_cache/dmhc_rule_cache/compute_hash.cc
@@ -87,20 +86,6 @@ target_include_directories(gen_tag_info PRIVATE
   ./validator/riscv
   )
 
-add_executable(standalone
-	validator/riscv/standalone.cc
-	)
-target_link_libraries(standalone rv_validator tagging_tools validator yaml-cpp)
-target_include_directories(standalone PRIVATE
-  ./policy/include
-  ./validator/riscv
-  ./validator/include/policy-glue
-  ./validator/rule_cache
-  ./validator/rule_cache/ideal_rule_cache
-  ./validator/rule_cache/finite_rule_cache
-  ./validator/rule_cache/dmhc_rule_cache
-  )
-
 add_library(rv32-sim-validator SHARED
 	validator/riscv/main.cc
 	)
@@ -121,21 +106,6 @@ add_library(rv64-sim-validator SHARED
 set_target_properties (rv64-sim-validator PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
 target_link_libraries(rv64-sim-validator rv_validator tagging_tools validator yaml-cpp)
 target_include_directories(rv64-sim-validator PRIVATE
-  ./policy/include
-  ./validator/riscv
-  ./validator/include/policy-glue
-  ./validator/rule_cache
-  ./validator/rule_cache/ideal_rule_cache
-  ./validator/rule_cache/finite_rule_cache
-  ./validator/rule_cache/dmhc_rule_cache
-  )
-
-add_executable(standalone64
-	validator/riscv/standalone.cc
-	)
-set_target_properties(standalone64 PROPERTIES COMPILE_FLAGS -DRV64_VALIDATOR)
-target_link_libraries(standalone64 rv_validator tagging_tools validator yaml-cpp)
-target_include_directories(standalone64 PRIVATE
   ./policy/include
   ./validator/riscv
   ./validator/include/policy-glue
