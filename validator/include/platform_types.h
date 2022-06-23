@@ -41,8 +41,4 @@ typedef uint64_t reg_t; // big enogh to fit data for both RV32 and RV64
 #define PRIaddr_pad "016lx"
 #define PRIreg PRIu64
 
-// hack to account for the validator expecting this to exist
-extern uint64_t ADDRESS_T_MAX;
-extern size_t ADDRESS_T_SIZE;
-
 #endif

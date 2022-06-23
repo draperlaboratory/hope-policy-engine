@@ -55,10 +55,10 @@ private:
   std::list<soc_element_t> elements;
   meta_set_factory_t* factory;
 
-  void process_element(const std::string& element_name, const YAML::Node& n);
+  void process_element(const std::string& element_name, const YAML::Node& n, int xlen);
 
 public:
-  soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name);
+  soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name, int xlen);
 
   void apply(tag_bus_t* tag_bus, meta_set_cache_t* ms_cache);
 

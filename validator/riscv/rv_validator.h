@@ -59,6 +59,8 @@ private:
   bool rule_cache_hit;
 
 public:
+  const int xlen;
+
   context_t ctx;
   operands_t ops;
   results_t res;
@@ -72,8 +74,10 @@ public:
   std::vector<address_t> watch_csrs;
   std::vector<address_t> watch_addrs;
 
-  rv_validator_t(const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
+  rv_validator_t(int xlen, const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
   virtual ~rv_validator_t();
+
+  constexpr uint64_t address_max() { if (xlen < 64) return (1ULL << xlen) - 1; else return -1; }
 
   // called before we call the policy code - initializes ground state of input/output structures
   void setup_validation();

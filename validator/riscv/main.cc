@@ -40,15 +40,6 @@
 #include <yaml-cpp/yaml.h>
 #include <cinttypes>
 
-// hack to correctly assign address max while the validator expects it to be statically determined
-#ifdef RV64_VALIDATOR
-uint64_t ADDRESS_T_MAX = std::numeric_limits<uint64_t>::max();
-size_t ADDRESS_T_SIZE = sizeof(uint64_t);
-#else
-uint64_t ADDRESS_T_MAX = std::numeric_limits<uint32_t>::max();
-size_t ADDRESS_T_SIZE = sizeof(uint32_t);
-#endif
-
 static std::unique_ptr<policy_engine::rv_validator_t> rv_validator = nullptr;
 static std::string policy_dir;
 static std::string tags_file;
@@ -64,7 +55,12 @@ void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, A
   if (!DOA) {
     try {
       std::printf("setting callbacks\n");
-      rv_validator = std::make_unique<policy_engine::rv_validator_t>(policy_dir, soc_cfg_path, reg_reader, addr_fixer);
+// hack to correctly assign address max while the validator expects it to be statically determined
+#ifdef RV64_VALIDATOR
+      rv_validator = std::make_unique<policy_engine::rv_validator_t>(64, policy_dir, soc_cfg_path, reg_reader, addr_fixer);
+#else
+      rv_validator = std::make_unique<policy_engine::rv_validator_t>(32, policy_dir, soc_cfg_path, reg_reader, addr_fixer);
+#endif
       
       policy_engine::metadata_memory_map_t map;
       if (!policy_engine::load_tags(map, tags_file)) {
@@ -130,7 +126,7 @@ void e_v_set_metadata(const char* validator_cfg_path) {
 }
 
 uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
-  if (pc > ADDRESS_T_MAX) {
+  if (pc > rv_validator->address_max()) {
     std::printf("Validate PC (0x%lx) Out of Range.\n", pc);
     DOA = true;
     return 0;
@@ -148,7 +144,7 @@ uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
 }
 
 uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t mem_addr, bool* hit) {
-  if (pc > ADDRESS_T_MAX || mem_addr > ADDRESS_T_MAX) {
+  if (pc > rv_validator->address_max() || mem_addr > rv_validator->address_max()) {
     std::printf("Cached validate PC (0x%lx) or Mem Address (0x%lx) Out of Range.\n", pc, mem_addr);
     DOA = true;
     return 0;
@@ -206,7 +202,7 @@ void e_v_reg_tag(char* dest, int n, uint64_t addr) {
 }
 
 void e_v_mem_tag(char* dest, int n, uint64_t addr) {
-  if (addr <= ADDRESS_T_MAX) {
+  if (addr <= rv_validator->address_max()) {
     if (meta_set_t* ms = rv_validator->get_meta_set(static_cast<address_t>(addr))) {
       meta_set_to_string(ms, dest, n);
     } else {
@@ -320,21 +316,21 @@ void e_v_set_pc_watch(bool watching){
 }
 
 void e_v_set_reg_watch(uint64_t addr){
-  if(addr <= ADDRESS_T_MAX) {
+  if(addr <= rv_validator->address_max()) {
     rv_validator->set_reg_watch(static_cast<address_t>(addr));
   } else
     std::printf("Reg Watch Address Out of Range: 0x%lx\n", addr);
 }
 
 void e_v_set_csr_watch(uint64_t addr){
-  if (addr <= ADDRESS_T_MAX) {
+  if (addr <= rv_validator->address_max()) {
     rv_validator->set_csr_watch(static_cast<address_t>(addr));
   } else
     std::printf("CSR Watch Address Out of Range: 0x%lx\n", addr);
 }
 
 void e_v_set_mem_watch(uint64_t addr){
-  if(addr <= ADDRESS_T_MAX) {
+  if(addr <= rv_validator->address_max()) {
     rv_validator->set_mem_watch(static_cast<address_t>(addr));
   }
   else

@@ -47,7 +47,7 @@ static void dump_node(const YAML::Node& node) {
   }
 }
 
-void soc_tag_configuration_t::process_element(const std::string& element_name, const YAML::Node& n) {
+void soc_tag_configuration_t::process_element(const std::string& element_name, const YAML::Node& n, int xlen) {
   std::string elt_path;
   soc_element_t elt;
   elt.heterogeneous = false;
@@ -61,9 +61,9 @@ void soc_tag_configuration_t::process_element(const std::string& element_name, c
   if (n["tag_granularity"]) {
     elt.tag_granularity = n["tag_granularity"].as<size_t>();
   } else {
-    elt.tag_granularity = ADDRESS_T_SIZE;
+    elt.tag_granularity = xlen/8;
   }
-  elt.word_size = ADDRESS_T_SIZE;
+  elt.word_size = xlen/8;
 
   if (n["start"]) {
     elt.start = n["start"].as<address_t>();
@@ -83,11 +83,11 @@ void soc_tag_configuration_t::process_element(const std::string& element_name, c
   elements.push_back(elt);
 }
 
-soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name) : factory(factory) {
+soc_tag_configuration_t::soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name, int xlen) : factory(factory) {
   YAML::Node n = YAML::LoadFile(file_name);
   if (n["SOC"]) {
     for (const auto& it : n["SOC"]) {
-      process_element(it.first.as<std::string>(), it.second);
+      process_element(it.first.as<std::string>(), it.second, xlen);
     }
   } else {
     throw configuration_exception_t("Expected a root SOC node");
