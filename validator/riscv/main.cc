@@ -27,6 +27,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <limits>
+#include <memory>
 #include "meta_cache.h"
 #include "meta_set_factory.h"
 #include "rv_validator.h"
@@ -40,78 +42,74 @@
 
 // hack to correctly assign address max while the validator expects it to be statically determined
 #ifdef RV64_VALIDATOR
-uint64_t ADDRESS_T_MAX = UINT64_MAX;
-size_t ADDRESS_T_SIZE = 8;
+uint64_t ADDRESS_T_MAX = std::numeric_limits<uint64_t>::max();
+size_t ADDRESS_T_SIZE = sizeof(uint64_t);
 #else
-uint64_t ADDRESS_T_MAX = UINT32_MAX;
-size_t ADDRESS_T_SIZE = 4;
+uint64_t ADDRESS_T_MAX = std::numeric_limits<uint32_t>::max();
+size_t ADDRESS_T_SIZE = sizeof(uint32_t);
 #endif
 
-using namespace policy_engine;
-
-rv_validator_t *rv_validator;
-std::string policy_dir;
-std::string tags_file;
-std::string soc_cfg_path;
-std::string rule_cache_name;
-int rule_cache_capacity;
+static std::unique_ptr<policy_engine::rv_validator_t> rv_validator = nullptr;
+static std::string policy_dir;
+static std::string tags_file;
+static std::string soc_cfg_path;
+static std::string rule_cache_name;
+static int rule_cache_capacity;
 
 static bool DOA = false;
 
-extern "C" void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
+extern "C" {
+
+void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
   if (!DOA) {
     try {
-      printf("setting callbacks\n");
-      rv_validator = new rv_validator_t(policy_dir, soc_cfg_path, reg_reader, addr_fixer);
+      std::printf("setting callbacks\n");
+      rv_validator = std::make_unique<policy_engine::rv_validator_t>(policy_dir, soc_cfg_path, reg_reader, addr_fixer);
       
-      metadata_memory_map_t map;
-      //      std::string tags_file = std::string(getenv("GENERATED_POLICY_DIR")) + "/../application_tags.taginfo";
-      if (!load_tags(map, tags_file)) {
-        printf("failed read\n");
+      policy_engine::metadata_memory_map_t map;
+      if (!policy_engine::load_tags(map, tags_file)) {
+        std::printf("failed read\n");
       } else {
         rv_validator->apply_metadata(&map);
       }
       if (rule_cache_name.size() != 0)
         rv_validator->config_rule_cache(rule_cache_name, rule_cache_capacity);
-    } catch (exception_t &e) {
-      printf("validator exception %s while setting callbacks - policy code DOA\n", e.what());
+    } catch (const policy_engine::exception_t& e) {
+      std::printf("validator exception %s while setting callbacks - policy code DOA\n", e.what());
       DOA = true;
-    } catch (std::exception &e) {
-      printf("c++ exception %s while setting callbacks - policy code DOA\n", e.what());
+    } catch (const std::exception& e) {
+      std::printf("c++ exception %s while setting callbacks - policy code DOA\n", e.what());
       DOA = true;
     } catch (...) {
-      printf("c++ exception while setting callbacks - policy code DOA\n");
+      std::printf("c++ exception while setting callbacks - policy code DOA\n");
       DOA = true;
     }
   }
 }
 
-extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
+void e_v_set_metadata(const char* validator_cfg_path) {
   try {
     YAML::Node cfg = YAML::LoadFile(validator_cfg_path);
     if (!cfg) {
-      throw configuration_exception_t("Unable to load validator yaml configuration!");
+      throw policy_engine::configuration_exception_t("Unable to load validator yaml configuration!");
     }
     if (cfg["policy_dir"]) {
       policy_dir = cfg["policy_dir"].as<std::string>();
-    }
-    else {
-      throw configuration_exception_t("Must provide policy directory in validator yaml configuration");
+    } else {
+      throw policy_engine::configuration_exception_t("Must provide policy directory in validator yaml configuration");
     }
     if (cfg["tags_file"]) {
       tags_file = cfg["tags_file"].as<std::string>();
-    }
-    else {
-      throw configuration_exception_t("Must provide taginfo file path in validator yaml configuration");
+    } else {
+      throw policy_engine::configuration_exception_t("Must provide taginfo file path in validator yaml configuration");
     }
     if (cfg["soc_cfg_path"]) {
       soc_cfg_path = cfg["soc_cfg_path"].as<std::string>();
-    }
-    else {
-      throw configuration_exception_t("Must provide soc_cfg file path in validator yaml configuration");
+    } else {
+      throw policy_engine::configuration_exception_t("Must provide soc_cfg file path in validator yaml configuration");
     }
     if (cfg["rule_cache"]) {
-      for (auto element: cfg["rule_cache"]) {
+      for (const auto& element: cfg["rule_cache"]) {
         std::string element_string = element.first.as<std::string>();
         if (element_string == "name")
           rule_cache_name = element.second.as<std::string>();
@@ -119,160 +117,132 @@ extern "C" void e_v_set_metadata(const char* validator_cfg_path) {
           rule_cache_capacity = element.second.as<int>();
       }
     }
-    printf("set policy dir: %s\n", policy_dir.c_str());
-    printf("set taginfo file: %s\n", tags_file.c_str());
-    printf("set soc cfg file: %s\n", soc_cfg_path.c_str());
-  } catch (std::exception &e) {
-      printf("c++ exception %s while setting metadata - policy code DOA\n", e.what());
+    std::printf("set policy dir: %s\n", policy_dir.c_str());
+    std::printf("set taginfo file: %s\n", tags_file.c_str());
+    std::printf("set soc cfg file: %s\n", soc_cfg_path.c_str());
+  } catch (const std::exception& e) {
+      std::printf("c++ exception %s while setting metadata - policy code DOA\n", e.what());
       DOA = true;
   } catch (...) {
-    printf("c++ exception while setting metadata - policy code DOA\n");
+    std::printf("c++ exception while setting metadata - policy code DOA\n");
     DOA = true;
   }
 }
 
-extern "C" uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
-  if (pc > ADDRESS_T_MAX)
-  {
-    printf("Validate PC (0x%lx) Out of Range.\n", pc);
+uint32_t e_v_validate(uint64_t pc, uint32_t instr) {
+  if (pc > ADDRESS_T_MAX) {
+    std::printf("Validate PC (0x%lx) Out of Range.\n", pc);
     DOA = true;
     return 0;
   }
 
-  address_t a = (address_t)pc;
-
-//  printf("uncached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      return rv_validator->validate(a, instr);
+      return rv_validator->validate(static_cast<address_t>(pc), instr);
     } catch (...) {
-      printf("c++ exception while validating - policy code DOA\n");
+      std::printf("c++ exception while validating - policy code DOA\n");
       DOA = true;
     }
   }
   return 0;
 }
 
-extern "C" uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t mem_addr, bool* hit) {
-  if ((pc > ADDRESS_T_MAX) || (mem_addr > ADDRESS_T_MAX))
-  {
-    printf("Cached validate PC (0x%lx) or Mem Address (0x%lx) "
-           "Out of Range.\n", pc, mem_addr);
+uint32_t e_v_validate_cached(uint64_t pc, uint32_t instr, uint64_t mem_addr, bool* hit) {
+  if (pc > ADDRESS_T_MAX || mem_addr > ADDRESS_T_MAX) {
+    std::printf("Cached validate PC (0x%lx) or Mem Address (0x%lx) Out of Range.\n", pc, mem_addr);
     DOA = true;
     return 0;
   }
 
-  address_t ap = (address_t)pc;
-  address_t am = (address_t)mem_addr;
-
-//  printf("cached: validating 0x%x: 0x%x\n", pc, instr);
   if (!DOA) {
     try {
-      auto [ success, h ] = rv_validator->validate(ap, instr, am);
+      auto [ success, h ] = rv_validator->validate(static_cast<address_t>(pc), instr, static_cast<address_t>(mem_addr));
       *hit = h;
       return success ? 1 : 0;
     } catch (...) {
-      printf("c++ exception while validating - policy code DOA\n");
+      std::printf("c++ exception while validating - policy code DOA\n");
       DOA = true;
     }
   }
   return 0;
 }
 
-extern "C" uint32_t e_v_commit() {
-//  printf("committing\n");
-  bool hit_watch = false;
+uint32_t e_v_commit() {
   if (!DOA) {
     try {
-      hit_watch = rv_validator->commit();
+      return rv_validator->commit();
     } catch (...) {
-      printf("c++ exception while commiting - policy code DOA\n");
+      std::printf("c++ exception while commiting - policy code DOA\n");
       DOA = true;
     }
   }
-  return hit_watch;
+  return false;
 }
 
-extern "C" void e_v_flush_rule_cache() {
+void e_v_flush_rule_cache() {
   rv_validator->flush_rule_cache();
 }
 
-extern "C" void e_v_rule_cache_stats() {
+void e_v_rule_cache_stats() {
   rv_validator->rule_cache_stats();
 }
 
-extern "C" void e_v_pc_tag(char* dest, int n) {
-  const meta_set_t *ms = (const meta_set_t*) rv_validator->pc_tag;
-  meta_set_to_string(ms, dest, n);
+void e_v_pc_tag(char* dest, int n) {
+  meta_set_to_string(rv_validator->get_pc_meta_set(), dest, n);
 }
 
-extern "C" void e_v_csr_tag(char* dest, int n, uint64_t addr) {
-  if(addr < 0x1000){
-    const meta_set_t *ms = (const meta_set_t*) rv_validator->csr_tags[addr];
-    meta_set_to_string((const meta_set_t*)ms, dest, n);
-  }
-  else
-    strncpy(dest, "Out of range", n);
+void e_v_csr_tag(char* dest, int n, uint64_t addr) {
+  if (addr < 0x1000) {
+    meta_set_to_string(rv_validator->get_csr_meta_set(addr), dest, n);
+  } else
+    std::strncpy(dest, "Out of range", n);
 }
 
-extern "C" void e_v_reg_tag(char* dest, int n, uint64_t addr) {
-  if(addr < 32){
-    const meta_set_t *ms = (const meta_set_t*) rv_validator->ireg_tags[addr];
-    meta_set_to_string((const meta_set_t*)ms, dest, n);
-  }
-  else
-    strncpy(dest, "Out of range", n);
+void e_v_reg_tag(char* dest, int n, uint64_t addr) {
+  if (addr < 32) {
+    meta_set_to_string(rv_validator->get_ireg_meta_set(addr), dest, n);
+  } else
+    std::strncpy(dest, "Out of range", n);
 }
 
-extern "C" void e_v_mem_tag(char* dest, int n, uint64_t addr) {
+void e_v_mem_tag(char* dest, int n, uint64_t addr) {
   if (addr <= ADDRESS_T_MAX) {
-    if (meta_set_t* ms = rv_validator->get_tag(static_cast<address_t>(addr))) {
+    if (meta_set_t* ms = rv_validator->get_meta_set(static_cast<address_t>(addr))) {
       meta_set_to_string(ms, dest, n);
     } else {
-      char tmp[128];
-      snprintf(tmp, 128, "Bad Address: %lx\n", addr);
-      strncpy(dest, tmp, n);
+      std::snprintf(dest, n, "Bad Address: %lx\n", addr);
     }
   } else
-    strncpy(dest, "Out of range", n);
+    std::strncpy(dest, "Out of range", n);
 }
 
-extern "C" const char* eval_status(int status) {
+const char* eval_status(int status) {
   switch(status) {
-  case POLICY_ERROR_FAILURE :
-    return "Internal Policy Error";
-    break;
-  case POLICY_EXP_FAILURE :
-    return "Explicit Failure";
-    break;
-  case POLICY_IMP_FAILURE :
-    return "Implicit Failure";
-    break;
-  case POLICY_SUCCESS :
-    return "Success";
-    break;
-  default:
-    return "INVALID POLICY RESULT";
+    case policy_engine::POLICY_ERROR_FAILURE: return "Internal Policy Error";
+    case policy_engine::POLICY_EXP_FAILURE:   return "Explicit Failure";
+    case policy_engine::POLICY_IMP_FAILURE:   return "Implicit Failure";
+    case policy_engine::POLICY_SUCCESS:       return "Success";
+    default: return "INVALID POLICY RESULT";
   }
 }
 
 
 
-extern "C" void e_v_violation_msg(char* dest, int n) {
+void e_v_violation_msg(char* dest, int n) {
   // Maybe this belongs inside the validator?
-  const int s = 512;
+  constexpr int s = 512;
   char tmp[s];
 
-  if(rv_validator->failed){
+  if (rv_validator->failed) {
     std::string msg = "Policy Violation:\n";
-    snprintf(tmp, s, "    PC = %lx", rv_validator->failed_ctx.epc);
+    std::snprintf(tmp, s, "    PC = %lx", rv_validator->failed_ctx.epc);
     msg = msg + tmp;
-    if(rv_validator->failed_ctx.bad_addr){
-      snprintf(tmp, s, "    MEM = %lx", rv_validator->failed_ctx.bad_addr);
+    if (rv_validator->failed_ctx.bad_addr) {
+      std::snprintf(tmp, s, "    MEM = %lx", rv_validator->failed_ctx.bad_addr);
       msg = msg + tmp;
     }
     
-    msg = msg + "\n" + "Metadata:\n";
+    msg = msg + "\nMetadata:\n";
     meta_set_to_string(rv_validator->failed_ops.pc, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.ci, tmp, s);
@@ -290,91 +260,85 @@ extern "C" void e_v_violation_msg(char* dest, int n) {
     if(rv_validator->failed_ctx.fail_msg)
       msg = msg + rv_validator->failed_ctx.fail_msg + "\n";
       
-    strncpy(dest, msg.c_str(), n);
+    std::strncpy(dest, msg.c_str(), n);
   }
   else {
-    strncpy(dest, "No Policy Violation", n);
+    std::strncpy(dest, "No Policy Violation", n);
   }
 }
 
-extern "C" void e_v_meta_log_short(char* dest, int n) {
-    const int s = 512;
-    char tmp[s];
-    std::string msg = "";
-    const char* rule;
+void e_v_meta_log_short(char* dest, int n) {
+  constexpr int s = 512;
+  char tmp[s];
+  std::string msg;
 
-    meta_set_to_string(rv_validator->ops.ci, tmp, s);
-    msg = msg + "C " + tmp;
-    meta_set_to_string(rv_validator->ops.pc, tmp, s);
-    msg = msg + " E " + tmp;
-    meta_set_to_string(rv_validator->res.pc, tmp, s);
-    msg = msg + " -> E " + tmp;
-    
-    strncpy(dest, msg.c_str(), n);
+  meta_set_to_string(rv_validator->ops.ci, tmp, s);
+  msg = msg + "C " + tmp;
+  meta_set_to_string(rv_validator->ops.pc, tmp, s);
+  msg = msg + " E " + tmp;
+  meta_set_to_string(rv_validator->res.pc, tmp, s);
+  msg = msg + " -> E " + tmp;
+  
+  std::strncpy(dest, msg.c_str(), n);
 }
 
-extern "C" void e_v_rule_eval_log(char* dest, int n) {
-    const int s = 512;
-    char tmp[s];
-    std::string msg = "";
-    const char* rule;
+void e_v_rule_eval_log(char* dest, int n) {
+  const int s = 512;
+  char tmp[s];
+  std::string msg = "\nMetadata:\n";
 
-    msg = msg + "\n" + "Metadata:\n";
-    meta_set_to_string(rv_validator->ops.pc, tmp, s);
-    msg = msg + "    Env   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops.ci, tmp, s);
-    msg = msg + "    Code  : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops.op1, tmp, s);
-    msg = msg + "    Op1   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops.op2, tmp, s);
-    msg = msg + "    Op2   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops.op3, tmp, s);
-    msg = msg + "    Op3   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->ops.mem, tmp, s);
-    msg = msg + "    Mem   : " + tmp + "\n";
+  meta_set_to_string(rv_validator->ops.pc, tmp, s);
+  msg = msg + "    Env   : " + tmp + "\n";
+  meta_set_to_string(rv_validator->ops.ci, tmp, s);
+  msg = msg + "    Code  : " + tmp + "\n";
+  meta_set_to_string(rv_validator->ops.op1, tmp, s);
+  msg = msg + "    Op1   : " + tmp + "\n";
+  meta_set_to_string(rv_validator->ops.op2, tmp, s);
+  msg = msg + "    Op2   : " + tmp + "\n";
+  meta_set_to_string(rv_validator->ops.op3, tmp, s);
+  msg = msg + "    Op3   : " + tmp + "\n";
+  meta_set_to_string(rv_validator->ops.mem, tmp, s);
+  msg = msg + "    Mem   : " + tmp + "\n";
 
-    msg = msg + "\n" + "Results:\n";
-    meta_set_to_string(rv_validator->res.pc, tmp, s);
-    msg = msg + "    Env   : " + tmp + "\n";
-    if (rv_validator->res.rdResult){
-        meta_set_to_string(rv_validator->res.rd, tmp, s);
-        msg = msg + "    RD    : " + tmp + "\n";
-    }
-    if (rv_validator->res.csrResult){
-        meta_set_to_string(rv_validator->res.csr, tmp, s);
-        msg = msg + "    CSR   : " + tmp + "\n";
-    }
-    
-    strncpy(dest, msg.c_str(), n);
+  msg = msg + "\nResults:\n";
+  meta_set_to_string(rv_validator->res.pc, tmp, s);
+  msg = msg + "    Env   : " + tmp + "\n";
+  if (rv_validator->res.rdResult){
+    meta_set_to_string(rv_validator->res.rd, tmp, s);
+    msg = msg + "    RD    : " + tmp + "\n";
+  }
+  if (rv_validator->res.csrResult){
+    meta_set_to_string(rv_validator->res.csr, tmp, s);
+    msg = msg + "    CSR   : " + tmp + "\n";
+  }
+  
+  std::strncpy(dest, msg.c_str(), n);
 }
 
-extern "C" void e_v_set_pc_watch(bool watching){
+void e_v_set_pc_watch(bool watching){
   rv_validator->set_pc_watch(watching);
 }
-extern "C" void e_v_set_reg_watch(uint64_t addr){
-  if(addr <= ADDRESS_T_MAX)
-  {
-    address_t a = (address_t)addr;
-    rv_validator->set_reg_watch(a);
+
+void e_v_set_reg_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX) {
+    rv_validator->set_reg_watch(static_cast<address_t>(addr));
+  } else
+    std::printf("Reg Watch Address Out of Range: 0x%lx\n", addr);
+}
+
+void e_v_set_csr_watch(uint64_t addr){
+  if (addr <= ADDRESS_T_MAX) {
+    rv_validator->set_csr_watch(static_cast<address_t>(addr));
+  } else
+    std::printf("CSR Watch Address Out of Range: 0x%lx\n", addr);
+}
+
+void e_v_set_mem_watch(uint64_t addr){
+  if(addr <= ADDRESS_T_MAX) {
+    rv_validator->set_mem_watch(static_cast<address_t>(addr));
   }
   else
-    printf("Reg Watch Address Out of Range: 0x%lx\n", addr);
+    std::printf("Mem Watch Address Out of Range: 0x%lx\n", addr);
 }
-extern "C" void e_v_set_csr_watch(uint64_t addr){
-  if(addr <= ADDRESS_T_MAX)
-  {
-    address_t a = (address_t)addr;
-    rv_validator->set_csr_watch(a);
-  }
-  else
-    printf("CSR Watch Address Out of Range: 0x%lx\n", addr);
-}
-extern "C" void e_v_set_mem_watch(uint64_t addr){
-  if(addr <= ADDRESS_T_MAX)
-  {
-    address_t a = (address_t)addr;
-    rv_validator->set_mem_watch(a);
-  }
-  else
-    printf("Mem Watch Address Out of Range: 0x%lx\n", addr);
-}
+
+} // extern "C"

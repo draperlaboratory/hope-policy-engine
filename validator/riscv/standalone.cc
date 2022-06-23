@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   #define NREPS 4
   for (int reps = 0; reps < NREPS; reps++) {
     do {
-      if (meta_set_t* ci_tag = rv_validator->get_tag(rv32.get_pc())) {
+      if (meta_set_t* ci_tag = rv_validator->get_meta_set(rv32.get_pc())) {
         // we can print the tag here
       } else
         printf("could not load tag for PC 0x%" PRIaddr_pad "\n", rv32.get_pc());
