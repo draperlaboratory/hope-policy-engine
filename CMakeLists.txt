@@ -86,6 +86,17 @@ target_include_directories(gen_tag_info PRIVATE
   ./validator/riscv
   )
 
+add_executable(dump_tags
+	tagging_tools/dump_tags.cc
+	)
+target_link_libraries(dump_tags tagging_tools validator yaml-cpp)
+target_include_directories(dump_tags PRIVATE
+  ./policy/include
+  ./validator/include
+  ./validator/include/policy-glue
+  ./validator/riscv
+  )
+
 add_library(rv32-sim-validator SHARED
 	validator/riscv/main.cc
 	)

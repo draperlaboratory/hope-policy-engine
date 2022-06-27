@@ -28,7 +28,7 @@ install: all
 	install -d $(ISP_PREFIX)/lib
 	install -d $(ISP_PREFIX)/bin
 	install -d $(ISP_PREFIX)/include
-#	install -p build/dump_tags $(ISP_PREFIX)/bin/
+	install -p build/dump_tags $(ISP_PREFIX)/bin/
 	install -p scripts/md_firmware_test $(ISP_PREFIX)/bin/
 	install -p build/gen_tag_info $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/

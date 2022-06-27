@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "basic_elf_io.h"
 #include "tag_file.h"
 #include "uleb.h"
 #include "metadata_index_map.h"
@@ -52,10 +51,10 @@ void usage() {
 }
 
 bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
-  stdio_reporter_t err;
+  reporter_t err;
   std::list<range_t> code_ranges;
   std::list<range_t> data_ranges;
-  std::vector<const metadata_t *> metadata_values;
+  std::vector<metadata_t> metadata_values;
   int32_t register_default;
   int32_t csr_default;
   int32_t env_default;
@@ -66,7 +65,8 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
 
   if(load_firmware_tag_file(code_ranges, data_ranges, metadata_values,
                             memory_index_map, register_index_map, csr_index_map,
-                            register_default, csr_default, env_default, std::string(tag_filename)) == false) {
+                            tag_filename, err,
+                            register_default, csr_default, env_default) == false) {
     err.error("Failed to load firmware tag file\n");
     return false;
   }
@@ -84,7 +84,7 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
   printf("\nMetadata values:\n");
   for(size_t i = 0; i < metadata_values.size(); i++) {
     printf("%lu: { ", i);
-    for(const auto &m : *metadata_values[i]) {
+    for(const auto &m : metadata_values[i]) {
       printf("%lx ", m);
     }
     printf("}\n");
@@ -136,17 +136,17 @@ bool dump_tags(std::string file_name) {
     address_t end;
     uint32_t metadata_count;
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, start)) {
+    if (!read_uleb<file_reader_t, address_t>(reader, start)) {
       fclose(fp);
       return false;
     }
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, end)) {
+    if (!read_uleb<file_reader_t, address_t>(reader, end)) {
       fclose(fp);
       return false;
     }
 
-    if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_count)) {
+    if (!read_uleb<file_reader_t, uint32_t>(reader, metadata_count)) {
       fclose(fp);
       return false;
     }
@@ -175,7 +175,7 @@ bool dump_tags(std::string file_name) {
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
 
-      if (!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
+      if (!read_uleb<file_reader_t, meta_t>(reader, meta)) {
          fclose(fp);
          return false;
       }
@@ -192,7 +192,7 @@ bool dump_tags(std::string file_name) {
 }
 
 int main(int argc, char **argv) {
-  stdio_reporter_t err;
+  reporter_t err;
   const char *tag_filename;
   char arg;
   int entries_arg = 0;
