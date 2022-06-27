@@ -27,8 +27,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
-#include <fstream>
 #include <limits>
 #include <string>
 #include <utility>
@@ -47,61 +45,6 @@
 #include "yaml_tools.h"
 
 namespace policy_engine {
-
-class stream_reader_t {
-private:
-  std::ifstream is;
-  std::streamsize size;
-
-public:
-  stream_reader_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : is(std::ifstream(fname, mode)) {
-    is.ignore(std::numeric_limits<std::streamsize>::max());
-    size = is.gcount();
-    is.clear();
-    is.seekg(0, std::ios::beg);
-  }
-
-  template<class T> std::streamsize read(T* data, std::streamsize n) {
-    try {
-      std::streamsize b = n*sizeof(T)/sizeof(std::ofstream::char_type);
-      std::ofstream::char_type bytes[b];
-      std::streamsize r = is.read(bytes, b).gcount();
-      if (r == b)
-        std::memcpy(data, bytes, b);
-      return r*sizeof(std::ofstream::char_type)/sizeof(T);
-    } catch (const std::ios::failure& e) {
-      return 0;
-    }
-  }
-
-  bool read_byte(uint8_t& b) { return read(&b, 1) == 1; }
-
-  std::streamsize length() { return size; }
-  bool eof() { return is.tellg() >= size; }
-
-  explicit operator bool() const { return static_cast<bool>(is); }
-};
-
-class stream_writer_t {
-private:
-  std::ofstream os;
-
-public:
-  stream_writer_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : os(std::ofstream(fname, mode)) {}
-
-  template<class T> bool write(const T* data, std::size_t n) {
-    try {
-      os.write(reinterpret_cast<const std::ofstream::char_type*>(data), n*sizeof(T)/sizeof(std::ofstream::char_type));
-      return !os.fail();
-    } catch (const std::ios::failure& e) {
-      return false;
-    }
-  }
-
-  bool write_byte(uint8_t b) { return write(&b, 1); }
-
-  explicit operator bool() const { return static_cast<bool>(os); }
-};
 
 template<class Writer>
 bool write_headers(

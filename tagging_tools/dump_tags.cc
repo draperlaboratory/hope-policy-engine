@@ -34,40 +34,6 @@
 #include "tag_file.h"
 #include "uleb.h"
 
-class stream_reader_t {
-private:
-  std::ifstream is;
-  std::streamsize size;
-
-public:
-  stream_reader_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : is(std::ifstream(fname, mode)) {
-    is.ignore(std::numeric_limits<std::streamsize>::max());
-    size = is.gcount();
-    is.clear();
-    is.seekg(0, std::ios::beg);
-  }
-
-  template<class T> std::streamsize read(T* data, std::streamsize n) {
-    try {
-      std::streamsize b = n*sizeof(T)/sizeof(std::ofstream::char_type);
-      std::ofstream::char_type bytes[b];
-      std::streamsize r = is.read(bytes, b).gcount();
-      if (r == b)
-        std::memcpy(data, bytes, b);
-      return r*sizeof(std::ofstream::char_type)/sizeof(T);
-    } catch (const std::ios::failure& e) {
-      return 0;
-    }
-  }
-
-  bool read_byte(uint8_t& b) { return read(&b, 1) == 1; }
-
-  std::streamsize length() { return size; }
-  bool eof() { return is.tellg() >= size; }
-
-  explicit operator bool() const { return static_cast<bool>(is); }
-};
-
 void usage() {
   std::printf("usage: dump_tags <tag_file> <-f <num_entries>>\n");
   std::printf("\t-f firmware tag format\n");
@@ -142,7 +108,7 @@ void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
 }
 
 void dump_tags(const std::string& file_name) {
-  stream_reader_t reader(file_name);
+  policy_engine::stream_reader_t reader(file_name);
   if (!reader)
     throw std::ios::failure("could not open " + file_name);
 
@@ -151,15 +117,15 @@ void dump_tags(const std::string& file_name) {
     uint64_t start, end;
     uint32_t metadata_count;
 
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, start)) {
+    if (!policy_engine::read_uleb<policy_engine::stream_reader_t, uint64_t>(reader, start)) {
       throw std::runtime_error("could not read range start");
     }
 
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, end)) {
+    if (!policy_engine::read_uleb<policy_engine::stream_reader_t, uint64_t>(reader, end)) {
       throw std::runtime_error("could not read range end");
     }
 
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count)) {
+    if (!policy_engine::read_uleb<policy_engine::stream_reader_t, uint32_t>(reader, metadata_count)) {
       throw std::runtime_error("could not read metadata_count");
     }
 
@@ -176,7 +142,7 @@ void dump_tags(const std::string& file_name) {
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
 
-      if (!read_uleb<stream_reader_t, meta_t>(reader, meta)) {
+      if (!policy_engine::read_uleb<policy_engine::stream_reader_t, meta_t>(reader, meta)) {
         throw std::runtime_error("could not read meta value");
       }
 
