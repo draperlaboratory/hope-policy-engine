@@ -26,7 +26,7 @@ bool opgroup_rule_t::matches(const decoded_instruction_t& inst) {
   static constexpr int NUM_FIELDS = 5;
   const std::array<option<int>, NUM_FIELDS> fields{inst.rd, inst.rs1, inst.rs2, inst.rs3, inst.imm};
   for (int i = 0; i < NUM_FIELDS; i++)
-    if (fields[i].exists)
+    if (fields[i])
       if (i >= rules.size() || !operand_rule_match(rules[i], fields[i]))
         return false;
   return true;

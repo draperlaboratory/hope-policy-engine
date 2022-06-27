@@ -252,10 +252,10 @@ void rv_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
   }
   pending_RD = inst.rd.getOrElse(-1);
 
-  if (inst.rs1.exists) ops.op1 = ms_cache[ireg_tags[inst.rs1]];
+  if (inst.rs1) ops.op1 = ms_cache[ireg_tags[inst.rs1]];
   if (inst.flags.has_csr_load || inst.flags.has_csr_store) ops.op2 = ms_cache[csr_tags[inst.imm]];
-  if (inst.rs2.exists) ops.op2 = ms_cache[ireg_tags[inst.rs2]];
-  if (inst.rs3.exists) ops.op3 = ms_cache[ireg_tags[inst.rs3]];
+  if (inst.rs2) ops.op2 = ms_cache[ireg_tags[inst.rs2]];
+  if (inst.rs3) ops.op3 = ms_cache[ireg_tags[inst.rs3]];
   has_pending_CSR = inst.flags.has_csr_store;
   has_pending_RD = inst.rd.exists;
   has_pending_mem = inst.flags.has_store;
@@ -266,14 +266,13 @@ void rv_validator_t::prepare_eval(address_t pc, insn_bits_t insn) {
     if (has_insn_mem_addr) {
       //mem_addr has already been set
       has_insn_mem_addr = false;
-    }
-    else {
+    } else {
       uint64_t reg_val = reg_reader(inst.rs1);
 
       /* mask off upper bits, just in case */
       mem_addr = (address_t)(reg_val);
 
-      if (inst.imm.exists)
+      if (inst.imm)
         mem_addr += inst.imm;
 
       /* mask off unaligned bits, just in case */
