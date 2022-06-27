@@ -32,8 +32,8 @@
 #include "riscv_isa.h"
 
 #ifdef __cplusplus 
-extern "C" {
 namespace policy_engine {
+extern "C" {
 #endif
 
 enum policy_result_t {
@@ -80,22 +80,22 @@ meta_set_t* canonize(meta_set_t* ts);
 /**
  * Print eval status
  */
-void debug_msg(context_t* ctx, const char* msg);
+void debug_msg(const context_t* ctx, const char* msg);
   
 /**
  * Print eval status
  */
-void debug_status(context_t* ctx, int status);
+void debug_status(const context_t* ctx, int status);
   
 /**
  * Print operands
  */
-void debug_operands(context_t* ctx, operands_t* ops);
+void debug_operands(const context_t* ctx, const operands_t* ops);
 
 /**
  * Print results
  */
-void debug_results(context_t* ctx, results_t* res);
+void debug_results(const context_t* ctx, const results_t* res);
 
 /**
  * Call this if there is a rule violation
@@ -108,8 +108,8 @@ void handle_violation(context_t* ctx, operands_t* ops, results_t* out);
 void handle_panic(const char* msg);
   
 #ifdef __cplusplus
-} // namespace policy_engine
 } // extern "C"
+} // namespace policy_engine
 #endif
 
 #endif // POLICY_EVAL_H

@@ -32,12 +32,24 @@
 
 namespace policy_engine {
 
-extern "C" void debug_msg(context_t *ctx, const char *msg) {
-  printf("%s", msg);
+void dump_tag(const meta_set_t* ms) {
+  char tag_name[1024];
+  if (ms) {
+    meta_set_to_string(ms, tag_name, sizeof(tag_name));
+    std::printf("%s", tag_name);
+  } else {
+    std::printf("<null>");
+  }
 }
 
-extern "C" void debug_status(context_t *ctx, int status) {
-  switch(status) {
+extern "C" {
+
+void debug_msg(const context_t* ctx, const char* msg) {
+  std::printf("%s", msg);
+}
+
+void debug_status(const context_t *ctx, int status) {
+  switch (status) {
   case POLICY_ERROR_FAILURE :
     puts("Internal Policy Error");
     break;
@@ -55,39 +67,29 @@ extern "C" void debug_status(context_t *ctx, int status) {
   }
 }
 
-void dump_tag(meta_set_t const *ms) {
-  char tag_name[1024];
-  if (ms) {
-    meta_set_to_string(ms, tag_name, sizeof(tag_name));
-    printf("%s", tag_name);
-  } else {
-    printf("<null>");
-  }
+void debug_operands(const context_t* ctx, const operands_t* ops) {
+  std::printf("    pc = "); dump_tag(ops->pc); std::printf("\n");
+  std::printf("    ci = "); dump_tag(ops->ci); std::printf("\n");
+  std::printf("    op1 = "); dump_tag(ops->op1); std::printf("\n");
+  std::printf("    op2 = "); dump_tag(ops->op2); std::printf("\n");
+  std::printf("    op3 = "); dump_tag(ops->op3); std::printf("\n");
+  std::printf("    mem = "); dump_tag(ops->mem); std::printf("\n");
 }
 
-extern "C" void debug_operands(context_t *ctx, operands_t *ops) {
-  printf("    pc = "); dump_tag(ops->pc); printf("\n");
-  printf("    ci = "); dump_tag(ops->ci); printf("\n");
-  printf("    op1 = "); dump_tag(ops->op1); printf("\n");
-  printf("    op2 = "); dump_tag(ops->op2); printf("\n");
-  printf("    op3 = "); dump_tag(ops->op3); printf("\n");
-  printf("    mem = "); dump_tag(ops->mem); printf("\n");
-}
-
-extern "C" void debug_results(context_t *ctx, results_t *res) {
+void debug_results(const context_t *ctx, const results_t *res) {
   if (res->pcResult) {
-    printf("      pc = "); dump_tag(res->pc); printf("\n");
+    std::printf("      pc = "); dump_tag(res->pc); std::printf("\n");
   }
   if (res->rdResult) {
-    printf("      rd = "); dump_tag(res->rd); printf("\n");
+    std::printf("      rd = "); dump_tag(res->rd); std::printf("\n");
   }
   if (res->csrResult) {
-    printf("      csr = "); dump_tag(res->csr); printf("\n");
+    std::printf("      csr = "); dump_tag(res->csr); std::printf("\n");
   }
 }
 
 // referenced by meta_set_t rendering code in policy_utils, but not used
-extern "C" void printm(const char* s, ...)
+void printm(const char* s, ...)
 {
   char buf[256];
   va_list vl;
@@ -99,4 +101,5 @@ extern "C" void printm(const char* s, ...)
   puts(buf);
 }
 
-}
+} // extern "C"
+} // namespace policy_engine
