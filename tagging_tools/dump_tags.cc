@@ -25,6 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
 #include "metadata_index_map.h"
@@ -45,7 +46,7 @@ void usage() {
   std::printf("\t-f firmware tag format\n");
 }
 
-bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
+void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
   policy_engine::reporter_t err;
   std::list<policy_engine::range_t> code_ranges;
   std::list<policy_engine::range_t> data_ranges;
@@ -65,8 +66,7 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
     err,
     register_default, csr_default, env_default
   )) {
-    err.error("Failed to load firmware tag file\n");
-    return false;
+    throw std::runtime_error("Failed to load firmware tag file\n");
   }
 
   std::printf("Code ranges:\n");
@@ -112,16 +112,13 @@ bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
       break;
     }
   }
-
-  return true;
 }
 
-bool dump_tags(const std::string& file_name) {
+void dump_tags(const std::string& file_name) {
   std::FILE* fp = fopen(file_name.c_str(), "rb");
   int i = 0;
 
-  if (!fp)
-    return false;
+  throw std::ios::failure("could not open " + file_name);
 
   file_reader_t reader(fp);
   fseek(fp, 0, SEEK_END);
@@ -135,29 +132,29 @@ bool dump_tags(const std::string& file_name) {
 
     if (!read_uleb<file_reader_t, uint64_t>(reader, start)) {
       fclose(fp);
-      return false;
+      throw std::runtime_error("could not read range start");
     }
 
     if (!read_uleb<file_reader_t, uint64_t>(reader, end)) {
       fclose(fp);
-      return false;
+      throw std::runtime_error("could not read range end");
     }
 
     if (!read_uleb<file_reader_t, uint32_t>(reader, metadata_count)) {
       fclose(fp);
-      return false;
+      throw std::runtime_error("could not read metadata_count");
     }
 
     if (end < start) {
       std::fprintf(stderr, "Entry %d, Start (0x%" PRIaddr_pad ") is after End (0x%" PRIaddr_pad ")\n", i, start, end);
       std::fprintf(stderr, "Are you sure this is a simulation tag file?\n");
       std::fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
-      return false;
+      throw std::runtime_error("range end before start");
     } else if ((int32_t)metadata_count < 0) {
       std::fprintf(stderr, "Entry %d, has negative entries (%d)\n", i, metadata_count);
       std::fprintf(stderr, "Are you sure this is a simulation tag file?\n");
       std::fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
-      return false;
+      throw std::runtime_error(std::string("illegal metadata count ") + std::to_string(static_cast<int>(metadata_count)));
     }
 
     std::printf("Entry %d, 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " (%d)\n", i++, start, end, metadata_count);
@@ -169,7 +166,7 @@ bool dump_tags(const std::string& file_name) {
 
       if (!read_uleb<file_reader_t, meta_t>(reader, meta)) {
         fclose(fp);
-        return false;
+        throw std::runtime_error("could not read meta value");
       }
 
       std::printf("%016lx, ", meta);
@@ -179,8 +176,6 @@ bool dump_tags(const std::string& file_name) {
   }
 
   fclose(fp);
-
-  return true;
 }
 
 int main(int argc, char* argv[]) {
@@ -226,14 +221,17 @@ int main(int argc, char* argv[]) {
   }
 
   if (firmware) {
-     if (dump_firmware_tags(tag_filename, num_entries) == false) {
-      err.error("Failed to dump firmware tags\n");
+    try {
+      dump_firmware_tags(tag_filename, num_entries);
+    } catch (const std::exception& e) {
+      std::fprintf(stderr, "failed to dump firmware tags: %s\n", e.what());
       return 1;
     }
   } else {
-    if (!dump_tags(tag_filename)) {
-      err.error("Failed to dump tags\n");
-      return 1;
+    try {
+      dump_tags(tag_filename);
+    } catch (const std::exception& e) {
+      std::fprintf(stderr, "failed to dump tags: %s\n", e.what());
     }
   }
 
