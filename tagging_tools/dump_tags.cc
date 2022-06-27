@@ -22,6 +22,7 @@
 /* OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION */
 /* WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -33,12 +34,38 @@
 #include "tag_file.h"
 #include "uleb.h"
 
-struct file_reader_t {
-  std::FILE* fp;
-  file_reader_t(std::FILE* fp) : fp(fp) { }
-  bool read_byte(uint8_t& b) {
-    return fread(&b, 1, 1, fp) == 1;
+class stream_reader_t {
+private:
+  std::ifstream is;
+  std::streamsize size;
+
+public:
+  stream_reader_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : is(std::ifstream(fname, mode)) {
+    is.ignore(std::numeric_limits<std::streamsize>::max());
+    size = is.gcount();
+    is.clear();
+    is.seekg(0, std::ios::beg);
   }
+
+  template<class T> std::streamsize read(T* data, std::streamsize n) {
+    try {
+      std::streamsize b = n*sizeof(T)/sizeof(std::ofstream::char_type);
+      std::ofstream::char_type bytes[b];
+      std::streamsize r = is.read(bytes, b).gcount();
+      if (r == b)
+        std::memcpy(data, bytes, b);
+      return r*sizeof(std::ofstream::char_type)/sizeof(T);
+    } catch (const std::ios::failure& e) {
+      return 0;
+    }
+  }
+
+  bool read_byte(uint8_t& b) { return read(&b, 1) == 1; }
+
+  std::streamsize length() { return size; }
+  bool eof() { return is.tellg() >= size; }
+
+  explicit operator bool() const { return static_cast<bool>(is); }
 };
 
 void usage() {
@@ -115,45 +142,30 @@ void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
 }
 
 void dump_tags(const std::string& file_name) {
-  std::FILE* fp = fopen(file_name.c_str(), "rb");
+  stream_reader_t reader(file_name);
+  if (!reader)
+    throw std::ios::failure("could not open " + file_name);
+
   int i = 0;
-
-  throw std::ios::failure("could not open " + file_name);
-
-  file_reader_t reader(fp);
-  fseek(fp, 0, SEEK_END);
-  size_t eof_point = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-
-  while (eof_point != ftell(fp)) {
-    uint64_t start;
-    uint64_t end;
+  while (!reader.eof()) {
+    uint64_t start, end;
     uint32_t metadata_count;
 
-    if (!read_uleb<file_reader_t, uint64_t>(reader, start)) {
-      fclose(fp);
+    if (!read_uleb<stream_reader_t, uint64_t>(reader, start)) {
       throw std::runtime_error("could not read range start");
     }
 
-    if (!read_uleb<file_reader_t, uint64_t>(reader, end)) {
-      fclose(fp);
+    if (!read_uleb<stream_reader_t, uint64_t>(reader, end)) {
       throw std::runtime_error("could not read range end");
     }
 
-    if (!read_uleb<file_reader_t, uint32_t>(reader, metadata_count)) {
-      fclose(fp);
+    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count)) {
       throw std::runtime_error("could not read metadata_count");
     }
 
     if (end < start) {
-      std::fprintf(stderr, "Entry %d, Start (0x%" PRIaddr_pad ") is after End (0x%" PRIaddr_pad ")\n", i, start, end);
-      std::fprintf(stderr, "Are you sure this is a simulation tag file?\n");
-      std::fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
-      throw std::runtime_error("range end before start");
+      throw std::runtime_error("range [" + std::to_string(start) + "," + std::to_string(end) + ") ends before start");
     } else if ((int32_t)metadata_count < 0) {
-      std::fprintf(stderr, "Entry %d, has negative entries (%d)\n", i, metadata_count);
-      std::fprintf(stderr, "Are you sure this is a simulation tag file?\n");
-      std::fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
       throw std::runtime_error(std::string("illegal metadata count ") + std::to_string(static_cast<int>(metadata_count)));
     }
 
@@ -164,8 +176,7 @@ void dump_tags(const std::string& file_name) {
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
 
-      if (!read_uleb<file_reader_t, meta_t>(reader, meta)) {
-        fclose(fp);
+      if (!read_uleb<stream_reader_t, meta_t>(reader, meta)) {
         throw std::runtime_error("could not read meta value");
       }
 
@@ -174,8 +185,6 @@ void dump_tags(const std::string& file_name) {
 
     std::printf("end.\n");
   }
-
-  fclose(fp);
 }
 
 int main(int argc, char* argv[]) {
