@@ -108,7 +108,7 @@ void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
 }
 
 void dump_tags(const std::string& file_name) {
-  policy_engine::stream_reader_t reader(file_name);
+  policy_engine::uleb_reader_t reader(file_name);
   if (!reader)
     throw std::ios::failure("could not open " + file_name);
 
@@ -117,21 +117,21 @@ void dump_tags(const std::string& file_name) {
     uint64_t start, end;
     uint32_t metadata_count;
 
-    if (!policy_engine::read_uleb<policy_engine::stream_reader_t, uint64_t>(reader, start)) {
+    if (reader.read_uleb<uint64_t>(start) <= 0) {
       throw std::runtime_error("could not read range start");
     }
 
-    if (!policy_engine::read_uleb<policy_engine::stream_reader_t, uint64_t>(reader, end)) {
+    if (reader.read_uleb<uint64_t>(end) <= 0) {
       throw std::runtime_error("could not read range end");
     }
 
-    if (!policy_engine::read_uleb<policy_engine::stream_reader_t, uint32_t>(reader, metadata_count)) {
+    if (reader.read_uleb<uint32_t>(metadata_count) <= 0) {
       throw std::runtime_error("could not read metadata_count");
     }
 
     if (end < start) {
       throw std::runtime_error("range [" + std::to_string(start) + "," + std::to_string(end) + ") ends before start");
-    } else if ((int32_t)metadata_count < 0) {
+    } else if (static_cast<int32_t>(metadata_count) < 0) {
       throw std::runtime_error(std::string("illegal metadata count ") + std::to_string(static_cast<int>(metadata_count)));
     }
 
@@ -141,8 +141,7 @@ void dump_tags(const std::string& file_name) {
 
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
-
-      if (!policy_engine::read_uleb<policy_engine::stream_reader_t, meta_t>(reader, meta)) {
+      if (reader.read_uleb<meta_t>(meta) <= 0) {
         throw std::runtime_error("could not read meta value");
       }
 

@@ -46,42 +46,40 @@
 
 namespace policy_engine {
 
-template<class Writer>
 bool write_headers(
-  Writer& writer,
+  uleb_writer_t& writer,
   std::list<range_t>& code_ranges,
   std::list<std::pair<range_t, uint8_t>>& data_ranges,
   bool is_64_bit
 ) {
-  if (!write_uleb<Writer, uint8_t>(writer, (uint8_t)is_64_bit))
+  if (!writer.write_uleb<uint8_t>(is_64_bit))
     return false;
 
-  if (!write_uleb<Writer, uint32_t>(writer, (uint32_t)code_ranges.size()))
+  if (!writer.write_uleb<uint32_t>(code_ranges.size()))
     return false;
   for (const range_t& range : code_ranges) {
-    if (!write_uleb<Writer, uint64_t>(writer, range.start))
+    if (!writer.write_uleb<uint64_t>(range.start))
       return false;
-    if (!write_uleb<Writer, uint64_t>(writer, range.end))
+    if (!writer.write_uleb<uint64_t>(range.end))
       return false;
   }
 
-  if (!write_uleb<Writer, uint32_t>(writer, (uint32_t)data_ranges.size()))
+  if (!writer.write_uleb<uint32_t>(data_ranges.size()))
     return false;
   for (const auto& [ range, gran ] : data_ranges) {
-    if (!write_uleb<Writer, uint64_t>(writer, range.start))
+    if (!writer.write_uleb<uint64_t>(range.start))
       return false;
-    if (!write_uleb<Writer, uint64_t>(writer, range.end))
+    if (!writer.write_uleb<uint64_t>(range.end))
       return false;
-    if (!write_uleb<Writer, uint64_t>(writer, (uint32_t)gran))
+    if (!writer.write_uleb<uint64_t>(gran))
       return false;
   }
 
   return true;
 }
 
-template<class Writer>
 bool save_tag_indexes(
-  Writer& writer,
+  uleb_writer_t& writer,
   const std::vector<const metadata_t*>& metadata_values,
   metadata_index_map_t<metadata_memory_map_t, range_t>& memory_index_map,
   metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
@@ -89,20 +87,20 @@ bool save_tag_indexes(
   int32_t register_default, int32_t csr_default, int32_t env_default,
   reporter_t& err
 ) {
-  if (!write_uleb<Writer, uint32_t>(writer, metadata_values.size()))
+  if (!writer.write_uleb<uint32_t>(metadata_values.size()))
     return false;
 
   for (const metadata_t* v : metadata_values) {
-    if (!write_uleb<Writer, uint32_t>(writer, v->size()))
+    if (!writer.write_uleb<uint32_t>(v->size()))
       return false;
     for (const meta_t& m : *v)
-      if (!write_uleb<Writer, meta_t>(writer, m))
+      if (!writer.write_uleb<meta_t>(m))
         return false;
   }
 
-  if (!write_uleb<Writer, uint32_t>(writer, register_index_map.size()))
+  if (!writer.write_uleb<uint32_t>(register_index_map.size()))
     return false;
-  if (!write_uleb<Writer, int32_t>(writer, register_default))
+  if (!writer.write_uleb<int32_t>(register_default))
     return false;
 
   for (const auto& [ name, index ] : register_index_map) {
@@ -110,15 +108,15 @@ bool save_tag_indexes(
     if (register_name_map.find(register_name) == register_name_map.end())
       throw std::out_of_range(register_name);
 
-    if (!write_uleb<Writer, uint32_t>(writer, register_name_map.at(register_name)))
+    if (!writer.write_uleb<uint32_t>(register_name_map.at(register_name)))
       return false;
-    if (!write_uleb<Writer, uint32_t>(writer, index))
+    if (!writer.write_uleb<uint32_t>(index))
       return false;
   }
 
-  if (!write_uleb<Writer, uint32_t>(writer, csr_index_map.size()))
+  if (!writer.write_uleb<uint32_t>(csr_index_map.size()))
     return false;
-  if (!write_uleb<Writer, int32_t>(writer, csr_default))
+  if (!writer.write_uleb<int32_t>(csr_default))
     return false;
 
   for (const auto& [ name, index ] : csr_index_map) {
@@ -126,23 +124,23 @@ bool save_tag_indexes(
     if (csr_name_map.find(csr_name) == csr_name_map.end())
       throw std::out_of_range(csr_name);
 
-    if (!write_uleb<Writer, uint32_t>(writer, csr_name_map.at(csr_name)))
+    if (!writer.write_uleb<uint32_t>(csr_name_map.at(csr_name)))
       return false;
-    if (!write_uleb<Writer, uint32_t>(writer, index))
+    if (!writer.write_uleb<uint32_t>(index))
       return false;
   }
 
-  if (!write_uleb<Writer, int32_t>(writer, env_default))
+  if (!writer.write_uleb<int32_t>(env_default))
     return false;
 
-  if (!write_uleb<Writer, uint32_t>(writer, memory_index_map.size()))
+  if (!writer.write_uleb<uint32_t>(memory_index_map.size()))
     return false;
   for (const auto& [ range, index ] : memory_index_map) {
-    if (!write_uleb<Writer, uint64_t>(writer, range.start))
+    if (!writer.write_uleb<uint64_t>(range.start))
       return false;
-    if (!write_uleb<Writer, uint64_t>(writer, range.end))
+    if (!writer.write_uleb<uint64_t>(range.end))
       return false;
-    if (!write_uleb<Writer, uint32_t>(writer, index))
+    if (!writer.write_uleb<uint32_t>(index))
       return false;
   }
   return true;
@@ -246,7 +244,7 @@ void write_tag_file(
   soc_exclude,
   reporter_t& err
 ) {
-  if (auto writer = stream_writer_t(tag_filename)) {
+  if (auto writer = uleb_writer_t(tag_filename)) {
     YAML::Node soc_node = YAML::LoadFile(soc_filename);
     if (!soc_node["SOC"])
       throw std::out_of_range("SOC root node not present");
@@ -308,16 +306,16 @@ void write_tag_file(
 }
 
 bool save_tags(const metadata_memory_map_t& map, const std::string& filename) {
-  if (auto writer = stream_writer_t(filename)) {
+  if (auto writer = uleb_writer_t(filename)) {
     for (const auto& [ range, md ] : map) {
-      if (!write_uleb<stream_writer_t, uint64_t>(writer, range.start))
+      if (!writer.write_uleb<uint64_t>(range.start))
         return false;
-      if (!write_uleb<stream_writer_t, uint64_t>(writer, range.end))
+      if (!writer.write_uleb<uint64_t>(range.end))
         return false;
-      if (!write_uleb<stream_writer_t, uint64_t>(writer, md->size()))
+      if (!writer.write_uleb<uint64_t>(md->size()))
         return false;
       for (const meta_t& m : *md) {
-        if (!write_uleb<stream_writer_t, meta_t>(writer, m))
+        if (!writer.write_uleb<meta_t>(m))
           return false;
       }
     }
@@ -326,7 +324,7 @@ bool save_tags(const metadata_memory_map_t& map, const std::string& filename) {
 }
 
 bool load_tags(metadata_memory_map_t& map, const std::string& file_name) {
-  stream_reader_t reader(file_name);
+  uleb_reader_t reader(file_name);
   if (!reader)
     return false;
 
@@ -334,16 +332,16 @@ bool load_tags(metadata_memory_map_t& map, const std::string& file_name) {
     uint64_t start, end;
     uint32_t metadata_count;
 
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, start))
+    if (reader.read_uleb<uint64_t>(start) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, end))
+    if (reader.read_uleb<uint64_t>(end) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count))
+    if (reader.read_uleb<uint32_t>(metadata_count) <= 0)
       return false;
     metadata_t metadata;
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
-      if (!read_uleb<stream_reader_t, meta_t>(reader, meta))
+      if (reader.read_uleb<meta_t>(meta) <= 0)
         return false;
       metadata.insert(meta);
     }
@@ -371,67 +369,67 @@ bool load_firmware_tag_file(
   uint32_t register_index_count;
   uint32_t csr_index_count;
 
-  stream_reader_t reader(file_name);
+  uleb_reader_t reader(file_name);
   if (!reader)
     return false;
 
-  if (!read_uleb<stream_reader_t, uint8_t>(reader, is_64_bit))
+  if (reader.read_uleb<uint8_t>(is_64_bit) <= 0)
     return false;
 
-  if (!read_uleb<stream_reader_t, uint32_t>(reader, code_range_count))
+  if (reader.read_uleb<uint32_t>(code_range_count) <= 0)
     return false;
   for (size_t i = 0; i < code_range_count; i++) {
     range_t range;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, range.start))
+    if (reader.read_uleb<uint64_t>(range.start) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, range.end))
+    if (reader.read_uleb<uint64_t>(range.end) <= 0)
       return false;
     code_ranges.push_back(range);
   }
 
-  if (!read_uleb<stream_reader_t, uint32_t>(reader, data_range_count))
+  if (reader.read_uleb<uint32_t>(data_range_count) <= 0)
     return false;
   for (size_t i = 0; i < data_range_count; i++) {
     range_t range;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, range.start))
+    if (reader.read_uleb<uint64_t>(range.start) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, range.end))
+    if (reader.read_uleb<uint64_t>(range.end) <= 0)
       return false;
     data_ranges.push_back(range);
-    size_t tag_granularity;
-    if (!read_uleb<stream_reader_t, size_t>(reader, tag_granularity))
+    std::size_t tag_granularity;
+    if (reader.read_uleb<std::size_t>(tag_granularity) <= 0)
       return false;
   }
 
-  if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_value_count))
+  if (reader.read_uleb<uint32_t>(metadata_value_count) <= 0)
     return false;
   for (size_t i = 0; i < metadata_value_count; i++) {
     uint32_t metadata_count;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_count))
+    if (reader.read_uleb<uint32_t>(metadata_count) <= 0)
       return false;
 
     metadata_t metadata;
     for (size_t j = 0; j < metadata_count; j++) {
       meta_t meta;
-      if(!read_uleb<stream_reader_t, meta_t>(reader, meta))
+      if (reader.read_uleb<meta_t>(meta) <= 0)
         return false;
       metadata.insert(meta);
     }
     metadata_values.push_back(metadata);
   }
 
-  if (!read_uleb<stream_reader_t, uint32_t>(reader, register_index_count))
+  if (reader.read_uleb<uint32_t>(register_index_count) <= 0)
     return false;
-  if (!read_uleb<stream_reader_t, int32_t>(reader, register_default))
+  if (reader.read_uleb<int32_t>(register_default) <= 0)
     return false;
-  for (size_t i = 0; i < register_index_count; i++) {
+  for (std::size_t i = 0; i < register_index_count; i++) {
     std::string register_name;
     uint32_t register_value;
     uint32_t register_meta;
 
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, register_value))
+    if (reader.read_uleb<uint32_t>(register_value) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, register_meta))
+    if (reader.read_uleb<uint32_t>(register_meta) <= 0)
       return false;
 
     const auto it = std::find_if(register_name_map.begin(), register_name_map.end(), [&](const std::pair<std::string, uint32_t>& e){ return e.second == register_value; });
@@ -442,16 +440,16 @@ bool load_firmware_tag_file(
     register_index_map.insert(std::make_pair(it->first, register_meta));
   }
 
-  if (!read_uleb<stream_reader_t, uint32_t>(reader, csr_index_count))
+  if (reader.read_uleb<uint32_t>(csr_index_count) <= 0)
     return false;
-  if (!read_uleb<stream_reader_t, int32_t>(reader, csr_default))
+  if (reader.read_uleb<int32_t>(csr_default) <= 0)
     return false;
-  for (size_t i = 0; i < csr_index_count; i++) {
+  for (std::size_t i = 0; i < csr_index_count; i++) {
     uint32_t csr_value;
     uint32_t csr_meta;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, csr_value))
+    if (reader.read_uleb<uint32_t>(csr_value) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, csr_meta))
+    if (reader.read_uleb<uint32_t>(csr_meta) <= 0)
       return false;
 
     const auto it = std::find_if(csr_name_map.begin(), csr_name_map.end(), [&](const std::pair<std::string, uint32_t>& e){ return e.second == csr_value; });
@@ -461,20 +459,20 @@ bool load_firmware_tag_file(
     csr_index_map.insert(std::make_pair(it->first, csr_meta));
   }
 
-  if (!read_uleb<stream_reader_t, int32_t>(reader, env_default))
+  if (reader.read_uleb<int32_t>(env_default) <= 0)
     return false;
 
-  if (!read_uleb<stream_reader_t, uint32_t>(reader, memory_index_count))
+  if (reader.read_uleb<uint32_t>(memory_index_count) <= 0)
     return false;
   for (size_t i = 0; i < memory_index_count; i++) {
     range_t range;
     uint32_t metadata_index;
 
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, range.start))
+    if (reader.read_uleb<uint64_t>(range.start) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint64_t>(reader, range.end))
+    if (reader.read_uleb<uint64_t>(range.end) <= 0)
       return false;
-    if (!read_uleb<stream_reader_t, uint32_t>(reader, metadata_index))
+    if (reader.read_uleb<uint32_t>(metadata_index) <= 0)
       return false;
     metadata_index_map.insert(std::make_pair(range, metadata_index));
   }

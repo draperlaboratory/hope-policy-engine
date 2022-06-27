@@ -34,33 +34,44 @@
 
 namespace policy_engine {
 
-class stream_reader_t {
+class uleb_reader_t {
 private:
   std::ifstream is;
   std::streamsize size;
 
 public:
-  stream_reader_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : is(std::ifstream(fname, mode)) {
+  uleb_reader_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : is(std::ifstream(fname, mode)) {
     is.ignore(std::numeric_limits<std::streamsize>::max());
     size = is.gcount();
     is.clear();
     is.seekg(0, std::ios::beg);
   }
 
-  template<class T> std::streamsize read(T* data, std::streamsize n) {
+  template<class T=uint8_t> std::streamsize read(T& data, std::streamsize n=1) {
     try {
       std::streamsize b = n*sizeof(T)/sizeof(std::ofstream::char_type);
       std::ofstream::char_type bytes[b];
       std::streamsize r = is.read(bytes, b).gcount();
       if (r == b)
-        std::memcpy(data, bytes, b);
+        std::memcpy(&data, bytes, b);
       return r*sizeof(std::ofstream::char_type)/sizeof(T);
     } catch (const std::ios::failure& e) {
       return 0;
     }
   }
 
-  bool read_byte(uint8_t& b) { return read(&b, 1) == 1; }
+  template<class T> std::streamsize read_uleb(T& value) {
+    value = 0;
+    int shift = 0;
+    uint8_t b;
+    do {
+      if (read(b) != 1)
+        return 0;
+      value |= (((static_cast<T>(b)) & 0x7f) << shift);
+      shift += 7;
+    } while (b & 0x80);
+    return shift/7;
+  }
 
   std::streamsize length() { return size; }
   bool eof() { return is.tellg() >= size; }
@@ -68,14 +79,14 @@ public:
   explicit operator bool() const { return static_cast<bool>(is); }
 };
 
-class stream_writer_t {
+class uleb_writer_t {
 private:
   std::ofstream os;
 
 public:
-  stream_writer_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : os(std::ofstream(fname, mode)) {}
+  uleb_writer_t(const std::string& fname, std::ios::openmode mode=std::ios::binary) : os(std::ofstream(fname, mode)) {}
 
-  template<class T> bool write(const T* data, std::size_t n) {
+  template<class T=uint8_t> bool write(const T* data, std::size_t n=1) {
     try {
       os.write(reinterpret_cast<const std::ofstream::char_type*>(data), n*sizeof(T)/sizeof(std::ofstream::char_type));
       return !os.fail();
@@ -84,62 +95,20 @@ public:
     }
   }
 
-  bool write_byte(uint8_t b) { return write(&b, 1); }
+  template<class T> bool write_uleb(T value) {
+    do {
+      uint8_t b = value & 0x7f;
+      value >>= 7;
+      if (value)
+        b |= 0x80;
+      if (!write(&b))
+        return false;
+    } while (value != 0);
+    return true;
+  }
 
   explicit operator bool() const { return static_cast<bool>(os); }
 };
-
-/**
- *  ULEB encoding functions.  These are generics that allow you to specify a reader type and
- *  a value type.
- */
-
-/**
- *  Reads a ULEB encoded unsigned value.  The <code>StreamType</code> type parameter specifies
- *  a type that must support the following API:
- *
- *  bool read_byte(uint8_t &b)
- *  Returns <code>true</code> on success, <code>false</code> on failure.
- *
- *  The ValueType type parameter will be the integral type to be read.  E.g. \a uint32_t.
- *
- *  \return Returns true on success and false on failure.
- */
-template <typename StreamType, typename ValueType> bool read_uleb(StreamType& stream, ValueType& v) {
-  v = 0;
-  int shift = 0;
-  uint8_t b;
-  do {
-    if (!stream.read_byte(b))
-      return false;
-    v = v | ((((ValueType)b) & 0x7f) << shift);
-    shift += 7;
-  } while (b & 0x80);
-  return true;
-}
-
-/**
- *  Writes a ULEB encoded unsigned value.  The <code>StreamType</code> type parameter specifies
- *  a type that must support the following API:
- *
- *  bool write_byte(uint8_t b)
- *  Returns <code>true</code> on success, <code>false</code> on failure.
- *
- *  The ValueType type parameter will be the integral type to be written.  E.g. \a uint32_t.
- *
- *  \return Returns true on success and false on failure.
- */
-template <typename StreamType, typename ValueType> bool write_uleb(StreamType& stream, ValueType v) {
-  do {
-    uint8_t b = v & 0x7f;
-    v = v >> 7;
-    if (v)
-      b |= 0x80;
-    if (!stream.write_byte(b))
-      return false;
-  } while (v != 0);
-  return true;
-}
 
 } // namespace policy_engine
 
