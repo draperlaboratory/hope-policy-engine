@@ -40,7 +40,7 @@ meta_set_t* meta_set_factory_t::get_meta_set(const std::string& dotted_path) {
     for (const meta_t& m: *metadata) {
       ms_bit_add(&ms, m);
     }
-    return ms_cache->canonize(ms);
+    return &ms_cache->canonize(ms);
   } else {
     return nullptr;
   }

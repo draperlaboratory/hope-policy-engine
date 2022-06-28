@@ -76,7 +76,7 @@ void rv_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   for (const auto [ range, metadata ]: *md_map) {
     for (address_t start = range.start; start < range.end; start += 4) {
       try {
-        tag_bus.insn_tag_at(start) = ms_cache.to_tag(ms_cache.canonize(metadata));
+        tag_bus.insn_tag_at(start) = ms_cache.to_tag(&ms_cache.canonize(*metadata));
       } catch (const std::out_of_range& e) {
         throw configuration_exception_t("unable to apply metadata");
       }
@@ -162,7 +162,7 @@ bool rv_validator_t::commit() {
   bool hit_watch = false;
 
   if (res.pcResult) {
-    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.pc));
+    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.pc));
     if (watch_pc && pc_tag != new_tag) {
       std::cout << "Watch tag pc" << std::endl;
       hit_watch = true;
@@ -171,7 +171,7 @@ bool rv_validator_t::commit() {
   }
 
   if (has_pending_RD && res.rdResult) {
-    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.rd));
+    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.rd));
     for (const address_t& reg : watch_regs) {
       if (pending_RD == reg && ireg_tags[pending_RD] != new_tag) {
         std::cout << "Watch tag reg" << std::endl;
@@ -185,7 +185,7 @@ bool rv_validator_t::commit() {
   }
   
   if (has_pending_mem && res.rdResult) {
-    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.rd));
+    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.rd));
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
     try {
@@ -213,7 +213,7 @@ bool rv_validator_t::commit() {
   }
 
   if (has_pending_CSR && res.csrResult) {
-    tag_t new_tag = ms_cache.to_tag(ms_cache.canonize(*res.csr));
+    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.csr));
     for (const address_t& csr : watch_csrs) {
       if (pending_CSR == csr && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR\n");
@@ -226,9 +226,9 @@ bool rv_validator_t::commit() {
 
   if (rule_cache) {
     results_t res_copy = {
-      .pc = ms_cache.canonize(*res.pc),
-      .rd = ms_cache.canonize(*res.rd),
-      .csr = ms_cache.canonize(*res.csr),
+      .pc = &ms_cache.canonize(*res.pc),
+      .rd = &ms_cache.canonize(*res.rd),
+      .csr = &ms_cache.canonize(*res.csr),
       .pcResult = res.pcResult,
       .rdResult = res.rdResult,
       .csrResult = res.csrResult
