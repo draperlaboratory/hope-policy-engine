@@ -27,24 +27,23 @@
 #ifndef METADATA_CACHE_H
 #define METADATA_CACHE_H
 
-#include <memory>
-#include <unordered_map>
+#include <list>
 #include "metadata.h"
 
 namespace policy_engine {
 
 class metadata_cache_t {
 private:
-  std::unordered_map<metadata_t, std::unique_ptr<metadata_t>> map;
-public:
-  metadata_t* canonize(const metadata_t& md) {
-    if (map.find(md) == map.end())
-      map[md] = std::make_unique<metadata_t>(md);
-    return map[md].get();
-  }
+  std::list<metadata_t> canon;
 
-  template<class MetadataPtr>
-  metadata_t* canonize(MetadataPtr md) { canonize(*md); }
+public:
+  metadata_t& canonize(const metadata_t& md) {
+    for (metadata_t& m : canon)
+      if (md == m)
+        return m;
+    canon.push_back(md);
+    return canon.back();
+  }
 };
 
 } // namespace policy_engine

@@ -55,7 +55,7 @@ void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end
     metadata_t md(metadata);
     if (mem[s])
       md.insert(mem[s]);
-    mem[s++] = map->md_cache.canonize(md);
+    mem[s++] = &map->md_cache.canonize(md);
   }
 }
 
@@ -68,7 +68,7 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, const metada
     it->add_range(start, end, metadata);
   } else {
     /* an appropriate existing MR was not found - make a new one */
-    mem_region_t mr = mem_region_t(*this);
+    mem_region_t mr(*this);
     mr.add_range(start, end, metadata);
     mrs.insert(std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return end < r.range.start; }), mr); // will add at end if not found
   }
