@@ -1,4 +1,5 @@
 #include <functional>
+#include <iostream>
 #include "meta_cache.h"
 #include "metadata.h"
 #include "policy_meta_set.h"
@@ -20,6 +21,10 @@ meta_set_t& meta_set_cache_t::canonize(const meta_set_t& ts) {
     if (ms == ts)
       return ms;
   canon.push_back(ts);
+
+  m2t[&canon.back()] = reinterpret_cast<tag_t>(&canon.back());
+  t2m[m2t[&canon.back()]] = &canon.back();
+
   return canon.back();
 }
 
@@ -30,16 +35,16 @@ meta_set_t& meta_set_cache_t::canonize(const metadata_t& md) {
   return canonize(ms);
 }
 
-meta_set_t* meta_set_cache_t::operator [](tag_t tag) {
+meta_set_t* meta_set_cache_t::operator [](tag_t tag) const {
   if (tag == 0)
     return nullptr;
-  for (meta_set_t& ms : canon) {
-    if (ms == *reinterpret_cast<meta_set_t*>(tag))
-      return &ms;
-  }
-  return nullptr;
+  return t2m.at(tag);
 }
 
-tag_t meta_set_cache_t::to_tag(meta_set_t* msp) const { return reinterpret_cast<tag_t>(msp); }
+tag_t meta_set_cache_t::to_tag(meta_set_t* msp) const {
+  if (m2t.find(msp) == m2t.end())
+    return 0;
+  return m2t.at(msp);
+}
 
 }
