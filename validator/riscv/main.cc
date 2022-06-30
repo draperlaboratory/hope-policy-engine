@@ -55,15 +55,12 @@ void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, A
   if (!DOA) {
     try {
       std::printf("setting callbacks\n");
-// hack to correctly assign address max while the validator expects it to be statically determined
-#ifdef RV64_VALIDATOR
-      rv_validator = std::make_unique<policy_engine::rv_validator_t>(64, policy_dir, soc_cfg_path, reg_reader, addr_fixer);
-#else
-      rv_validator = std::make_unique<policy_engine::rv_validator_t>(32, policy_dir, soc_cfg_path, reg_reader, addr_fixer);
-#endif
-      
+      uint32_t xlen = 32; // default value in case load_tags fails
       policy_engine::metadata_memory_map_t map;
-      if (!policy_engine::load_tags(map, tags_file)) {
+      bool loaded = policy_engine::load_tags(map, tags_file, xlen);
+      rv_validator = std::make_unique<policy_engine::rv_validator_t>(xlen, policy_dir, soc_cfg_path, reg_reader, addr_fixer);
+
+      if (!loaded) {
         std::printf("failed read\n");
       } else {
         rv_validator->apply_metadata(&map);
