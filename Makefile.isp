@@ -21,10 +21,6 @@ policy:
 		osv.$(DUMMY_POLICY).$(DUMMY_POLICY)Pol
 
 install: all
-	cp build/librv_validator.a build/librv32_validator.a
-	cp build/librv_validator.a build/librv64_validator.a
-	cp build/libvalidator.a build/libvalidator64.a
-	cp build/libtagging_tools.a build/libtagging_tools64.a
 	install -d $(ISP_PREFIX)/lib
 	install -d $(ISP_PREFIX)/bin
 	install -d $(ISP_PREFIX)/include
@@ -33,14 +29,10 @@ install: all
 	install -p build/gen_tag_info $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv $(ISP_PREFIX)/bin/
 	install -p scripts/run_riscv_gdb $(ISP_PREFIX)/bin/
-	install -p build/librv32-sim-validator.so $(ISP_PREFIX)/lib/
-	install -p build/librv32_validator.a $(ISP_PREFIX)/lib/
+	install -p build/librv-sim-validator.so $(ISP_PREFIX)/lib/
+	install -p build/librv_validator.a $(ISP_PREFIX)/lib/
 	install -p build/libtagging_tools.a $(ISP_PREFIX)/lib/
 	install -p build/libvalidator.a $(ISP_PREFIX)/lib/
-	install -p build/librv64-sim-validator.so $(ISP_PREFIX)/lib/
-	install -p build/librv64_validator.a $(ISP_PREFIX)/lib/
-	install -p build/libtagging_tools64.a $(ISP_PREFIX)/lib/
-	install -p build/libvalidator64.a $(ISP_PREFIX)/lib/
 	install -m 644 validator/include/qemu_interface.h $(ISP_PREFIX)/include/
 	install -m 644 validator/include/reader.h $(ISP_PREFIX)/include/
 	cp -r policy $(ISP_PREFIX)/
