@@ -21,10 +21,7 @@ meta_set_t& meta_set_cache_t::canonize(const meta_set_t& ts) {
     if (ms == ts)
       return ms;
   canon.push_back(ts);
-
-  m2t[&canon.back()] = reinterpret_cast<tag_t>(&canon.back());
-  t2m[m2t[&canon.back()]] = &canon.back();
-
+  tags[canon.size()] = &canon.back();
   return canon.back();
 }
 
@@ -35,16 +32,19 @@ meta_set_t& meta_set_cache_t::canonize(const metadata_t& md) {
   return canonize(ms);
 }
 
-meta_set_t* meta_set_cache_t::operator [](tag_t tag) const {
-  if (tag == 0)
+meta_set_t* meta_set_cache_t::operator [](tag_t tag) {
+  if (tag == 0 || tag > canon.size())
     return nullptr;
-  return t2m.at(tag);
+  return tags[tag];
 }
 
-tag_t meta_set_cache_t::to_tag(meta_set_t* msp) const {
-  if (m2t.find(msp) == m2t.end())
+tag_t meta_set_cache_t::tag_of(const meta_set_t* msp) {
+  if (msp == nullptr)
     return 0;
-  return m2t.at(msp);
+  for (const auto& [ tag, sp ] : tags)
+    if (sp == msp)
+      return tag;
+  return 0;
 }
 
-}
+} // namespace policy_engine

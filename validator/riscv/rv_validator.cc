@@ -50,14 +50,14 @@ static std::string tag_name(const meta_set_t* tag) {
 rv_validator_t::rv_validator_t(int xlen, const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af) :
     sim_validator_t(rr, af), tag_based_validator_t(policy_dir), res({new meta_set_t{0}, new meta_set_t{0}, new meta_set_t{0}, true, true, true}),
     xlen(xlen), watch_pc(false), rule_cache(nullptr), failed(false), has_insn_mem_addr(false), rule_cache_hits(0), rule_cache_misses(0) {
-  ireg_tags.fill(ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.Reg.Default")));
-  ireg_tags[0] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.Reg.RZero"));
-  csr_tags.fill(ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.Default")));
-  pc_tag = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.Reg.Env"));
+  ireg_tags.fill(ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.Reg.Default")));
+  ireg_tags[0] = ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.Reg.RZero"));
+  csr_tags.fill(ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.CSR.Default")));
+  pc_tag = ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.Reg.Env"));
   // set initial tags for specific CSRs
-  csr_tags[CSR_MEPC] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.MEPC"));
-  csr_tags[CSR_MTVAL] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.MTVal"));
-  csr_tags[CSR_MTVEC] = ms_cache.to_tag(ms_factory.get_meta_set("ISA.RISCV.CSR.MTVec"));
+  csr_tags[CSR_MEPC] = ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.CSR.MEPC"));
+  csr_tags[CSR_MTVAL] = ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.CSR.MTVal"));
+  csr_tags[CSR_MTVEC] = ms_cache.tag_of(ms_factory.get_meta_set("ISA.RISCV.CSR.MTVec"));
 
   soc_tag_configuration_t config(&ms_factory, soc_cfg, xlen);
   config.apply(&tag_bus, &ms_cache);
@@ -76,7 +76,7 @@ void rv_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   for (const auto [ range, metadata ]: *md_map) {
     for (address_t start = range.start; start < range.end; start += 4) {
       try {
-        tag_bus.insn_tag_at(start) = ms_cache.to_tag(&ms_cache.canonize(*metadata));
+        tag_bus.insn_tag_at(start) = ms_cache.tag_of(&ms_cache.canonize(*metadata));
       } catch (const std::out_of_range& e) {
         throw configuration_exception_t("unable to apply metadata");
       }
@@ -162,7 +162,7 @@ bool rv_validator_t::commit() {
   bool hit_watch = false;
 
   if (res.pcResult) {
-    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.pc));
+    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.pc));
     if (watch_pc && pc_tag != new_tag) {
       std::cout << "Watch tag pc" << std::endl;
       hit_watch = true;
@@ -171,7 +171,7 @@ bool rv_validator_t::commit() {
   }
 
   if (has_pending_RD && res.rdResult) {
-    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.rd));
+    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.rd));
     for (const address_t& reg : watch_regs) {
       if (pending_RD == reg && ireg_tags[pending_RD] != new_tag) {
         std::cout << "Watch tag reg" << std::endl;
@@ -185,7 +185,7 @@ bool rv_validator_t::commit() {
   }
   
   if (has_pending_mem && res.rdResult) {
-    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.rd));
+    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.rd));
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
     try {
@@ -213,7 +213,7 @@ bool rv_validator_t::commit() {
   }
 
   if (has_pending_CSR && res.csrResult) {
-    tag_t new_tag = ms_cache.to_tag(&ms_cache.canonize(*res.csr));
+    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.csr));
     for (const address_t& csr : watch_csrs) {
       if (pending_CSR == csr && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR\n");

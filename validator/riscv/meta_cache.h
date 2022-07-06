@@ -42,15 +42,14 @@ bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs);
 class meta_set_cache_t {
 private:
   std::list<meta_set_t> canon;
-  std::unordered_map<meta_set_t*, tag_t> m2t;
-  std::unordered_map<tag_t, meta_set_t*> t2m;
+  std::unordered_map<tag_t, meta_set_t*> tags;
 
 public:
   meta_set_t& canonize(const meta_set_t& ts);
   meta_set_t& canonize(const metadata_t& md);
 
-  meta_set_t* operator [](tag_t tag) const;
-  tag_t to_tag(meta_set_t* msp) const;
+  meta_set_t* operator [](tag_t tag);
+  tag_t tag_of(const meta_set_t* msp);
 };
 
 } // namespace policy_engine
