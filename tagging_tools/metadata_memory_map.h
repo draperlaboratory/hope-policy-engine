@@ -66,8 +66,9 @@ private:
     uint64_t itr_to_addr(iterator itr) const { return index_to_addr(itr - begin()); }
     uint64_t itr_to_addr(const_iterator itr) const { return index_to_addr(itr - cbegin()); }
     size_t addr_to_index(uint64_t addr) const { return (addr - range.start)/stride; }
-    const metadata_t* getaddr(uint64_t addr) const { return mem[addr_to_index(addr)]; }
-    bool contains(uint64_t addr) const { return (addr >= range.start) && (addr <= range.end); }
+    const metadata_t* getaddr(uint64_t addr) const { return mem.at(addr_to_index(addr)); }
+    bool contains(uint64_t addr) const { return range.contains(addr); }
+    bool adjacent(uint64_t addr) const { return addr >= range.start - stride && addr < range.end + stride; }
     size_t size() const { return mem.size(); }
     
     void add_range(uint64_t start, uint64_t end, const metadata_t& metadata);

@@ -29,7 +29,7 @@
 #include <string>
 #include "metadata_memory_map.h"
 #include "range.h"
-
+#include <iostream>
 namespace policy_engine {
   
 void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end, const metadata_t& metadata) {
@@ -64,7 +64,7 @@ void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, const metada
   if (start >= end)
     return;
 
-  if (auto it = std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return r.contains(start) || r.contains(end); }); it != mrs.end()) {
+  if (auto it = std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return r.adjacent(start) || r.adjacent(end); }); it != mrs.end()) {
     it->add_range(start, end, metadata);
   } else {
     /* an appropriate existing MR was not found - make a new one */
