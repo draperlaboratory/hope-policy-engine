@@ -1,5 +1,5 @@
 #include <functional>
-#include <iostream>
+#include <stdexcept>
 #include "meta_cache.h"
 #include "metadata.h"
 #include "policy_meta_set.h"
@@ -33,18 +33,16 @@ meta_set_t& meta_set_cache_t::canonize(const metadata_t& md) {
 }
 
 meta_set_t* meta_set_cache_t::operator [](tag_t tag) {
-  if (tag == 0 || tag > canon.size())
-    return nullptr;
-  return tags[tag];
+  return tags.at(tag);
 }
 
 tag_t meta_set_cache_t::tag_of(const meta_set_t* msp) {
-  if (msp == nullptr)
-    return 0;
   for (const auto& [ tag, sp ] : tags)
     if (sp == msp)
       return tag;
-  return 0;
+  char buf[64];
+  std::sprintf(buf, "no tag for meta set at %p", msp);
+  throw std::out_of_range(buf);
 }
 
 } // namespace policy_engine
