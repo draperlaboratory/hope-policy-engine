@@ -148,36 +148,36 @@ range_map_t llvm_metadata_tagger_t::generate_policy_ranges(const elf_image_t& ef
     if (op == metadata_ops.at("DMD_SET_BASE_ADDRESS_OP")) {
       base_address = 0;
       for (int j = 0; j < 8; j++, i++)
-        base_address += metadata[i] << (j*8);
+        base_address += static_cast<uint64_t>(metadata[i]) << (j*8);
       err.info("new base address is %#x\n", base_address);
     } else if (op == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
-        address += metadata[i] << (j*8);
+        address += static_cast<uint64_t>(metadata[i]) << (j*8);
       uint8_t tag_specifier = metadata[i++];
       err.info("tag is %#x at address %#lx\n", tag_specifier, address);
       check_and_add_range(range_map, address, address + PTR_SIZE, tag_specifier, policy_inits);
     } else if (op == metadata_ops.at("DMD_TAG_ADDRESS_OP")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
-        start_address += metadata[i] << (j*8);
+        start_address += static_cast<uint64_t>(metadata[i]) << (j*8);
       for (int j = 0; j < PTR_SIZE; j++, i++)
-        end_address += metadata[i] << (j*8);
+        end_address += static_cast<uint64_t>(metadata[i]) << (j*8);
       uint8_t tag_specifier = metadata[i++];
       err.info("tag is %#x for address range %#lx:%#lx\n", tag_specifier, start_address, end_address);
       check_and_add_range(range_map, start_address, end_address, tag_specifier, policy_inits);
     } else if (op == metadata_ops.at("DMD_END_BLOCK")) {
       uint64_t end_address = 0;
       for (int j = 0; j < PTR_SIZE; j++, i++)
-        end_address += metadata[i] << (j*8);
+        end_address += static_cast<uint64_t>(metadata[i]) << (j*8);
       err.info("saw end block tag range = %#lx:%#lx\n", base_address, base_address + end_address);
       compiler_generated_map.add_range(base_address, base_address + end_address, COMPILER_GENERATED);
     } else if (op == metadata_ops.at("DMD_FUNCTION_RANGE")) {
       uint64_t start_address = base_address, end_address = base_address;
       for (int j = 0; j < PTR_SIZE; j++, i++)
-        start_address += metadata[i] << (j*8);
+        start_address += static_cast<uint64_t>(metadata[i]) << (j*8);
       for (int j = 0; j < PTR_SIZE; j++, i++)
-        end_address += metadata[i] << (j*8);
+        end_address += static_cast<uint64_t>(metadata[i]) << (j*8);
       err.info("saw function range = %#lx:%#lx\n", start_address, end_address);
       compiler_generated_map.add_range(start_address, end_address, COMPILER_GENERATED);
     } else if (op == metadata_ops.at("DMD_TAG_POLICY_SYMBOL")) {
