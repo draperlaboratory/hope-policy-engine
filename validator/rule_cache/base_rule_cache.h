@@ -6,7 +6,7 @@
 namespace policy_engine {
 
 struct compare_ops {
-  bool operator()(const operands_t &a, const operands_t &b) const {
+  bool operator()(const operands_t& a, const operands_t& b) const {
     return (a.op1 == b.op1 &&
             a.op2 == b.op2 &&
             a.op3 == b.op3 &&
@@ -19,8 +19,8 @@ struct compare_ops {
 class rule_cache_t {
 public:
   virtual void flush() = 0;
-  virtual void install_rule(operands_t *ops, results_t *res) = 0;
-  virtual bool allow(operands_t *ops, results_t *res) = 0;
+  virtual void install_rule(const operands_t* ops, results_t* res) = 0;
+  virtual bool allow(const operands_t* ops, results_t* res) = 0;
 };
 
 } // namespace policy_engine

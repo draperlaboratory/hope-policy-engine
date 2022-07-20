@@ -81,7 +81,7 @@ void rv_validator_t::apply_metadata(const metadata_memory_map_t* md_map) {
   }
 }
 
-void rv_validator_t::handle_violation(context_t* ctx, operands_t* ops){
+void rv_validator_t::handle_violation(context_t* ctx, const operands_t* ops){
   if (!failed) {
     failed = true;
     memcpy(&failed_ctx, ctx, sizeof(context_t));

@@ -35,8 +35,8 @@ public:
   dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k, bool no_evict);
   ~dmhc_rule_cache_t();
 
-  void install_rule(operands_t *ops, results_t *res); //Not used
-  bool allow(operands_t *ops, results_t *res);
+  void install_rule(const operands_t* ops, results_t* res); //Not used
+  bool allow(const operands_t* ops, results_t* res);
   void flush();
 
 private:

@@ -84,7 +84,7 @@ public:
 
   void apply_metadata(const metadata_memory_map_t* md_map);
 
-  void handle_violation(context_t* ctx, operands_t* ops);
+  void handle_violation(context_t* ctx, const operands_t* ops);
 
   bool validate(address_t pc, insn_bits_t insn);
   std::pair<bool, bool> validate(address_t pc, insn_bits_t insn, address_t mem_addr);
