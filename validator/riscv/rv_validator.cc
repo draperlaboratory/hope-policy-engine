@@ -145,7 +145,7 @@ bool rv_validator_t::commit() {
   bool hit_watch = false;
 
   if (res.pcResult) {
-    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.pc));
+    tag_t new_tag = ms_cache.tag_of(res.pc);
     if (watch_pc && pc_tag != new_tag) {
       std::cout << "Watch tag pc" << std::endl;
       hit_watch = true;
@@ -154,7 +154,7 @@ bool rv_validator_t::commit() {
   }
 
   if (has_pending_RD && res.rdResult) {
-    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.rd));
+    tag_t new_tag = ms_cache.tag_of(res.rd);
     for (const address_t& reg : watch_regs) {
       if (pending_RD == reg && ireg_tags[pending_RD] != new_tag) {
         std::cout << "Watch tag reg" << std::endl;
@@ -168,7 +168,7 @@ bool rv_validator_t::commit() {
   }
   
   if (has_pending_mem && res.rdResult) {
-    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.rd));
+    tag_t new_tag = ms_cache.tag_of(res.rd);
     tag_t old_tag;
     address_t mem_paddr = addr_fixer(mem_addr);
     try {
@@ -208,15 +208,7 @@ bool rv_validator_t::commit() {
   }
 
   if (rule_cache) {
-    results_t res_copy = {
-      .pc = &ms_cache.canonize(*res.pc),
-      .rd = &ms_cache.canonize(*res.rd),
-      .csr = &ms_cache.canonize(*res.csr),
-      .pcResult = res.pcResult,
-      .rdResult = res.rdResult,
-      .csrResult = res.csrResult
-    };
-
+    results_t res_copy(res);
     if (ctx.cached && !rule_cache->allow(&ops, &res)) {
       rule_cache->install_rule(&ops, &res_copy);
     }

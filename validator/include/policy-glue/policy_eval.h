@@ -70,12 +70,6 @@ int eval_policy(context_t* ctx, const operands_t* ops, results_t* res);
  */
 void complete_eval(context_t* ctx, const operands_t* ops, results_t* res);
 
-/**
- * Helper Fn to optomize by returning a cannonical representation of
- * a metadata set. Necessary for performance and to save memory.
- */  
-meta_set_t* canonize(meta_set_t* ts);
-
   
 /**
  * Print eval status

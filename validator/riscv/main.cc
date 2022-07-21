@@ -24,21 +24,22 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <yaml-cpp/yaml.h>
 #include "meta_cache.h"
-#include "meta_set_factory.h"
-#include "rv_validator.h"
 #include "metadata_memory_map.h"
+#include "meta_set_factory.h"
+#include "platform_types.h"
+#include "policy_meta_set.h"
+#include "policy_utils.h"
+#include "rv_validator.h"
 #include "tag_file.h"
 #include "validator_exception.h"
-#include "policy_utils.h"
-#include "platform_types.h"
-#include <yaml-cpp/yaml.h>
-#include <cinttypes>
 
 static std::unique_ptr<policy_engine::rv_validator_t> rv_validator = nullptr;
 static std::string policy_dir;
@@ -50,6 +51,13 @@ static int rule_cache_capacity;
 static bool DOA = false;
 
 extern "C" {
+
+const meta_set_t* canonize(const meta_set_t* ts) {
+  if (rv_validator)
+    return &rv_validator->ms_cache.canonize(*ts);
+  else
+    return nullptr;
+}
 
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
   if (!DOA) {

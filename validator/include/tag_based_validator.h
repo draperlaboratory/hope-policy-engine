@@ -37,11 +37,10 @@
 namespace policy_engine {
 
 class tag_based_validator_t : public abstract_validator_t {
-protected:
+public:
   meta_set_cache_t ms_cache;
   meta_set_factory_t ms_factory;
-  
-public:
+
   tag_based_validator_t(const std::string& policy_dir) : ms_factory(meta_set_factory_t(&ms_cache, policy_dir)) {}
   virtual ~tag_based_validator_t() {}
 
