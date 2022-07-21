@@ -120,7 +120,7 @@ bool rv_validator_t::validate(address_t pc, insn_bits_t insn) {
   setup_validation();
   prepare_eval(pc, insn);
   if (rule_cache) {
-    if (rule_cache->allow(&ops, &res)) {
+    if (rule_cache->allow(ops, res)) {
       rule_cache_hits++;
       rule_cache_hit = true;
       return true;
@@ -196,7 +196,7 @@ bool rv_validator_t::commit() {
   }
 
   if (has_pending_CSR && res.csrResult) {
-    tag_t new_tag = ms_cache.tag_of(&ms_cache.canonize(*res.csr));
+    tag_t new_tag = ms_cache.tag_of(res.csr);
     for (const address_t& csr : watch_csrs) {
       if (pending_CSR == csr && csr_tags[pending_CSR] != new_tag){
         printf("Watch tag CSR\n");
@@ -209,8 +209,8 @@ bool rv_validator_t::commit() {
 
   if (rule_cache) {
     results_t res_copy(res);
-    if (ctx.cached && !rule_cache->allow(&ops, &res)) {
-      rule_cache->install_rule(&ops, &res_copy);
+    if (ctx.cached && !rule_cache->allow(ops, res)) {
+      rule_cache->install_rule(ops, res_copy);
     }
   }
   return hit_watch;
