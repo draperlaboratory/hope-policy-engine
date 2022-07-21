@@ -89,22 +89,24 @@ void rv_validator_t::handle_violation(context_t* ctx, const operands_t* ops){
   }
 }
 
+meta_set_t empty_set{0};
+
 void rv_validator_t::setup_validation() {
   ctx = {0, 0, 0, "", "", true};
   ops = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
   if (res.pcResult) {
-    memset(res.pc, 0, sizeof(meta_set_t));
+    res.pc = &empty_set;
     res.pcResult = false;
   }
 
   if (res.rdResult) {
-    memset(res.rd, 0, sizeof(meta_set_t));
+    res.rd = &empty_set;
     res.rdResult = false;
   }
 
   if (res.csrResult) {
-    memset(res.csr, 0, sizeof(meta_set_t));
+    res.csr = &empty_set;
     res.csrResult = false;
   }
 }

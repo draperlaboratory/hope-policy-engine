@@ -37,9 +37,9 @@ void finite_rule_cache_t::install_rule(const operands_t* ops, results_t* res) {
 bool finite_rule_cache_t::allow(const operands_t* ops, results_t* res) {
   auto existing_entry = rule_cache_table.find(*ops);
   if (existing_entry != rule_cache_table.end()) {
-    *res->pc = *existing_entry->second.pc;
-    *res->rd = *existing_entry->second.rd;
-    *res->csr = *existing_entry->second.csr;
+    res->pc = existing_entry->second.pc;
+    res->rd = existing_entry->second.rd;
+    res->csr = existing_entry->second.csr;
     res->pcResult = existing_entry->second.pcResult;
     res->rdResult = existing_entry->second.rdResult;
     res->csrResult = existing_entry->second.csrResult;

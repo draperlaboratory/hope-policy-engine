@@ -112,9 +112,9 @@ typedef struct operands {
  * Structure that holds results after rule eval
  */  
 typedef struct results {
-  meta_set_t* pc;
-  meta_set_t* rd;
-  meta_set_t* csr;
+  const meta_set_t* pc;
+  const meta_set_t* rd;
+  const meta_set_t* csr;
   // flags indicate results are present
   bool pcResult;
   bool rdResult;

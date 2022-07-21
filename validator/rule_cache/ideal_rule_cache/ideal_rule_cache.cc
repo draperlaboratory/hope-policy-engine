@@ -22,9 +22,9 @@ void ideal_rule_cache_t::install_rule(const operands_t* ops, results_t* res) {
 bool ideal_rule_cache_t::allow(const operands_t* ops, results_t* res) {
   auto entries = rule_cache_table.find(*ops);
   if (entries != rule_cache_table.end()) {
-    *res->pc = *entries->second.pc;
-    *res->rd = *entries->second.rd;
-    *res->csr = *entries->second.csr;
+    res->pc = entries->second.pc;
+    res->rd = entries->second.rd;
+    res->csr = entries->second.csr;
     res->pcResult = entries->second.pcResult;
     res->rdResult = entries->second.rdResult;
     res->csrResult = entries->second.csrResult;
