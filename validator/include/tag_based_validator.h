@@ -50,7 +50,7 @@ public:
 
   // Provides the tag for a given address.  Used for debugging.
   virtual tag_t& get_tag(address_t addr) = 0;
-  virtual meta_set_t* get_meta_set(address_t addr) = 0;
+  virtual const meta_set_t* get_meta_set(address_t addr) = 0;
 };
 
 } // namespace policy_engine

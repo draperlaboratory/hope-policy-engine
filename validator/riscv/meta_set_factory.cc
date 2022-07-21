@@ -32,7 +32,7 @@
 
 namespace policy_engine {
 
-meta_set_t* meta_set_factory_t::get_meta_set(const std::string& dotted_path) {
+const meta_set_t* meta_set_factory_t::get_meta_set(const std::string& dotted_path) {
   const metadata_t* metadata = lookup_metadata(dotted_path);
   if (metadata) {
     meta_set_t ms;

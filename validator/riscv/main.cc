@@ -200,7 +200,7 @@ void e_v_reg_tag(char* dest, int n, uint64_t addr) {
 
 void e_v_mem_tag(char* dest, int n, uint64_t addr) {
   if (addr <= rv_validator->address_max()) {
-    if (meta_set_t* ms = rv_validator->get_meta_set(static_cast<address_t>(addr))) {
+    if (const meta_set_t* ms = rv_validator->get_meta_set(static_cast<address_t>(addr))) {
       meta_set_to_string(ms, dest, n);
     } else {
       std::snprintf(dest, n, "Bad Address: %lx\n", addr);

@@ -45,10 +45,10 @@ private:
   std::unordered_map<tag_t, meta_set_t*> tags;
 
 public:
-  meta_set_t& canonize(const meta_set_t& ts);
-  meta_set_t& canonize(const metadata_t& md);
+  const meta_set_t& canonize(const meta_set_t& ts);
+  const meta_set_t& canonize(const metadata_t& md);
 
-  meta_set_t* operator [](tag_t tag);
+  const meta_set_t* operator [](tag_t tag);
   tag_t tag_of(const meta_set_t* msp);
 };
 

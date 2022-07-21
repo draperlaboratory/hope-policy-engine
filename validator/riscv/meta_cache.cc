@@ -16,7 +16,7 @@ bool operator ==(const meta_set_t& lhs, const meta_set_t& rhs) {
 
 bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs) { return !(lhs == rhs); }
 
-meta_set_t& meta_set_cache_t::canonize(const meta_set_t& ts) {
+const meta_set_t& meta_set_cache_t::canonize(const meta_set_t& ts) {
   for (meta_set_t& ms : canon)
     if (ms == ts)
       return ms;
@@ -25,14 +25,14 @@ meta_set_t& meta_set_cache_t::canonize(const meta_set_t& ts) {
   return canon.back();
 }
 
-meta_set_t& meta_set_cache_t::canonize(const metadata_t& md) {
+const meta_set_t& meta_set_cache_t::canonize(const metadata_t& md) {
   meta_set_t ms{0};
   for (const meta_t& e : md)
     ms_bit_add(&ms, e);
   return canonize(ms);
 }
 
-meta_set_t* meta_set_cache_t::operator [](tag_t tag) {
+const meta_set_t* meta_set_cache_t::operator [](tag_t tag) {
   return tags.at(tag);
 }
 
