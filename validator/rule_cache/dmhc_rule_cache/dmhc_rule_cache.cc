@@ -1,8 +1,11 @@
 #include "dmhc_rule_cache.h"
+#include "meta_cache.h"
 
 namespace policy_engine {
 
-dmhc_rule_cache_t::dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k, bool no_evict) {
+dmhc_rule_cache_t::dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k, bool no_evict, meta_set_cache_t* cache) {
+  ms_cache = cache;
+
   int ops_size[OPS_LEN];
   ops_size[OP_PC] = iwidth;
   ops_size[OP_CI] = iwidth;
@@ -17,7 +20,7 @@ dmhc_rule_cache_t::dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k
   res_size[PC_RES] = owidth;
   res_size[RD_RES] = owidth;
   res_size[CSR_RES] = owidth;
-  the_rule_cache = new dmhc_t(capacity, k, 2, OPS_LEN, RES_LEN, ops_size, res_size, no_evict);
+  the_rule_cache = new dmhc_t(capacity, k, 2, OPS_LEN, RES_LEN, ops_size, res_size, no_evict, cache);
   consider[OP_PC] = true;
   consider[OP_CI] = true;
   consider[OP_OP1] = false;
@@ -30,9 +33,9 @@ dmhc_rule_cache_t::~dmhc_rule_cache_t() {
 }
 
 void dmhc_rule_cache_t::install_rule(const operands_t& ops, const results_t& res) {
-  res_copy[RES_PC] = *res.pc;
-  res_copy[RES_RD] = *res.rd;
-  res_copy[RES_CSR] = *res.csr;
+  res_copy[RES_PC] = *(*ms_cache)[res.pc];
+  res_copy[RES_RD] = *(*ms_cache)[res.rd];
+  res_copy[RES_CSR] = *(*ms_cache)[res.csr];
   res_copy[PC_RES].tags[0] = res.pcResult;
   res_copy[RD_RES].tags[0] = res.rdResult;
   res_copy[CSR_RES].tags[0] = res.csrResult;
@@ -53,28 +56,28 @@ void dmhc_rule_cache_t::install_rule(const operands_t& ops, const results_t& res
 }
 
 bool dmhc_rule_cache_t::allow(const operands_t& ops, results_t& res) {
-  ops_copy[OP_PC] = *ops.pc;
-  ops_copy[OP_CI] = *ops.ci;
+  ops_copy[OP_PC] = *(*ms_cache)[ops.pc];
+  ops_copy[OP_CI] = *(*ms_cache)[ops.ci];
   if (ops.op1) {
-    ops_copy[OP_OP1] = *ops.op1;
+    ops_copy[OP_OP1] = *(*ms_cache)[ops.op1];
     consider[OP_OP1] = true;
   } else {
     consider[OP_OP1] = false;
   }  
   if (ops.op2) {
-    ops_copy[OP_OP2] = *ops.op2;
+    ops_copy[OP_OP2] = *(*ms_cache)[ops.op2];
     consider[OP_OP2] = true;
   } else {
     consider[OP_OP2] = false;
   }  
   if (ops.op3) {
-    ops_copy[OP_OP3] = *ops.op3;
+    ops_copy[OP_OP3] = *(*ms_cache)[ops.op3];
     consider[OP_OP3] = true;
   } else {
     consider[OP_OP3] = false;
   }
   if (ops.mem) {
-    ops_copy[OP_MEM] = *ops.mem;
+    ops_copy[OP_MEM] = *(*ms_cache)[ops.mem];
     consider[OP_MEM] = true;
   }
   else {
@@ -100,9 +103,9 @@ bool dmhc_rule_cache_t::allow(const operands_t& ops, results_t& res) {
 #ifdef DMHC_DEBUG
     printf("Found\n");
 #endif
-    res.pc = new meta_set_t{res_copy[RES_PC]};
-    res.rd = new meta_set_t{res_copy[RES_RD]};
-    res.csr = new meta_set_t{res_copy[RES_CSR]};
+    res.pc = ms_cache->canonize(meta_set_t{res_copy[RES_PC]});
+    res.rd = ms_cache->canonize(meta_set_t{res_copy[RES_RD]});
+    res.csr = ms_cache->canonize(meta_set_t{res_copy[RES_CSR]});
     res.pcResult = res_copy[PC_RES].tags[0];
     res.rdResult = res_copy[RD_RES].tags[0];
     res.csrResult = res_copy[CSR_RES].tags[0];

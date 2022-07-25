@@ -45,7 +45,7 @@ public:
     bool heterogeneous;
     size_t tag_granularity = 4;
     size_t word_size = 4;
-    const meta_set_t* meta_set;
+    tag_t tag;
   };
 
 private:

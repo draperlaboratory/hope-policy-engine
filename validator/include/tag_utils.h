@@ -46,8 +46,7 @@ namespace policy_engine {
  * particular platform, in which case, there would be some conversion to policy data structures
  * required.
  */
-using tag_t = uintptr_t;
-#define PRItag PRIuPTR
+#define PRItag PRIdPTR
 
 static const tag_t BAD_TAG_VALUE = -1;
 

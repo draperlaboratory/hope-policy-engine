@@ -100,21 +100,21 @@ typedef struct context {
  * Structure that holds input operands for rule eval
  */  
 typedef struct operands {
-  const meta_set_t* pc;
-  const meta_set_t* ci;
-  const meta_set_t* op1;
-  const meta_set_t* op2;
-  const meta_set_t* op3;
-  const meta_set_t* mem;
+  tag_t pc;
+  tag_t ci;
+  tag_t op1;
+  tag_t op2;
+  tag_t op3;
+  tag_t mem;
 } operands_t;
 
 /**
  * Structure that holds results after rule eval
  */  
 typedef struct results {
-  const meta_set_t* pc;
-  const meta_set_t* rd;
-  const meta_set_t* csr;
+  tag_t pc;
+  tag_t rd;
+  tag_t csr;
   // flags indicate results are present
   bool pcResult;
   bool rdResult;
@@ -124,6 +124,34 @@ typedef struct results {
 #ifdef __cplusplus
 } // extern "C"
 } // namespace policy_engine
+
+namespace std
+{
+
+template<>
+struct equal_to<policy_engine::operands_t> {
+  bool operator ()(const policy_engine::operands_t& a, const policy_engine::operands_t& b) const {
+    return (a.op1 == b.op1 && a.op2 == b.op2 && a.op3 == b.op3 && a.mem == b.mem && a.pc == b.pc && a.ci == b.ci);
+  }
+};
+
+template<>
+struct hash<policy_engine::operands_t> {
+  size_t operator ()(const policy_engine::operands_t& ops) const {
+    // XOR all meta_set_t pointers (operands) together.
+    // Shift pointers slightly so that two identical
+    // tags don't cancel out to 0.
+    size_t hash = ops.pc;
+    hash ^= ops.ci  << 1;
+    hash ^= ops.op1 << 2;
+    hash ^= ops.op2 << 3;
+    hash ^= ops.op3 << 4;
+    hash ^= ops.mem << 5;
+    return hash;
+  }
+};
+
+} // namespace std
 #endif
 
 #endif // RISCV_ISA_H

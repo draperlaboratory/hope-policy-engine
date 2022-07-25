@@ -45,11 +45,10 @@ private:
   std::unordered_map<tag_t, meta_set_t*> tags;
 
 public:
-  const meta_set_t& canonize(const meta_set_t& ts);
-  const meta_set_t& canonize(const metadata_t& md);
+  tag_t canonize(const meta_set_t& ts);
+  tag_t canonize(const metadata_t& md);
 
-  const meta_set_t* operator [](tag_t tag);
-  tag_t tag_of(const meta_set_t* msp);
+  const meta_set_t* operator [](tag_t tag) const { return tags.at(tag); }
 };
 
 } // namespace policy_engine
