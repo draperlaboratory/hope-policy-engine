@@ -92,17 +92,10 @@ public:
 
   // Provides the tag for a given address.  Used for debugging.
   tag_t& get_tag(address_t addr) { return tag_bus.data_tag_at(addr); }
-  const meta_set_t* get_meta_set(address_t addr) {
-    try {
-      return ms_cache[get_tag(addr)];
-    } catch (...) {
-      return nullptr;
-    }
-  }
-
-  const meta_set_t* get_pc_meta_set() { return ms_cache[pc_tag]; }
-  const meta_set_t* get_csr_meta_set(address_t csr) { return ms_cache[csr_tags[csr]]; }
-  const meta_set_t* get_ireg_meta_set(address_t reg) { return ms_cache[ireg_tags[reg]]; }
+  const meta_set_t& get_meta_set(address_t addr) { return ms_cache[get_tag(addr)]; }
+  const meta_set_t& get_pc_meta_set() { return ms_cache[pc_tag]; }
+  const meta_set_t& get_csr_meta_set(address_t csr) { return ms_cache[csr_tags[csr]]; }
+  const meta_set_t& get_ireg_meta_set(address_t reg) { return ms_cache[ireg_tags[reg]]; }
 
   void set_pc_watch(bool watching) { watch_pc = watching; }
   void set_reg_watch(address_t addr) { watch_regs.push_back(addr); }

@@ -27,9 +27,7 @@
 #ifndef META_CACHE_H
 #define META_CACHE_H
 
-#include <list>
-#include <memory>
-#include <unordered_map>
+#include <vector>
 #include "metadata.h"
 #include "policy_meta_set.h"
 #include "tag_utils.h"
@@ -41,14 +39,13 @@ bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs);
 
 class meta_set_cache_t {
 private:
-  std::list<meta_set_t> canon;
-  std::unordered_map<tag_t, meta_set_t*> tags;
+  std::vector<meta_set_t> meta_sets;
 
 public:
   tag_t canonize(const meta_set_t& ts);
   tag_t canonize(const metadata_t& md);
 
-  const meta_set_t* operator [](tag_t tag) const { return tags.at(tag); }
+  const meta_set_t& operator [](tag_t tag) const { return meta_sets.at(tag); }
 };
 
 } // namespace policy_engine

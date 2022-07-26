@@ -1,5 +1,3 @@
-#include <functional>
-#include <stdexcept>
 #include "meta_cache.h"
 #include "metadata.h"
 #include "policy_meta_set.h"
@@ -17,12 +15,11 @@ bool operator ==(const meta_set_t& lhs, const meta_set_t& rhs) {
 bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs) { return !(lhs == rhs); }
 
 tag_t meta_set_cache_t::canonize(const meta_set_t& ts) {
-  for (const auto& [ tag, ms ] : tags)
-    if (*ms == ts)
-      return tag;
-  canon.push_back(ts);
-  tags[canon.size() - 1] = &canon.back();
-  return canon.size() - 1;
+  for (int i = 0; i < meta_sets.size(); i++)
+    if (meta_sets[i] == ts)
+      return i;
+  meta_sets.push_back(ts);
+  return meta_sets.size() - 1;
 }
 
 tag_t meta_set_cache_t::canonize(const metadata_t& md) {

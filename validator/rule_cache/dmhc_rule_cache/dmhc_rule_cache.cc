@@ -33,9 +33,9 @@ dmhc_rule_cache_t::~dmhc_rule_cache_t() {
 }
 
 void dmhc_rule_cache_t::install_rule(const operands_t& ops, const results_t& res) {
-  res_copy[RES_PC] = *(*ms_cache)[res.pc];
-  res_copy[RES_RD] = *(*ms_cache)[res.rd];
-  res_copy[RES_CSR] = *(*ms_cache)[res.csr];
+  res_copy[RES_PC] = (*ms_cache)[res.pc];
+  res_copy[RES_RD] = (*ms_cache)[res.rd];
+  res_copy[RES_CSR] = (*ms_cache)[res.csr];
   res_copy[PC_RES].tags[0] = res.pcResult;
   res_copy[RD_RES].tags[0] = res.rdResult;
   res_copy[CSR_RES].tags[0] = res.csrResult;
@@ -56,28 +56,28 @@ void dmhc_rule_cache_t::install_rule(const operands_t& ops, const results_t& res
 }
 
 bool dmhc_rule_cache_t::allow(const operands_t& ops, results_t& res) {
-  ops_copy[OP_PC] = *(*ms_cache)[ops.pc];
-  ops_copy[OP_CI] = *(*ms_cache)[ops.ci];
+  ops_copy[OP_PC] = (*ms_cache)[ops.pc];
+  ops_copy[OP_CI] = (*ms_cache)[ops.ci];
   if (ops.op1) {
-    ops_copy[OP_OP1] = *(*ms_cache)[ops.op1];
+    ops_copy[OP_OP1] = (*ms_cache)[ops.op1];
     consider[OP_OP1] = true;
   } else {
     consider[OP_OP1] = false;
   }  
   if (ops.op2) {
-    ops_copy[OP_OP2] = *(*ms_cache)[ops.op2];
+    ops_copy[OP_OP2] = (*ms_cache)[ops.op2];
     consider[OP_OP2] = true;
   } else {
     consider[OP_OP2] = false;
   }  
   if (ops.op3) {
-    ops_copy[OP_OP3] = *(*ms_cache)[ops.op3];
+    ops_copy[OP_OP3] = (*ms_cache)[ops.op3];
     consider[OP_OP3] = true;
   } else {
     consider[OP_OP3] = false;
   }
   if (ops.mem) {
-    ops_copy[OP_MEM] = *(*ms_cache)[ops.mem];
+    ops_copy[OP_MEM] = (*ms_cache)[ops.mem];
     consider[OP_MEM] = true;
   }
   else {

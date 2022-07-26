@@ -61,7 +61,7 @@ const tag_t canonize(const meta_set_t* ts) {
 }
 
 const meta_set_t* get_ms(tag_t tag) {
-  return rv_validator->ms_cache[tag];
+  return &rv_validator->ms_cache[tag];
 }
 
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
@@ -184,36 +184,32 @@ void e_v_rule_cache_stats() {
 }
 
 void e_v_pc_tag(char* dest, int n) {
-  meta_set_to_string(rv_validator->get_pc_meta_set(), dest, n);
+  meta_set_to_string(&rv_validator->get_pc_meta_set(), dest, n);
 }
 
 void e_v_csr_tag(char* dest, int n, uint64_t addr) {
   if (addr < 0x1000) {
-    meta_set_to_string(rv_validator->get_csr_meta_set(addr), dest, n);
+    meta_set_to_string(&rv_validator->get_csr_meta_set(addr), dest, n);
   } else
     std::strncpy(dest, "Out of range", n);
 }
 
 void e_v_reg_tag(char* dest, int n, uint64_t addr) {
   if (addr < 32) {
-    meta_set_to_string(rv_validator->get_ireg_meta_set(addr), dest, n);
+    meta_set_to_string(&rv_validator->get_ireg_meta_set(addr), dest, n);
   } else
     std::strncpy(dest, "Out of range", n);
 }
 
 void e_v_mem_tag(char* dest, int n, uint64_t addr) {
   if (addr <= rv_validator->address_max()) {
-    if (const meta_set_t* ms = rv_validator->get_meta_set(static_cast<address_t>(addr))) {
-      meta_set_to_string(ms, dest, n);
-    } else {
-      std::snprintf(dest, n, "Bad Address: %lx\n", addr);
-    }
+    meta_set_to_string(&rv_validator->get_meta_set(static_cast<address_t>(addr)), dest, n);
   } else
     std::strncpy(dest, "Out of range", n);
 }
 
 const char* eval_status(int status) {
-  switch(status) {
+  switch (status) {
     case policy_engine::POLICY_ERROR_FAILURE: return "Internal Policy Error";
     case policy_engine::POLICY_EXP_FAILURE:   return "Explicit Failure";
     case policy_engine::POLICY_IMP_FAILURE:   return "Implicit Failure";
@@ -239,17 +235,17 @@ void e_v_violation_msg(char* dest, int n) {
     }
     
     msg = msg + "\nMetadata:\n";
-    meta_set_to_string(rv_validator->failed_ops.pc != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->failed_ops.pc] : nullptr, tmp, s);
+    meta_set_to_string(rv_validator->failed_ops.pc != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.pc] : nullptr, tmp, s);
     msg = msg + "    Env   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->failed_ops.ci != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->failed_ops.ci] : nullptr, tmp, s);
+    meta_set_to_string(rv_validator->failed_ops.ci != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.ci] : nullptr, tmp, s);
     msg = msg + "    Code  : " + tmp + "\n";
-    meta_set_to_string(rv_validator->failed_ops.op1 != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->failed_ops.op1] : nullptr, tmp, s);
+    meta_set_to_string(rv_validator->failed_ops.op1 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.op1] : nullptr, tmp, s);
     msg = msg + "    Op1   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->failed_ops.op2 != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->failed_ops.op2] : nullptr, tmp, s);
+    meta_set_to_string(rv_validator->failed_ops.op2 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.op2] : nullptr, tmp, s);
     msg = msg + "    Op2   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->failed_ops.op3 != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->failed_ops.op3] : nullptr, tmp, s);
+    meta_set_to_string(rv_validator->failed_ops.op3 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.op3] : nullptr, tmp, s);
     msg = msg + "    Op3   : " + tmp + "\n";
-    meta_set_to_string(rv_validator->failed_ops.mem != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->failed_ops.mem] : nullptr, tmp, s);
+    meta_set_to_string(rv_validator->failed_ops.mem != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.mem] : nullptr, tmp, s);
     msg = msg + "    Mem   : " + tmp + "\n";
     msg = msg + eval_status(rv_validator->ctx.policy_result) + "\n";
 
@@ -268,11 +264,11 @@ void e_v_meta_log_short(char* dest, int n) {
   char tmp[s];
   std::string msg;
 
-  meta_set_to_string(rv_validator->ops.ci != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.ci] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.ci != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.ci] : nullptr, tmp, s);
   msg = msg + "C " + tmp;
-  meta_set_to_string(rv_validator->ops.pc != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.pc] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.pc != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.pc] : nullptr, tmp, s);
   msg = msg + " E " + tmp;
-  meta_set_to_string(rv_validator->res.pc != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->res.pc] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->res.pc != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->res.pc] : nullptr, tmp, s);
   msg = msg + " -> E " + tmp;
   
   std::strncpy(dest, msg.c_str(), n);
@@ -283,28 +279,28 @@ void e_v_rule_eval_log(char* dest, int n) {
   char tmp[s];
   std::string msg = "\nMetadata:\n";
 
-  meta_set_to_string(rv_validator->ops.pc != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.pc] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.pc != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.pc] : nullptr, tmp, s);
   msg = msg + "    Env   : " + tmp + "\n";
-  meta_set_to_string(rv_validator->ops.ci != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.ci] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.ci != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.ci] : nullptr, tmp, s);
   msg = msg + "    Code  : " + tmp + "\n";
-  meta_set_to_string(rv_validator->ops.op1 != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.op1] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.op1 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.op1] : nullptr, tmp, s);
   msg = msg + "    Op1   : " + tmp + "\n";
-  meta_set_to_string(rv_validator->ops.op2 != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.op2] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.op2 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.op2] : nullptr, tmp, s);
   msg = msg + "    Op2   : " + tmp + "\n";
-  meta_set_to_string(rv_validator->ops.op3 != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.op3] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.op3 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.op3] : nullptr, tmp, s);
   msg = msg + "    Op3   : " + tmp + "\n";
-  meta_set_to_string(rv_validator->ops.mem != policy_engine::BAD_TAG_VALUE ? rv_validator->ms_cache[rv_validator->ops.mem] : nullptr, tmp, s);
+  meta_set_to_string(rv_validator->ops.mem != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->ops.mem] : nullptr, tmp, s);
   msg = msg + "    Mem   : " + tmp + "\n";
 
   msg = msg + "\nResults:\n";
-  meta_set_to_string(rv_validator->ms_cache[rv_validator->res.pc], tmp, s);
+  meta_set_to_string(&rv_validator->ms_cache[rv_validator->res.pc], tmp, s);
   msg = msg + "    Env   : " + tmp + "\n";
   if (rv_validator->res.rdResult){
-    meta_set_to_string(rv_validator->ms_cache[rv_validator->res.rd], tmp, s);
+    meta_set_to_string(&rv_validator->ms_cache[rv_validator->res.rd], tmp, s);
     msg = msg + "    RD    : " + tmp + "\n";
   }
   if (rv_validator->res.csrResult){
-    meta_set_to_string(rv_validator->ms_cache[rv_validator->res.csr], tmp, s);
+    meta_set_to_string(&rv_validator->ms_cache[rv_validator->res.csr], tmp, s);
     msg = msg + "    CSR   : " + tmp + "\n";
   }
   
