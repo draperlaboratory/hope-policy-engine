@@ -99,19 +99,24 @@ typedef struct context {
 /**
  * Structure that holds input operands for rule eval
  */  
-typedef struct operands {
+typedef struct operands_t {
   tag_t pc;
   tag_t ci;
   tag_t op1;
   tag_t op2;
   tag_t op3;
   tag_t mem;
+
+#ifdef __cplusplus
+  bool operator ==(const operands_t& that) const { return pc == that.pc && ci == that.ci && op1 == that.op1 && op2 == that.op2 && op3 == that.op3 && mem == that.mem; }
+  bool operator !=(const operands_t& that) const { return !(*this == that); }
+#endif
 } operands_t;
 
 /**
  * Structure that holds results after rule eval
  */  
-typedef struct results {
+typedef struct results_t {
   tag_t pc;
   tag_t rd;
   tag_t csr;
@@ -119,6 +124,12 @@ typedef struct results {
   bool pcResult;
   bool rdResult;
   bool csrResult;
+
+#ifdef __cplusplus
+  bool operator ==(const results_t& that) const { return pc == that.pc && rd == that.rd && csr == that.csr &&
+                                                         pcResult == that.pcResult && rdResult == that.rdResult && csrResult == that.csrResult; }
+  bool operator !=(const results_t& that) const { return !(*this == that); }
+#endif
 } results_t;
 
 #ifdef __cplusplus
@@ -130,9 +141,7 @@ namespace std
 
 template<>
 struct equal_to<policy_engine::operands_t> {
-  bool operator ()(const policy_engine::operands_t& a, const policy_engine::operands_t& b) const {
-    return (a.op1 == b.op1 && a.op2 == b.op2 && a.op3 == b.op3 && a.mem == b.mem && a.pc == b.pc && a.ci == b.ci);
-  }
+  bool operator ()(const policy_engine::operands_t& a, const policy_engine::operands_t& b) const { return a == b; }
 };
 
 template<>

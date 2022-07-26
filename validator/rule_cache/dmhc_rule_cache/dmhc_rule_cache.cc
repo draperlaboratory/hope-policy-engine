@@ -1,5 +1,6 @@
 #include "dmhc_rule_cache.h"
 #include "meta_cache.h"
+#include "riscv_isa.h"
 
 namespace policy_engine {
 
@@ -29,16 +30,8 @@ dmhc_rule_cache_t::dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k
   consider[OP_MEM] = false;
 }
 
-dmhc_rule_cache_t::~dmhc_rule_cache_t() {
-}
-
 void dmhc_rule_cache_t::install_rule(const operands_t& ops, const results_t& res) {
-  res_copy[RES_PC] = (*ms_cache)[res.pc];
-  res_copy[RES_RD] = (*ms_cache)[res.rd];
-  res_copy[RES_CSR] = (*ms_cache)[res.csr];
-  res_copy[PC_RES].tags[0] = res.pcResult;
-  res_copy[RD_RES].tags[0] = res.rdResult;
-  res_copy[CSR_RES].tags[0] = res.csrResult;
+  res_copy = res;
 #ifdef DMHC_DEBUG
   printf("Install\n");
   printf("ops - pc: %" PRIu32 ", ci: %" PRIu32, ops_copy[OP_PC].tags[0], ops_copy[OP_CI].tags[0]);
@@ -47,10 +40,9 @@ void dmhc_rule_cache_t::install_rule(const operands_t& ops, const results_t& res
   if (consider[OP_OP3]) printf(", op3: %" PRIu32, ops_copy[OP_OP3].tags[0]);
   if (consider[OP_MEM]) printf(", mem: %" PRIu32, ops_copy[OP_MEM].tags[0]);
   printf("\n");
-  printf("res - pc: %" PRIu32 ", rd: %" PRIu32 ", csr: %" PRIu32 ", pcRes: %" PRIu32 ", rdRes: %"
-         PRIu32 ", csrRes: %" PRIu32 "\n", res_copy[RES_PC].tags[0], res_copy[RES_RD].tags[0], 
-         res_copy[RES_CSR].tags[0], res_copy[PC_RES].tags[0], res_copy[RD_RES].tags[0], 
-         res_copy[CSR_RES].tags[0]);
+  printf("res - pc: %" PRItag ", rd: %" PRItag ", csr: %" PRItag ", pcRes: %" PRId32 ", rdRes: %"
+         PRIu32 ", csrRes: %" PRIu32 "\n", res_copy.pc, res_copy.rd,  res_copy.csr,
+         res_copy.pcResult, res_copy.rdResult,  res_copy.csrResult);
 #endif
   the_rule_cache->insert(ops_copy, res_copy, consider);
 }
@@ -103,12 +95,7 @@ bool dmhc_rule_cache_t::allow(const operands_t& ops, results_t& res) {
 #ifdef DMHC_DEBUG
     printf("Found\n");
 #endif
-    res.pc = ms_cache->canonize(meta_set_t{res_copy[RES_PC]});
-    res.rd = ms_cache->canonize(meta_set_t{res_copy[RES_RD]});
-    res.csr = ms_cache->canonize(meta_set_t{res_copy[RES_CSR]});
-    res.pcResult = res_copy[PC_RES].tags[0];
-    res.rdResult = res_copy[RD_RES].tags[0];
-    res.csrResult = res_copy[CSR_RES].tags[0];
+    res = res_copy;
     return true;
   }
 }
