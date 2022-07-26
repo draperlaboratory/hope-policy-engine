@@ -6,7 +6,7 @@
 
 namespace policy_engine {
 
-dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, int* ops_size,  int* res_size, bool new_no_evict, meta_set_cache_t* ms_cache) {
+dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, int* ops_size,  int* res_size, bool new_no_evict) {
   k = newk;
   c = newc;
   input_fields = infields;
@@ -20,8 +20,6 @@ dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, int* op
   hashes = (int*)malloc(sizeof(int)*k);
   victim_hashes = (int*)malloc(sizeof(int)*k);
   do_not_victimize_hashes = (int*)malloc(sizeof(int)*k);
-  victim_ops = (meta_set_t*)malloc(sizeof(meta_set_t)*input_fields);
-  reinsert_ops = (meta_set_t*)malloc(sizeof(meta_set_t)*input_fields);
   consider_evict = (bool*)malloc(sizeof(bool)*input_fields);
 
   // store fields
@@ -43,10 +41,7 @@ dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, int* op
   }
     
   mtable_use = (bool*)malloc(sizeof(bool)*capacity);
-  mtable_inputs = (meta_set_t**)malloc(sizeof(meta_set_t *)*input_fields);
-  for (int i = 0; i < input_fields; i++) {
-    mtable_inputs[i] = (meta_set_t*)malloc(sizeof(meta_set_t)*capacity);
-  }
+  mtable_inputs = new operands_t[capacity];
   mtable_outputs = new results_t[capacity];
   consider_mtable_input = (bool**)malloc(sizeof(bool *)*input_fields);
   for (int i = 0; i < input_fields; i++) {
@@ -63,7 +58,7 @@ dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, int* op
   init_hashes();
 
   // need to call even if INIT_HASH_POSITIONS is false
-  hasher = new compute_hash_t(input_fields,input_field_widths, k, c*capacity, ms_cache); // total capacity (so apply c)
+  hasher = new compute_hash_t(input_fields,input_field_widths, k, c*capacity); // total capacity (so apply c)
 
   reset(); // to initialize all the fields
 }
@@ -76,9 +71,7 @@ dmhc_t::~dmhc_t() {
   }
   free(gtable);
   free(gtable_lastinsert);
-  for (int i = 0; i < input_fields; i++)
-    free(mtable_inputs[i]);
-  free(mtable_inputs);
+  delete[] mtable_inputs;
   delete[] mtable_outputs;
   for (int i = 0; i < input_fields; i++)
     free(consider_mtable_input[i]);
@@ -92,8 +85,6 @@ dmhc_t::~dmhc_t() {
   free(mtable_hashes);
   free(mtable_use);
   free(consider_evict);
-  free(reinsert_ops);
-  free(victim_ops);
   free(do_not_victimize_hashes);
   free(victim_hashes);
   free(hashes);
@@ -110,17 +101,10 @@ void dmhc_t::reset() {
   }
   for (int j = 0; j < capacity; j++)
     mtable_use[j] = false;
-  for (int i = 0; i < input_fields; i++) {
-    for (int j = 0; j < capacity; j++) {
-      meta_set_t* new_input = new meta_set_t();
-      new_input->tags[0] = 0;
-      mtable_inputs[i][j] = *new_input;
-      delete new_input;
-      consider_mtable_input[i][j] = false;
-    }
-  }
-  for (int i = 0; i < capacity; i++)
+  for (int i = 0; i < capacity; i++) {
+    mtable_inputs[i] = {0};
     mtable_outputs[i] = {0};
+  }
 
 #ifdef DMHC_DIRECT_K_HASH_CONFLICTS   
   for (int i = 0; i < k; i++) {
@@ -132,7 +116,7 @@ void dmhc_t::reset() {
   hits = 0; misses = 0; false_hits = 0; direct_conflicts = 0; inserts = 0;
 }
 
-void dmhc_t::check_direct_k_hash_conflicts(meta_set_t* ops, bool* consider) {
+void dmhc_t::check_direct_k_hash_conflicts(const operands_t& ops, bool* consider) {
   compute_hashes(ops, hashes, consider);
   for (int i = 0; i < capacity; i++) {
     if (mtable_use[i] == true) {
@@ -142,20 +126,15 @@ void dmhc_t::check_direct_k_hash_conflicts(meta_set_t* ops, bool* consider) {
           conflict = false;
       bool real_conflict = false;
       if (conflict)
-        for (int j = 0; j < input_fields; j++)
-          if (ops[j].tags[0] != mtable_inputs[j][i].tags[0])
-            real_conflict = true;
+        real_conflict = ops != mtable_inputs[i];
       if (real_conflict) {
         printf("dMHC: (compute ) WARNING direct k-hash conflict ");
         for (int f = 0; f < k; f++)
-          printf("%03x ",mtable_hashes[f][i]);
-        printf(": [");
-        for (int f = 0; f < input_fields; f++)
-          printf("%" PRItag " ",ops[f].tags[0]);
-        printf("]");
-        printf(" [");
-        for (int f = 0; f < input_fields; f++)
-          printf("%" PRItag " ",mtable_inputs[f][i].tags[0]);
+          printf("%03x ", mtable_hashes[f][i]);
+        printf(": [%" PRItag " %" PRItag " %" PRItag " %" PRItag " %" PRItag " %" PRItag "]",
+               ops.pc, ops.ci, ops.op1, ops.op2, ops.op3, ops.mem);
+        printf(" [%" PRItag " %" PRItag " %" PRItag " %" PRItag " %" PRItag " % " PRItag "]",
+               mtable_inputs[i].pc, mtable_inputs[i].ci, mtable_inputs[i].op1, mtable_inputs[i].op2, mtable_inputs[i].op3, mtable_inputs[i].mem);
         printf("]\n");
         direct_conflicts++;
       }
@@ -163,7 +142,7 @@ void dmhc_t::check_direct_k_hash_conflicts(meta_set_t* ops, bool* consider) {
   }
 }
   
-void dmhc_t::compute_hashes(meta_set_t* ops, int* hashes_to_fill, bool* consider) {
+void dmhc_t::compute_hashes(const operands_t& ops, int* hashes_to_fill, bool* consider) {
 #ifdef INIT_HASH_POSITIONS
   hasher->compute_hash_set_from_precomputed_positions(k, ops, hashes_to_fill, consider);
 #else
@@ -184,10 +163,10 @@ void dmhc_t::compute_hashes(meta_set_t* ops, int* hashes_to_fill, bool* consider
     for (h = 0; h < k; h++) 
       printf(" [%x %x]", verify_hashes[h], hashes_to_fill[h]);
     printf(" <-from- ");
-    for (h = 0; h < input_fields; h++)
-      printf(" %" PRItag, ops[h].tags[0]);
-      printf("\n");
-      printf("HALTING ON FAILED VERIFY OF PRECOMPUTED HASH\n");
+    printf(" %" PRItag " %" PRItag " %" PRItag " %" PRItag " %" PRItag " %" PRItag,
+           ops.pc, ops.ci, ops.op1, ops.op2, ops.op3, ops.mem);
+    printf("\n");
+    printf("HALTING ON FAILED VERIFY OF PRECOMPUTED HASH\n");
     exit(37); 
   } else {
     printf("Compute hashes checking and passing\n");
@@ -196,30 +175,45 @@ void dmhc_t::compute_hashes(meta_set_t* ops, int* hashes_to_fill, bool* consider
 #endif
 }
 
-bool dmhc_t::hit(meta_set_t* ops, int address, bool* consider) {
+bool dmhc_t::hit(const operands_t& ops, int address, bool* consider) {
   if (mtable_use[address] == false) {
     printf("mtable_use[address} is false\n");
     return false;
   }
 
-  for (int i = 0; i < input_fields; i++) {
-    if (consider[i]) {
-      if (mtable_inputs[i][address].tags[0] != ops[i].tags[0]) {
-        printf("mtable_inputs[%d][address] is false\n", i);
-        return false;
-      }
-    }
+  if (consider[0] && mtable_inputs[address].pc != ops.pc) {
+    printf("mtable_inputs[address].pc is false\n");
+    return false;
+  }
+   if (consider[1] && mtable_inputs[address].ci != ops.ci) {
+     printf("mtable_inputs[address].ci is false\n");
+     return false;
+   }
+  if (consider[2] && mtable_inputs[address].op1 != ops.op1) {
+    printf("mtable_inputs[address].op1 is false\n");
+    return false;
+  }
+  if (consider[3] && mtable_inputs[address].op2 != ops.op2) {
+    printf("mtable_inputs[address].op2 is false\n");
+    return false;
+  }
+  if (consider[4] && mtable_inputs[address].op3 != ops.op3) {
+    printf("mtable_inputs[address].op3 is false\n");
+    return false;
+  }
+  if (consider[5] && mtable_inputs[address].mem != ops.mem) {
+    printf("mtable_inputs[address].mem is false\n");
+    return false;
   }
   return true;
 }
 
 void dmhc_t::copy_victim_to_reinsert() {
-  for (int i = 0; i < input_fields; i++)
-    reinsert_ops[i].tags[0] = victim_ops[i].tags[0];
+  reinsert_ops = victim_ops;
   reinsert_res = victim_res;
 }
 
-void dmhc_t::evict_mtable_entry(int address, meta_set_t* victim_ops, results_t& victim_res, int* do_not_victimize) {
+void dmhc_t::evict_mtable_entry(int address, operands_t& victim_ops, results_t& victim_res, int* do_not_victimize) {
 
   int result;
   if (no_evict) {
@@ -227,9 +221,9 @@ void dmhc_t::evict_mtable_entry(int address, meta_set_t* victim_ops, results_t& 
   }
   
   //bool consider_evict[input_fields];
+  victim_ops = mtable_inputs[address];
+  mtable_inputs[address] = {0};
   for (int i = 0; i < input_fields; i++) {
-    victim_ops[i].tags[0] = mtable_inputs[i][address].tags[0];
-    mtable_inputs[i][address].tags[0] = 0;
     consider_evict[i] = consider_mtable_input[i][address];
   }
 
@@ -269,12 +263,22 @@ void dmhc_t::evict_mtable_entry(int address, meta_set_t* victim_ops, results_t& 
   }
 }
 
-void dmhc_t::real_insert(int address, meta_set_t* ops, results_t& res, int* hashes, int free_slot, bool* consider) {
+void dmhc_t::real_insert(int address, const operands_t& ops, results_t& res, int* hashes, int free_slot, bool* consider) {
   for (int i = 0; i < input_fields; i++) {
     consider_mtable_input[i][address] = consider[i];
-    if (consider_mtable_input[i][address])
-      mtable_inputs[i][address].tags[0] = ops[i].tags[0];
   }
+  if (consider_mtable_input[0][address])
+    mtable_inputs[address].pc = ops.pc;
+  if (consider_mtable_input[1][address])
+    mtable_inputs[address].ci = ops.ci;
+  if (consider_mtable_input[2][address])
+    mtable_inputs[address].op1 = ops.op1;
+  if (consider_mtable_input[3][address])
+    mtable_inputs[address].op2 = ops.op2;
+  if (consider_mtable_input[4][address])
+    mtable_inputs[address].op3 = ops.op3;
+  if (consider_mtable_input[5][address])
+    mtable_inputs[address].mem = ops.mem;
   mtable_outputs[address] = res;
 #ifdef DMHC_DIRECT_K_HASH_CONFLICTS
   for (int i = 0; i < k; i++)
@@ -306,7 +310,7 @@ void dmhc_t::real_insert(int address, meta_set_t* ops, results_t& res, int* hash
   }  
 }
 
-void dmhc_t::insert(meta_set_t* ops, results_t& res, bool* consider) {
+void dmhc_t::insert(const operands_t& ops, results_t& res, bool* consider) {
   inserts++;
 #ifdef DMHC_DIRECT_K_HASH_CONFLICTS
   check_direct_k_hash_conflicts(ops, consider);
@@ -324,11 +328,11 @@ void dmhc_t::insert(meta_set_t* ops, results_t& res, bool* consider) {
 
   insert(mtable_entry, ops, res, 0, do_not_victimize_hashes, consider);
 #ifdef DMHC_DEBUG
-  printf("ops - pc: %" PRItag ", ci: %" PRItag, ops[OP_PC].tags[0], ops[OP_CI].tags[0]);
-  if (consider[OP_OP1]) printf(", op1: %" PRItag, ops[OP_OP1].tags[0]);
-  if (consider[OP_OP2]) printf(", op2: %" PRItag, ops[OP_OP2].tags[0]);
-  if (consider[OP_OP3]) printf(", op3: %" PRItag, ops[OP_OP3].tags[0]);
-  if (consider[OP_OP1]) printf(", mem: %" PRItag, ops[OP_MEM].tags[0]);
+  printf("ops - pc: %" PRItag ", ci: %" PRItag, ops.pc, ops.ci);
+  if (consider[OP_OP1]) printf(", op1: %" PRItag, ops.op1);
+  if (consider[OP_OP2]) printf(", op2: %" PRItag, ops.op2);
+  if (consider[OP_OP3]) printf(", op3: %" PRItag, ops.op3);
+  if (consider[OP_OP1]) printf(", mem: %" PRItag, ops.mem);
   printf("\n");
   printf("res - pc: %" PRItag ", rd: %" PRItag ", csr: %" PRItag ", pcRes: %" PRItag ", rdRes: %"
          PRItag ", csrRes: %" PRItag "\n", victim_res.pc, victim_res.rd, victim_res.csr,
@@ -343,7 +347,7 @@ void dmhc_t::insert(meta_set_t* ops, results_t& res, bool* consider) {
   }
 }
 
-void dmhc_t::insert(int mtable_address, meta_set_t* ops, results_t& res, int hops, int* do_not_victimize, bool* consider) {
+void dmhc_t::insert(int mtable_address, const operands_t& ops, results_t& res, int hops, int* do_not_victimize, bool* consider) {
   // with care, this could use lookup as a subroutine
   //  would need to make address a return value (or part of the object representation)
   int free_slot = -1;
@@ -430,11 +434,11 @@ void dmhc_t::insert(int mtable_address, meta_set_t* ops, results_t& res, int hop
   }
 #ifdef DMHC_DEBUG
   printf("mtable_address: %d, free_slot: %d\n", mtable_address, free_slot);
-  printf("ops - pc: %" PRItag ", ci: %" PRItag, ops[OP_PC].tags[0], ops[OP_CI].tags[0]);
-  if (consider[OP_OP1]) printf(", op1: %" PRItag, ops[OP_OP1].tags[0]);
-  if (consider[OP_OP2]) printf(", op2: %" PRItag, ops[OP_OP2].tags[0]);
-  if (consider[OP_OP3]) printf(", op3: %" PRItag, ops[OP_OP3].tags[0]);
-  if (consider[OP_OP1]) printf(", mem: %" PRItag, ops[OP_MEM].tags[0]);
+  printf("ops - pc: %" PRItag ", ci: %" PRItag, ops.pc, ops.ci);
+  if (consider[OP_OP1]) printf(", op1: %" PRItag, ops.op1);
+  if (consider[OP_OP2]) printf(", op2: %" PRItag, ops.op2);
+  if (consider[OP_OP3]) printf(", op3: %" PRItag, ops.op3);
+  if (consider[OP_OP1]) printf(", mem: %" PRItag, ops.mem);
   printf("\n");
   printf("res - pc: %" PRItag ", rd: %" PRItag ", csr: %" PRItag ", pcRes: %" PRItag ", rdRes: %"
          PRItag ", csrRes: %" PRItag "\n", res.pc, res.rd, res.csr,
@@ -449,7 +453,7 @@ void dmhc_t::insert(int mtable_address, meta_set_t* ops, results_t& res, int hop
   } // if victim
 }
 
-bool dmhc_t::lookup(meta_set_t* ops, results_t& res, bool* consider) {
+bool dmhc_t::lookup(const operands_t& ops, results_t& res, bool* consider) {
   compute_hashes(ops, hashes, consider); 
 #ifdef MISS_ON_ZERO_GTABLE_COUNT
   // see if it is a miss

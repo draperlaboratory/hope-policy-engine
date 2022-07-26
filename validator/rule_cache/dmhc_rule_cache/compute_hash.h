@@ -34,18 +34,16 @@ void init_hashes();
 class compute_hash_t {
 
  public:
-  compute_hash_t(int num_fields, int* field_widths,  int k, int capacity, meta_set_cache_t* cache);
+  compute_hash_t(int num_fields, int* field_widths,  int k, int capacity);
   ~compute_hash_t();
-  void compute_hash_set_from_precomputed_positions(int k, meta_set_t* ops, int* hashes, bool* consider);
-  void compute_hash_set(int k, meta_set_t* ops, int* hashes, int num_fields,  int* field_widths, int capacity, bool* consider);
+  void compute_hash_set_from_precomputed_positions(int k, const operands_t& ops, int* hashes, bool* consider);
+  void compute_hash_set(int k, const operands_t& ops, int* hashes, int num_fields, int* field_widths, int capacity, bool* consider);
 
  private:
-  int compute_hash_from_precomputed_positions(int which, meta_set_t* ops, bool* consider);
-  int compute_hash(int which, int num_fields, int* field_widths, meta_set_t* fields,  meta_set_t* permute_field, int hash_table_size, int ones_cnt);
+  int compute_hash_from_precomputed_positions(int which, const operands_t& ops, bool* consider);
+  int compute_hash(int which, int num_fields, int* field_widths, meta_set_t* fields, meta_set_t* permute_field, int hash_table_size, int ones_cnt);
   int fold(int num_fields, int* field_widths, meta_set_t* fields, int hash_table_size);
-  void convert_to_bit_fields(int orig_num_fields, int* orig_field_widths,  meta_set_t* orig_fields, int* field_widths,  meta_set_t* fields, bool* consider);
-
-  meta_set_cache_t* ms_cache;
+  void convert_to_bit_fields(int orig_num_fields, int* orig_field_widths, const meta_set_t* orig_fields, int* field_widths, meta_set_t* fields, bool* consider);
 
   int num_fields;
   int* ops_index;

@@ -283,7 +283,7 @@ void rv_validator_t::config_rule_cache(const std::string& rule_cache_name, int c
   } else if (name_lower == "finite") {
     rule_cache = new finite_rule_cache_t(capacity);
   } else if (name_lower == "dmhc") {
-    rule_cache = new dmhc_rule_cache_t(capacity, DMHC_RULE_CACHE_IWIDTH, DMHC_RULE_CACHE_OWIDTH, DMHC_RULE_CACHE_K, DMHC_RULE_CACHE_NO_EVICT, &ms_cache);
+    rule_cache = new dmhc_rule_cache_t(capacity, DMHC_RULE_CACHE_IWIDTH, DMHC_RULE_CACHE_OWIDTH, DMHC_RULE_CACHE_K, DMHC_RULE_CACHE_NO_EVICT);
   } else if (rule_cache_name.size() != 0) {
     throw configuration_exception_t("Invalid rule cache name");
   }

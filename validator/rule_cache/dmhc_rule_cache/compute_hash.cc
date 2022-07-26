@@ -21,9 +21,8 @@ void init_hashes() {
   #include "perm7.c"
 }
 
-compute_hash_t::compute_hash_t(int nfields, int* field_widths,  int k, int capacity, meta_set_cache_t* cache) {
+compute_hash_t::compute_hash_t(int nfields, int* field_widths, int k, int capacity) {
   //printf("Beginning compute_hash_t\n");
-  ms_cache = cache;
   int i, h, m, b;
 
 #ifdef INIT_HASH_POSITIONS
@@ -59,13 +58,7 @@ compute_hash_t::compute_hash_t(int nfields, int* field_widths,  int k, int capac
 
   // make calls to perform initialization
   // (a) setup arguments/inputs need to make call
-  meta_set_t* dummy_ops = (meta_set_t*)malloc(sizeof(meta_set_t)*num_fields);
-  for (int i = 0; i < num_fields; i++){
-    meta_set_t* meta_set = new meta_set_t();
-    meta_set->tags[0] = 0;
-    dummy_ops[i] = *meta_set;
-    delete meta_set;
-  }
+  operands_t dummy_ops{0};
 
   int* dummy_hashes = (int*)malloc(sizeof(int)*k);
   bool* dummy_consider = (bool*)malloc(sizeof(bool)*num_fields);
@@ -79,7 +72,6 @@ compute_hash_t::compute_hash_t(int nfields, int* field_widths,  int k, int capac
  // verilog_hash(capacity,field_widths);
 //#endif
   free(dummy_consider);
-  free(dummy_ops);
   free(dummy_hashes);
   hash_positions_initialized = true;
 #else
@@ -149,60 +141,65 @@ int count_ones(int num_fields, int* field_widths, meta_set_t* fields) {
   return cnt;
 }
 // Potentially use consider to change result
-int compute_hash_t::compute_hash_from_precomputed_positions(int which, meta_set_t* ops, bool* consider) {
+int compute_hash_t::compute_hash_from_precomputed_positions(int which, const operands_t& ops, bool* consider) {
   int result = 0;
-  int i;
   int val;
-  for (i = 0; i < total_ops_bits; i++) {
-    val = ((ops[ops_index[i]].tags[0]) >> bit_index[i]) & 0x01;
+  for (int i = 0; i < total_ops_bits; i++) {
+    switch (ops_index[i]) {
+      case 0: val = ops.pc;
+      case 1: val = ops.ci;
+      case 2: val = ops.op1;
+      case 3: val = ops.op2;
+      case 4: val = ops.op3;
+      case 5: val = ops.mem;
+    }
+    val = (val >> bit_index[i]) & 0x01;
     int pos = hash_input_position[which][ops_index[i]][bit_index[i]];
-    result=result^(val << pos);
+    result = result^(val << pos);
   }
   return result;
 }
 
-void compute_hash_t::compute_hash_set_from_precomputed_positions(int k, meta_set_t* ops, int* hashes, bool* consider) {
+void compute_hash_t::compute_hash_set_from_precomputed_positions(int k, const operands_t& ops, int* hashes, bool* consider) {
   int h;
 
 #ifdef HASH_HASH
-  operands_t* static_ops = new operands_t();
-  static_ops->pc = ms_cache->canonize(meta_set_t{OP_PC});
-  static_ops->ci = ms_cache->canonize(meta_set_t{OP_CI});
-  if (consider[OP_OP1]) 
-    static_ops->op1 = ms_cache->canonize(meta_set_t{ops[OP_OP1]});
+  operands_t static_ops;
+  static_ops.pc = OP_PC;
+  static_ops.ci = OP_CI;
+  if (consider[OP_OP1])
+    static_ops.op1 = ops.op1;
   if (consider[OP_OP2])
-    static_ops->op2 = ms_cache->canonize(meta_set_t{ops[OP_OP2]});
+    static_ops.op2 = ops.op2;
   if (consider[OP_OP3])
-    static_ops->op3 = ms_cache->canonize(meta_set_t{ops[OP_OP3]});
+    static_ops.op3 = ops.op3;
   if (consider[OP_MEM])
-    static_ops->mem = ms_cache->canonize(meta_set_t{ops[OP_MEM]});
+    static_ops.mem = ops.mem;
 
-  auto entries = hash_table.find(*static_ops);
+  auto entries = hash_table.find(static_ops);
   if (entries == hash_table.end()) {
     std::vector<int> new_h(k_hash_position);
     for (h = 0; h < k_hash_position; h++) {
       hashes[h] = compute_hash_from_precomputed_positions(h, ops, consider);
       new_h[h] = hashes[h];
     }
-    operands_t* new_ops = new operands_t();
-    new_ops->pc = static_ops->pc;
-    new_ops->ci = static_ops->ci;
-    if (static_ops->op1)
-      new_ops->op1 = static_ops->op1;
-    if (static_ops->op2)
-      new_ops->op2 = static_ops->op2;
-    if (static_ops->op3)
-      new_ops->op3 = static_ops->op3;
-    if (static_ops->mem)
-      new_ops->mem = static_ops->mem;
-    hash_table.insert({*new_ops, new_h});
-    delete new_ops;
+    operands_t new_ops;
+    new_ops.pc = static_ops.pc;
+    new_ops.ci = static_ops.ci;
+    if (static_ops.op1 != BAD_TAG_VALUE)
+      new_ops.op1 = static_ops.op1;
+    if (static_ops.op2 != BAD_TAG_VALUE)
+      new_ops.op2 = static_ops.op2;
+    if (static_ops.op3 != BAD_TAG_VALUE)
+      new_ops.op3 = static_ops.op3;
+    if (static_ops.mem != BAD_TAG_VALUE)
+      new_ops.mem = static_ops.mem;
+    hash_table.insert({new_ops, new_h});
   } else {
     std::vector<int> result = entries->second;
     for (h = 0; h < k_hash_position; h++)
       hashes[h] = result.at(h);
   }
-  delete static_ops;
 #else
   for (h = 0; h < k_hash_position; h++)
     hashes[h] = compute_hash_from_precomputed_positions(h, ops, consider);
@@ -259,7 +256,7 @@ meta_set_t bitrev(int len, meta_set_t a) {
   return *result;
 }
 
-void compute_hash_t::convert_to_bit_fields(int orig_num_fields, int* orig_field_widths, meta_set_t* orig_fields, int* field_widths, meta_set_t* fields, bool* consider) {
+void compute_hash_t::convert_to_bit_fields(int orig_num_fields, int* orig_field_widths, const meta_set_t* orig_fields, int* field_widths, meta_set_t* fields, bool* consider) {
   int current = 0;
   for (int i = 0; i < orig_num_fields; i++) {
     for (int j = 0; j < orig_field_widths[i]; j++) {
@@ -274,7 +271,7 @@ void compute_hash_t::convert_to_bit_fields(int orig_num_fields, int* orig_field_
   }
 }
 
-void compute_hash_t::compute_hash_set(int k, meta_set_t* ops, int* hashes, int num_fields, int* field_widths, int capacity, bool* consider) {
+void compute_hash_t::compute_hash_set(int k, const operands_t& ops, int* hashes, int num_fields, int* field_widths, int capacity, bool* consider) {
   int ones = 0;
   int bits = 0;
   for (int i = 0; i < num_fields; i++)
@@ -290,7 +287,14 @@ void compute_hash_t::compute_hash_set(int k, meta_set_t* ops, int* hashes, int n
     delete meta_set;
   }
   int bit_num_fields = bits;
-  convert_to_bit_fields(num_fields, field_widths, ops, bit_field_widths, bit_fields, consider);
+  meta_set_t orig_fields[6];
+  orig_fields[0].tags[0] = ops.pc;
+  orig_fields[1].tags[0] = ops.ci;
+  orig_fields[2].tags[0] = ops.op1;
+  orig_fields[3].tags[0] = ops.op2;
+  orig_fields[4].tags[0] = ops.op3;
+  orig_fields[5].tags[0] = ops.mem;
+  convert_to_bit_fields(num_fields, field_widths, orig_fields, bit_field_widths, bit_fields, consider);
   meta_set_t* permute_bit_fields = (meta_set_t*)malloc(sizeof(meta_set_t)*(bits));
   for (int i = 0; i < bits; i++) {
     meta_set_t* meta_set = new meta_set_t();
