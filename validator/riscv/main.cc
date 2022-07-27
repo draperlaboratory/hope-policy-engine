@@ -62,7 +62,10 @@ tag_t canonize(const meta_set_t* ts) {
 }
 
 const meta_set_t* get_ms(tag_t tag) {
-  return &rv_validator->ms_cache[tag];
+  if (tag != policy_engine::BAD_TAG_VALUE)
+    return &rv_validator->ms_cache[tag];
+  else
+    return nullptr;
 }
 
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer) {
