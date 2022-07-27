@@ -69,12 +69,12 @@ void debug_status(const context_t *ctx, int status) {
 }
 
 void debug_operands(const context_t* ctx, const operands_t* ops) {
-  std::printf("    pc = "); dump_tag(ops->pc); std::printf("\n");
-  std::printf("    ci = "); dump_tag(ops->ci); std::printf("\n");
-  std::printf("    op1 = "); dump_tag(ops->op1); std::printf("\n");
-  std::printf("    op2 = "); dump_tag(ops->op2); std::printf("\n");
-  std::printf("    op3 = "); dump_tag(ops->op3); std::printf("\n");
-  std::printf("    mem = "); dump_tag(ops->mem); std::printf("\n");
+  std::printf("    pc = (%ld) ", ops->pc); dump_tag(ops->pc); std::printf("\n");
+  std::printf("    ci = (%ld) ", ops->ci); dump_tag(ops->ci); std::printf("\n");
+  std::printf("    op1 = (%ld) ", ops->op1); dump_tag(ops->op1); std::printf("\n");
+  std::printf("    op2 = (%ld) ", ops->op2); dump_tag(ops->op2); std::printf("\n");
+  std::printf("    op3 = (%ld) ", ops->op3); dump_tag(ops->op3); std::printf("\n");
+  std::printf("    mem = (%ld) ", ops->mem); dump_tag(ops->mem); std::printf("\n");
 }
 
 void debug_results(const context_t* ctx, const results_t* res) {

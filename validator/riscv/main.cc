@@ -30,6 +30,7 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <string>
 #include <yaml-cpp/yaml.h>
 #include "meta_cache.h"
 #include "metadata_memory_map.h"
@@ -236,17 +237,17 @@ void e_v_violation_msg(char* dest, int n) {
     
     msg = msg + "\nMetadata:\n";
     meta_set_to_string(rv_validator->failed_ops.pc != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.pc] : nullptr, tmp, s);
-    msg = msg + "    Env   : " + tmp + "\n";
+    msg = msg + "    Env   : (" + std::to_string(rv_validator->failed_ops.pc) + ") " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.ci != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.ci] : nullptr, tmp, s);
-    msg = msg + "    Code  : " + tmp + "\n";
+    msg = msg + "    Code  : (" + std::to_string(rv_validator->failed_ops.ci) + ") " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.op1 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.op1] : nullptr, tmp, s);
-    msg = msg + "    Op1   : " + tmp + "\n";
+    msg = msg + "    Op1   : (" + std::to_string(rv_validator->failed_ops.op1) + ") " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.op2 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.op2] : nullptr, tmp, s);
-    msg = msg + "    Op2   : " + tmp + "\n";
+    msg = msg + "    Op2   : (" + std::to_string(rv_validator->failed_ops.op2) + ") " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.op3 != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.op3] : nullptr, tmp, s);
-    msg = msg + "    Op3   : " + tmp + "\n";
+    msg = msg + "    Op3   : (" + std::to_string(rv_validator->failed_ops.op3) + ") " + tmp + "\n";
     meta_set_to_string(rv_validator->failed_ops.mem != policy_engine::BAD_TAG_VALUE ? &rv_validator->ms_cache[rv_validator->failed_ops.mem] : nullptr, tmp, s);
-    msg = msg + "    Mem   : " + tmp + "\n";
+    msg = msg + "    Mem   : (" + std::to_string(rv_validator->failed_ops.mem) + ") " + tmp + "\n";
     msg = msg + eval_status(rv_validator->ctx.policy_result) + "\n";
 
     if(rv_validator->failed_ctx.fail_msg)
