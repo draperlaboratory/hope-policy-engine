@@ -54,7 +54,7 @@ static bool DOA = false;
 
 extern "C" {
 
-const tag_t canonize(const meta_set_t* ts) {
+tag_t canonize(const meta_set_t* ts) {
   if (rv_validator)
     return rv_validator->ms_cache.canonize(*ts);
   else
