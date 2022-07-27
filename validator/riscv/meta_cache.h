@@ -42,6 +42,8 @@ private:
   std::vector<meta_set_t> meta_sets;
 
 public:
+  meta_set_cache_t() { meta_sets.reserve(1024); }
+
   tag_t canonize(const meta_set_t& ts);
   tag_t canonize(const metadata_t& md);
 
