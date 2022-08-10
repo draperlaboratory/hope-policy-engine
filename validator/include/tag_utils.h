@@ -48,8 +48,6 @@ namespace policy_engine {
  */
 #define PRItag PRIdPTR
 
-static const tag_t BAD_TAG_VALUE = -1;
-
 struct tag_provider_t {
   virtual ~tag_provider_t() {}
 
