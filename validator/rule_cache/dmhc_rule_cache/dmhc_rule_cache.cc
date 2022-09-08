@@ -1,6 +1,7 @@
 #include "dmhc_rule_cache.h"
 #include "meta_cache.h"
 #include "riscv_isa.h"
+#include "tag_types.h"
 
 namespace policy_engine {
 

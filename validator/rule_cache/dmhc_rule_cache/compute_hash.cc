@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "compute_hash.h"
+#include "tag_types.h"
 
 #define UNASSIGNED -1
 // switch between 0-3 (original hashes) and 4-7 (random permutation hashes)

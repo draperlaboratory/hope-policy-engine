@@ -28,6 +28,7 @@
 #include <cstdio>
 #include "policy_eval.h"
 #include "policy_utils.h"
+#include "tag_types.h"
 #include "tag_utils.h"
 #include "riscv_isa.h"
 

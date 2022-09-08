@@ -31,6 +31,7 @@
 #include "meta_cache.h"
 #include "metadata_factory.h"
 #include "policy_meta_set.h"
+#include "tag_types.h"
 
 namespace policy_engine {
 
