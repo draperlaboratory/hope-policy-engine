@@ -16,6 +16,7 @@ def round_up(x, align):
 
 class LLVMMetadataTagger:
     PTR_SIZE = 4 # For instructions, not data
+    PTR_SHIFT = 2 # 1 << 2 == 4
 
     metadata_ops = {
         "DMD_SET_BASE_ADDRESS_OP": 0x01,
@@ -41,7 +42,10 @@ class LLVMMetadataTagger:
         "DMT_RETURN_INSTR": 0x07,
         "DMT_CALL_INSTR": 0x08,
         "DMT_BRANCH_INSTR": 0x09,
-        "DMT_FPTR_CREATE_AUTHORITY": 0x0a
+        "DMT_FPTR_CREATE_AUTHORITY": 0x0a,
+        "DMT_WRITE_ONCE": 0x0b,
+        "DMT_BLOCK_START": 0x0c,
+        "DMT_BLOCK_END": 0x0d
     }
 
     # Names policies will use to access features
@@ -85,8 +89,22 @@ class LLVMMetadataTagger:
         "epilogue": {
             "tag_specifier": tag_specifiers["DMT_STACK_EPILOGUE_AUTHORITY"],
             "name": "llvm.Epilogue"
+        },
+        "block-start": {
+            "tag_specifier": tag_specifiers["DMT_BLOCK_START"],
+            "name": "llvm.CFI_Block-Start"
+        },
+        "block-end": {
+            "tag_specifier": tag_specifiers["DMT_BLOCK_END"],
+            "name": "llvm.CFI_Block-End"
         }
     }
+
+    color_tags = [
+        "llvm.FI_Color0",
+        "llvm.FI_Color1",
+        "llvm.FI_Color2"
+    ]
 
     def __init__(self):
         self.needs_tag_cache = {}
@@ -209,5 +227,9 @@ class LLVMMetadataTagger:
                     e = s + self.PTR_SIZE
                     if (s, e, tags) not in range_map:
                         range_file.write_range(s, e, "llvm.NoCFI")
+                    else: # color tags are only useful when we have metadata
+                        color = self.color_tags[(s >> self.PTR_SHIFT) % len(self.color_tags)];
+                        range_file.write_range(s, e, color)
+                        range_map.add_range(s, e, color)
 
         return range_map
