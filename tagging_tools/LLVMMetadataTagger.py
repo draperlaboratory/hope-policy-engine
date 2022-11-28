@@ -216,20 +216,23 @@ class LLVMMetadataTagger:
                 logging.debug("Error: found unknown byte in metadata!" + hex(byte) + "\n")
                 sys.exit(-1)
 
+        code_range_map = TaggingUtils.RangeMap()
+        self.add_code_section_ranges(elf_file, code_range_map)
+
+        # assume we want to color instructions if we import Color0
+        if 'FI_Color0' in policy_inits['Require']['llvm']:
+            for (start, end, tags) in code_range_map:
+                for s in range(start, end, self.PTR_SIZE):
+                   e = s + self.PTR_SIZE
+                   color = self.color_tags[(s >> self.PTR_SHIFT) % len(self.color_tags)]
+                   range_file.write_range(s, e, color)
+
         # tag NoCFI for anything not specifically noted by llvm
         if 'NoCFI' in policy_inits['Require']['llvm']:
-
-            code_range_map = TaggingUtils.RangeMap()
-            self.add_code_section_ranges(elf_file, code_range_map)
-
             for (start, end, tags) in code_range_map:
                 for s in range(start, end, self.PTR_SIZE):
                     e = s + self.PTR_SIZE
                     if (s, e, tags) not in range_map:
                         range_file.write_range(s, e, "llvm.NoCFI")
-                    else: # color tags are only useful when we have metadata
-                        color = self.color_tags[(s >> self.PTR_SHIFT) % len(self.color_tags)];
-                        range_file.write_range(s, e, color)
-                        range_map.add_range(s, e, color)
 
         return range_map
