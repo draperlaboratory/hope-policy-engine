@@ -119,18 +119,22 @@ rv32_validator_t::rv32_validator_t(meta_set_cache_t *ms_cache,
   ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Default");
   ireg_tags.reset(m_to_t(ms));
   ms = ms_factory->get_meta_set("ISA.RISCV.Reg.RZero");
-  ireg_tags[0] = m_to_t(ms);
+  if(ms)
+      ireg_tags[0] = m_to_t(ms);
   ms = ms_factory->get_meta_set("ISA.RISCV.CSR.Default");
   csr_tags.reset(m_to_t(ms));
   ms = ms_factory->get_meta_set("ISA.RISCV.Reg.Env");
   pc_tag = m_to_t(ms);
   // set initial tags for specific CSRs
   ms = ms_factory->get_meta_set("ISA.RISCV.CSR.MEPC");
-  csr_tags[CSR_MEPC] = m_to_t(ms);
+  if(ms)
+      csr_tags[CSR_MEPC] = m_to_t(ms);
   ms = ms_factory->get_meta_set("ISA.RISCV.CSR.MTVal");
-  csr_tags[CSR_MTVAL] = m_to_t(ms);
+  if(ms)
+      csr_tags[CSR_MTVAL] = m_to_t(ms);
   ms = ms_factory->get_meta_set("ISA.RISCV.CSR.MTVec");
-  csr_tags[CSR_MTVEC] = m_to_t(ms);
+  if(ms)
+      csr_tags[CSR_MTVEC] = m_to_t(ms);
 
   config->apply(&tag_bus, this);
   failed = false;
