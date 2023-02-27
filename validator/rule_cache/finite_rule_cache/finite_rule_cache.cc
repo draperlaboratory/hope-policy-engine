@@ -1,5 +1,7 @@
 #include "finite_rule_cache.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 finite_rule_cache_t::finite_rule_cache_t(int capacity) : ideal_rule_cache_t() {
   this->capacity = capacity;

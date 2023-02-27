@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <cstdlib>
+#include <cstdio>
 #include "dmhc.h"
 #include "tag_utils.h"
 
