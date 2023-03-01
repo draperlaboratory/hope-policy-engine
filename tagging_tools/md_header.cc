@@ -36,6 +36,12 @@ using namespace policy_engine;
 #include <string>
 #include <cstring>
 
+#if __GNUC__ > 10
+#define nodeIsNull(x) (x.IsNull())
+#else // gcc major version < 11
+#define nodeIsNull(x) (x == NULL)
+#endif // __GNUC__ > 10
+
 void usage() {
   printf("usage: md_header <elf_file> <soc_file> <tag_file>\n");
 }
@@ -47,7 +53,7 @@ bool exclude_unused_soc(YAML::Node soc, std::list<std::string> &exclude,
   for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
     std::string name;
 
-    if(it->second["name"] == NULL) {
+    if(nodeIsNull(it->second["name"])) {
       err->error("'name' node not present\n");
       return false;
     }
@@ -69,7 +75,7 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t> &ranges,
     range_t range;
     std::string name;
 
-    if(it->second["name"] == NULL) {
+    if(nodeIsNull(it->second["name"])) {
       err->error("'name' node not present\n");
       return false;
     }
@@ -81,13 +87,13 @@ bool get_soc_ranges(YAML::Node soc, std::list<range_t> &ranges,
       continue;
     }
 
-    if(it->second["start"] == NULL) {
+    if(nodeIsNull(it->second["start"])) {
       err->error("'start' node not present\n");
       return false;
     }
     range.start = it->second["start"].as<address_t>();
 
-    if(it->second["end"] == NULL) {
+    if(nodeIsNull(it->second["end"])) {
       err->error("'end' node not present\n");
       return false;
     }
@@ -105,7 +111,7 @@ size_t get_soc_granularity(YAML::Node soc, range_t range, bool is_64_bit) {
     address_t start = it->second["start"].as<address_t>();
     address_t end = it->second["end"].as<address_t>();
     if (start ==  range.start && end == range.end) {
-        if(it->second["tag_granularity"] != NULL) {
+        if(!nodeIsNull(it->second["tag_granularity"])) {
             return it->second["tag_granularity"].as<size_t>();
         }
         return default_granularity;
@@ -236,7 +242,7 @@ int main(int argc, char **argv) {
   }
 
   soc_node = YAML::LoadFile(soc_filename);
-  if (soc_node["SOC"] == NULL) {
+  if (nodeIsNull(soc_node["SOC"])) {
     err.error("SOC root node not present\n");
     return false;
   }
