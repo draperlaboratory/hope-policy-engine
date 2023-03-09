@@ -27,6 +27,8 @@
 #define DMHC_RULE_CACHE_NO_EVICT 0
 #endif
 
+namespace policy_engine {
+
 class dmhc_rule_cache_t : public rule_cache_t {
 
 public:
@@ -43,5 +45,7 @@ private:
   bool consider[OPS_LEN];
   dmhc_t *the_rule_cache;
 };
+
+} // namespace policy_engine
 
 #endif// __DMHC_RULE_CACHE_H__

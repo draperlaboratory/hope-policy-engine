@@ -22,177 +22,138 @@
 /* OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION */
 /* WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#include <stdio.h>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <unistd.h>
-
-#include "basic_elf_io.h"
-#include "tag_file.h"
-#include "uleb.h"
 #include "metadata_index_map.h"
 #include "metadata_register_map.h"
-
-using namespace policy_engine;
-
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <cstring>
-
-struct file_reader_t {
-  FILE *fp;
-  file_reader_t(FILE *fp) : fp(fp) { }
-  bool read_byte(uint8_t &b) {
-    return fread(&b, 1, 1, fp) == 1;
-  }
-};
+#include "tag_file.h"
+#include "uleb.h"
 
 void usage() {
-  printf("usage: dump_tags <tag_file> <-f <num_entries>>\n");
-  printf("\t-f firmware tag format\n");
+  std::printf("usage: dump_tags <tag_file> <-f <num_entries>>\n");
+  std::printf("\t-f firmware tag format\n");
 }
 
-bool dump_firmware_tags(const char* tag_filename, size_t num_entries) {
-  stdio_reporter_t err;
-  std::list<range_t> code_ranges;
-  std::list<range_t> data_ranges;
-  std::vector<const metadata_t *> metadata_values;
+void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
+  policy_engine::reporter_t err;
+  std::list<policy_engine::range_t> code_ranges;
+  std::list<policy_engine::range_t> data_ranges;
+  std::vector<policy_engine::metadata_t> metadata_values;
   int32_t register_default;
   int32_t csr_default;
   int32_t env_default;
 
-  auto memory_index_map = metadata_index_map_t<metadata_memory_map_t, range_t>();
-  auto register_index_map = metadata_index_map_t<metadata_register_map_t, std::string>();
-  auto csr_index_map = metadata_index_map_t<metadata_register_map_t, std::string>();
+  auto memory_index_map = policy_engine::metadata_index_map_t<policy_engine::metadata_memory_map_t, policy_engine::range_t>();
+  auto register_index_map = policy_engine::metadata_index_map_t<policy_engine::metadata_register_map_t, std::string>();
+  auto csr_index_map = policy_engine::metadata_index_map_t<policy_engine::metadata_register_map_t, std::string>();
 
-  if(load_firmware_tag_file(code_ranges, data_ranges, metadata_values,
-                            memory_index_map, register_index_map, csr_index_map,
-                            register_default, csr_default, env_default, std::string(tag_filename)) == false) {
-    err.error("Failed to load firmware tag file\n");
-    return false;
+  if (!load_firmware_tag_file(
+    code_ranges, data_ranges, metadata_values,
+    memory_index_map, register_index_map, csr_index_map,
+    tag_filename,
+    err,
+    register_default, csr_default, env_default
+  )) {
+    throw std::runtime_error("Failed to load firmware tag file\n");
   }
 
-  printf("Code ranges:\n");
-  for(auto &r : code_ranges) {
-    printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }\n", r.start, r.end);
+  std::printf("Code ranges:\n");
+  for (const policy_engine::range_t& r : code_ranges) {
+    std::printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }\n", r.start, r.end);
   }
 
-  printf("\nData ranges:\n");
-  for(auto &r : data_ranges) {
-    printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }\n", r.start, r.end);
+  std::printf("\nData ranges:\n");
+  for (const policy_engine::range_t& r : data_ranges) {
+    std::printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }\n", r.start, r.end);
   }
 
-  printf("\nMetadata values:\n");
-  for(size_t i = 0; i < metadata_values.size(); i++) {
-    printf("%lu: { ", i);
-    for(const auto &m : *metadata_values[i]) {
-      printf("%lx ", m);
+  std::printf("\nMetadata values:\n");
+  for (size_t i = 0; i < metadata_values.size(); i++) {
+    std::printf("%lu: { ", i);
+    for (const meta_t& m : metadata_values[i]) {
+      std::printf("%lx ", m);
     }
-    printf("}\n");
+    std::printf("}\n");
   }
 
-  printf("\nRegister tag entries:\n");
-  printf("Default: %x\n", register_default);
-  for(auto &it : register_index_map) {
-    printf("%s: %x\n", it.first.c_str(), it.second);
+  std::printf("\nRegister tag entries:\n");
+  std::printf("Default: %x\n", register_default);
+  for (const auto& [ reg, ind ] : register_index_map) {
+    std::printf("%s: %x\n", reg.c_str(), ind);
   }
 
-  printf("\nCSR tag entries:\n");
-  printf("Default: %x\n", csr_default);
-  for(auto &it : csr_index_map) {
-    printf("%s: %x\n", it.first.c_str(), it.second);
+  std::printf("\nCSR tag entries:\n");
+  std::printf("Default: %x\n", csr_default);
+  for(const auto& [ reg, ind ] : csr_index_map) {
+    std::printf("%s: %x\n", reg.c_str(), ind);
   }
 
-  printf("\nEnv tag default: %x\n", env_default);
+  std::printf("\nEnv tag default: %x\n", env_default);
 
-  printf("\nMemory tag entries (showing %lu of %lu):\n",
-      num_entries, memory_index_map.size());
+  std::printf("\nMemory tag entries (showing %lu of %lu):\n", num_entries, memory_index_map.size());
   size_t entry_index = 0;
-  for(auto &it : memory_index_map) {
-    printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }: %x\n", it.first.start, it.first.end, it.second);
+  for (const auto& [ range, ind ] : memory_index_map) {
+    std::printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }: %x\n", range.start, range.end, ind);
 
     entry_index++;
-    if(entry_index == num_entries) {
+    if (entry_index == num_entries) {
       break;
     }
   }
-
-  return true;
 }
 
-bool dump_tags(std::string file_name) {
-  FILE *fp = fopen(file_name.c_str(), "rb");
+void dump_tags(const std::string& file_name) {
+  policy_engine::uleb_reader_t reader(file_name);
+  if (!reader)
+    throw std::ios::failure("could not open " + file_name);
+
   int i = 0;
-
-  if (!fp)
-    return false;
-
-  file_reader_t reader(fp);
-  fseek(fp, 0, SEEK_END);
-  size_t eof_point = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-
-  while (eof_point != ftell(fp)) {
-    address_t start;
-    address_t end;
+  while (!reader.eof()) {
+    uint64_t start, end;
     uint32_t metadata_count;
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, start)) {
-      fclose(fp);
-      return false;
+    if (reader.read_uleb<uint64_t>(start) <= 0) {
+      throw std::runtime_error("could not read range start");
     }
 
-    if (!read_uleb<file_reader_t, address_t>(&reader, end)) {
-      fclose(fp);
-      return false;
+    if (reader.read_uleb<uint64_t>(end) <= 0) {
+      throw std::runtime_error("could not read range end");
     }
 
-    if (!read_uleb<file_reader_t, uint32_t>(&reader, metadata_count)) {
-      fclose(fp);
-      return false;
+    if (reader.read_uleb<uint32_t>(metadata_count) <= 0) {
+      throw std::runtime_error("could not read metadata_count");
     }
 
-    if (end < start)
-    {
-       fprintf(stderr, "Entry %d, Start (0x%" PRIaddr_pad ")is after End (0x%"
-               PRIaddr_pad ")\n", i, start, end);
-       fprintf(stderr, "Are you sure this is a simulation tag file?\n");
-       fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
-       return false;
-    }
-    else if ((int32_t)metadata_count < 0)
-    {
-       fprintf(stderr, "Entry %d, has negative entries (%d)\n", i, metadata_count);
-       fprintf(stderr, "Are you sure this is a simulation tag file?\n");
-       fprintf(stderr, "Or did you want to set the -f (firmware tag file) option\n");
-       return false;
+    if (end < start) {
+      throw std::runtime_error("range [" + std::to_string(start) + "," + std::to_string(end) + ") ends before start");
+    } else if (static_cast<int32_t>(metadata_count) < 0) {
+      throw std::runtime_error(std::string("illegal metadata count ") + std::to_string(static_cast<int>(metadata_count)));
     }
 
-    printf("Entry %d, 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad
-           " (%d)\n", i++, start, end, metadata_count);
+    std::printf("Entry %d, 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " (%d)\n", i++, start, end, metadata_count);
 
-    printf("\tMetadata List:  ");
+    std::printf("\tMetadata List:  ");
 
     for (uint32_t i = 0; i < metadata_count; i++) {
       meta_t meta;
-
-      if (!read_uleb<file_reader_t, meta_t>(&reader, meta)) {
-         fclose(fp);
-         return false;
+      if (reader.read_uleb<meta_t>(meta) <= 0) {
+        throw std::runtime_error("could not read meta value");
       }
 
-      printf("%016lx, ", meta);
+      std::printf("%016lx, ", meta);
     }
 
-    printf("end.\n");
+    std::printf("end.\n");
   }
-
-  fclose(fp);
-
-  return true;
 }
 
-int main(int argc, char **argv) {
-  stdio_reporter_t err;
+int main(int argc, char* argv[]) {
+  policy_engine::reporter_t err;
   const char *tag_filename;
   char arg;
   int entries_arg = 0;
@@ -202,48 +163,49 @@ int main(int argc, char **argv) {
   // Retrieve memory metadata from tag file
   tag_filename = argv[1];
 
-  while ((arg = getopt (argc, argv, "f")) != -1)
-    switch (arg)
-      {
-      case 'f':
-        firmware = true;
+  while ((arg = getopt(argc, argv, "f")) != -1) {
+    switch (arg) {
+    case 'f':
+      firmware = true;
 
-        if(optind < argc) {
-           num_entries = strtoul(argv[optind], NULL, 0);
-        } else {
-          usage();
-          return 1;
-        }
-        break;
-      case '?':
-        if (isprint(optopt)) {
-          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-        }
-        else {
-          fprintf (stderr, "Unknown option character 0x%x.\n", optopt);
-        }
-
+      if (optind < argc) {
+        num_entries = strtoul(argv[optind], NULL, 0);
+      } else {
         usage();
         return 1;
-        break;
-      default:
-        abort ();
+      }
+      break;
+    case '?':
+      if (isprint(optopt)) {
+        std::fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+      } else {
+        std::fprintf(stderr, "Unknown option character 0x%x.\n", optopt);
       }
 
-  if(argc < 2) {
+      usage();
+      return 1;
+    default:
+      abort();
+    }
+  }
+
+  if (argc < 2) {
     usage();
     return 1;
   }
 
   if (firmware) {
-     if(dump_firmware_tags(tag_filename, num_entries) == false) {
-      err.error("Failed to dump firmware tags\n");
+    try {
+      dump_firmware_tags(tag_filename, num_entries);
+    } catch (const std::exception& e) {
+      std::fprintf(stderr, "failed to dump firmware tags: %s\n", e.what());
       return 1;
     }
   } else {
-    if(dump_tags(tag_filename) == false) {
-      err.error("Failed to dump tags\n");
-      return 1;
+    try {
+      dump_tags(tag_filename);
+    } catch (const std::exception& e) {
+      std::fprintf(stderr, "failed to dump tags: %s\n", e.what());
     }
   }
 

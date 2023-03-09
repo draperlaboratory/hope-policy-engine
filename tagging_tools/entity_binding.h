@@ -27,63 +27,51 @@
 #ifndef ENTITY_BINDING_H
 #define ENTITY_BINDING_H
 
-#include <string>
 #include <list>
 #include <memory>
-
-#include "basic_elf_io.h"
+#include <string>
+#include "reporter.h"
 
 namespace policy_engine {
 
 struct entity_binding_t {
-  virtual ~entity_binding_t() { }
-  /**
-     Name of the policy entity.
-   */
-  std::string entity_name;
+  static std::list<std::unique_ptr<entity_binding_t>> load(const std::string& file_name, reporter_t& err);
 
-  bool optional;
+  const std::string entity_name;
+  const bool optional;
 
-  entity_binding_t() : optional(false) {}
+  entity_binding_t(const std::string& n, bool o) : entity_name(n), optional(o) {}
+  virtual ~entity_binding_t() {}
 };
 
-struct entity_symbol_binding_t : entity_binding_t {
-  virtual ~entity_symbol_binding_t() { }
-  /**
-     ELF symbol the policy entity refers to. The ELF symbol must have a size if is_singularity
-     is false.
-   */
-  std::string elf_name;
+struct entity_symbol_binding_t : public entity_binding_t {
+  /** ELF symbol the policy entity refers to. */
+  const std::string elf_name;
 
-  /**
-     If true, we mark only the first word at the start symbol.
-  */
-  bool is_singularity;
+  /** If true, we mark only the first word at the start symbol. If false, the symbol must have a size. */
+  const bool is_singularity;
 
-  entity_symbol_binding_t() : is_singularity(false) { }
+  entity_symbol_binding_t(const std::string& n, const std::string& elf, bool o=false, bool s=false) : entity_binding_t(n, o), elf_name(elf), is_singularity(s) {}
 };
 
-struct entity_range_binding_t : entity_binding_t {
-  virtual ~entity_range_binding_t() { }
-  std::string elf_start_name;
-  std::string elf_end_name;
+struct entity_range_binding_t : public entity_binding_t {
+  const std::string elf_start_name;
+  const std::string elf_end_name;
+
+  entity_range_binding_t(const std::string& n, const std::string& start, const std::string& end, bool o=false) : entity_binding_t(n, o), elf_start_name(start), elf_end_name(end) {}
 };
 
-struct entity_soc_binding_t : entity_binding_t {
-  virtual ~entity_soc_binding_t() { }
+struct entity_soc_binding_t : public entity_binding_t {
+  entity_soc_binding_t(const std::string& n, bool o=false) : entity_binding_t(n, o) {}
 };
 
-struct entity_isa_binding_t : entity_binding_t {
-  virtual ~entity_isa_binding_t() { }
+struct entity_isa_binding_t : public entity_binding_t {
+  entity_isa_binding_t(const std::string& n, bool o=false) : entity_binding_t(n, o) {}
 };
 
-struct entity_image_binding_t : entity_binding_t {
-  virtual ~entity_image_binding_t() { }
+struct entity_image_binding_t : public entity_binding_t {
+  entity_image_binding_t(const std::string& n, bool o=false) : entity_binding_t(n, o) {}
 };
-
-void load_entity_bindings(const char *file_name,
-			  std::list<std::unique_ptr<entity_binding_t>> &bindings,
-			  reporter_t *err);
 
 } // namespace policy_engine
 

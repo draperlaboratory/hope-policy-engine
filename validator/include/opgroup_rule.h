@@ -1,10 +1,11 @@
 #ifndef OPGROUP_RULE_H
 #define OPGROUP_RULE_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <memory>
 #include <vector>
-
 #include "metadata.h"
+#include "riscv_isa.h"
 
 namespace policy_engine {
 
@@ -23,16 +24,16 @@ struct operand_rule_t {
 };
 
 class opgroup_rule_t {
-  private:
-    std::vector<operand_rule_t> rules;
-    metadata_t *metadata;
-    
-  public:
-    opgroup_rule_t(metadata_t *metadata);
-    void add_operand_rule(std::vector<uint32_t> values,
-                          operand_rule_match_t match);
-    metadata_t *match(int32_t flags, uint32_t rs1, uint32_t rs2,
-               uint32_t rs3, uint32_t rd, int32_t imm);
+private:
+  std::vector<operand_rule_t> rules;
+  
+public:
+  std::unique_ptr<const metadata_t> metadata;
+
+  opgroup_rule_t() {}
+  opgroup_rule_t(std::unique_ptr<metadata_t>& metadata) : metadata(std::move(metadata)) {}
+  void add_operand_rule(std::vector<uint32_t> values, operand_rule_match_t match);
+  bool matches(const decoded_instruction_t& inst);
 };
 
 } // namespace policy_engine

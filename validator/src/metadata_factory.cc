@@ -24,74 +24,74 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <linux/limits.h>
-#include <string.h>
-#include <stdio.h>
-#include <sstream>
+#include <algorithm>
+#include <cstring>
+#include <cstdint>
+#include <cstdio>
 #include <exception>
-
-#include "validator_exception.h"
+#include <linux/limits.h>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <yaml-cpp/yaml.h>
+#include "entity_binding.h"
 #include "metadata_factory.h"
+#include "metadata_memory_map.h"
+#include "opgroup_rule.h"
+#include "platform_types.h"
+#include "policy_meta_set.h"
+#include "policy_types.h"
+#include "riscv_isa.h"
+#include "validator_exception.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
-std::string metadata_factory_t::abbreviate(std::string const &dotted_string) {
+std::string metadata_factory_t::abbreviate(const std::string& dotted_string) {
   size_t last = dotted_string.rfind('.');
   if (last == std::string::npos)
     return dotted_string;
   return dotted_string.substr(last + 1, std::string::npos);
 }
 
-void metadata_factory_t::init_entity_initializers(YAML::Node const &reqsAST, std::string prefix) {
-  for (YAML::const_iterator it = reqsAST.begin(); it != reqsAST.end(); ++it) {
-    std::string key = it->first.as<std::string>();
+void metadata_factory_t::init_entity_initializers(const YAML::Node& reqsAST, const std::string& prefix) {
+  for (const auto& it : reqsAST) {
+    std::string key = it.first.as<std::string>();
     if (key == "metadata") {
       entity_init_t init;
       init.entity_name = prefix;
-      YAML::Node mnode = it->second;
-      for (size_t i = 0; i < mnode.size(); i++) {
-        std::string name = mnode[i]["name"].as<std::string>();
-        init.meta_names.push_back(name);
-      }
+      for (const YAML::Node& m : it.second)
+        init.meta_names.push_back(m["name"].as<std::string>());
       entity_initializers[prefix] = init;
-//      printf("adding: %s\n", prefix.c_str());
     } else {
-      init_entity_initializers(it->second, prefix == "" ? key : prefix + "." + key);
+      init_entity_initializers(it.second, prefix == "" ? key : prefix + "." + key);
     }
   }
 }
 
-void metadata_factory_t::update_entity_initializers(YAML::Node const &metaAST, std::string prefix) {
-  YAML::Node metadata = metaAST; //[0]; //["Metadata"];
-  // for each node in Metadata
-  for (YAML::const_iterator seq_it = metadata.begin(); seq_it != metadata.end(); ++seq_it) {
-          YAML::Node metadata_node = *seq_it;
-          std::string mname = metadata_node["name"].as<std::string>();
-          entity_init_t init;
-          init.entity_name = mname;
-          init.meta_names.push_back(mname);
-          entity_initializers[mname] = init;
+void metadata_factory_t::update_entity_initializers(const YAML::Node& metaAST, const std::string& prefix) {
+  for (const YAML::Node& metadata_node : metaAST) {
+    std::string mname = metadata_node["name"].as<std::string>();
+    entity_init_t init;
+    init.entity_name = mname;
+    init.meta_names.push_back(mname);
+    entity_initializers[mname] = init;
   }
 }
 
-void metadata_factory_t::init_encoding_map(YAML::Node &rawEnc) {
-  YAML::Node root = rawEnc["Metadata"];
-  YAML::Node node;
-  
-  for (size_t i = 0; i < root.size(); i++) {
-    node = root[i];
+void metadata_factory_t::init_encoding_map(const YAML::Node& rawEnc) {
+  for (const YAML::Node& node: rawEnc["Metadata"]) {
     encoding_map[node["name"].as<std::string>()] = node["id"].as<meta_t>();
     reverse_encoding_map[node["id"].as<meta_t>()] = node["name"].as<std::string>();
     abbrev_reverse_encoding_map[node["id"].as<meta_t>()] = abbreviate(node["name"].as<std::string>());
   }
 }
 
-std::vector<std::string> metadata_factory_t::split_dotted_name(const std::string &name) {
-  std::istringstream ss(name);
-  
+static std::vector<std::string> split_dotted_name(const std::string &name) {
   std::vector<std::string> res;
   std::string elt;
-  while (std::getline(ss, elt, '.'))
+  for (std::istringstream ss(name); std::getline(ss, elt, '.');)
     res.push_back(elt);
   return res;
 }
@@ -104,52 +104,43 @@ static void dump_node(YAML::Node node) {
     case YAML::NodeType::Sequence: printf("  sequence\n"); break;
     case YAML::NodeType::Map: printf("  map\n"); break;
     case YAML::NodeType::Undefined: printf("  undefined\n"); break;
-      default: printf("  unknown\n"); break;
+    default: printf("  unknown\n"); break;
   }
 }
 
-metadata_t const *metadata_factory_t::lookup_metadata(std::string dotted_path) {
-  metadata_t *metadata = nullptr;
-  auto const &path_map_iter = path_map.find(dotted_path);
-  if (path_map_iter != path_map.end()) {
-    return path_map_iter->second;
-  }
+const metadata_t* metadata_factory_t::lookup_metadata(const std::string& dotted_path) {
+  if (const auto& it = path_map.find(dotted_path); it != path_map.end())
+    return it->second.get();
 
-  auto const &entity_init_iter = entity_initializers.find(dotted_path);
-  if (entity_init_iter != entity_initializers.end()) {
-          std::vector<std::string> const &meta_names = entity_init_iter->second.meta_names;
-          metadata = new metadata_t();
-          for (auto name: meta_names) {
-                  metadata->insert(encoding_map[name]);
-          }
-          path_map[dotted_path] = metadata;
-          return metadata;
+  if (const auto& it = entity_initializers.find(dotted_path); it != entity_initializers.end()) {
+    std::unique_ptr<metadata_t> md = std::make_unique<metadata_t>();
+    for (const std::string& name : it->second.meta_names)
+      md->insert(encoding_map[name]);
+    return (path_map[dotted_path] = std::move(md)).get();
   }
-  return NULL;
-#if 0
-  std::vector<std::string> path = split_dotted_name(dotted_path);
-  
-  std::vector<std::string> md;
-  if (meta_tree.find_metadata(path, md)) {
-    metadata = new metadata_t();
-    for (auto name: md)
-      metadata->insert(encoding_map[name]);
-    path_map[dotted_path] = metadata;
-  }
-  return metadata;
-#endif
+  return nullptr;
 }
 
-std::map<std::string, metadata_t const *> *metadata_factory_t::lookup_metadata_map(std::string dotted_path) {
-  std::map<std::string, metadata_t const *> *results = new std::map<std::string, metadata_t const *>();
-
-  for (auto &it : entity_initializers) {
-    if (it.first.rfind(dotted_path) == 0) {
-      (*results)[it.first] = lookup_metadata(it.first);
-    }
-  }
-
+std::map<std::string, const metadata_t*> metadata_factory_t::lookup_metadata_map(const std::string& dotted_path) {
+  std::map<std::string, const metadata_t*> results;
+  for (const auto& [ name, init ] : entity_initializers)
+    if (name.rfind(dotted_path) == 0)
+      results[name] = lookup_metadata(name);
   return results;
+}
+
+const metadata_t* metadata_factory_t::lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst) {
+  const auto& it_opgroup_rule = opgroup_rule_map.find(opgroup);
+  if (it_opgroup_rule != opgroup_rule_map.end()) {
+    if (it_opgroup_rule->second.matches(inst))
+      return it_opgroup_rule->second.metadata.get();
+  }
+
+  const auto& it_group = group_map.find(opgroup);
+  if (it_group == group_map.end()) {
+    return nullptr;
+  }
+  return it_group->second.get();
 }
 
 static const std::unordered_map<std::string, operand_rule_match_t> operand_match_yaml_ids {
@@ -160,100 +151,71 @@ static const std::unordered_map<std::string, operand_rule_match_t> operand_match
   {"match_not_in_range", OPERAND_RULE_NOT_RANGE},
 };
 
-void metadata_factory_t::update_rule_map(std::string key, YAML::Node &node) {
+void metadata_factory_t::update_rule_map(std::string key, const YAML::Node& node) {
   std::string name;
   YAML::Node operand_rules;
-  metadata_t *metadata;
-  opgroup_rule_t *opgroup_rule;
-
-  metadata = new metadata_t();
-
-  for (const auto &it : node) {
+  std::unique_ptr<metadata_t> metadata = std::make_unique<metadata_t>();
+  for (const auto& it : node) {
     name = it.first.as<std::string>();
     operand_rules = it.second;
   }
-
   metadata->insert(encoding_map[name]);
+  opgroup_rule_map[key] = opgroup_rule_t(metadata);
 
-  opgroup_rule = new opgroup_rule_t(metadata);
-
-  for (size_t i = 0; i < operand_rules.size(); i++) {
-    std::vector<uint32_t> values;
-    operand_rule_match_t match = OPERAND_RULE_UNKNOWN;
-
-    if (operand_rules[i].IsScalar()) {
-      opgroup_rule->add_operand_rule(values, OPERAND_RULE_ANY);
-      continue;
-    }
-
-    if (operand_rules[i].IsMap()) {
+  for (const YAML::Node& operand_rule : operand_rules) {
+    if (operand_rule.IsScalar()) {
+      opgroup_rule_map[key].add_operand_rule(std::vector<uint32_t>(), OPERAND_RULE_ANY);
+    } else if (operand_rule.IsMap()) {
       std::string operand_id;
-
-      for (const auto &it : operand_rules[i]) {
+      std::vector<uint32_t> values;
+      for (const auto& it : operand_rule) {
         operand_id = it.first.as<std::string>();
-
-        for (size_t j = 0; j < it.second.size(); j++) {
-          values.push_back(it.second[j].as<uint32_t>());
-        }
+        for (const YAML::Node& n : it.second)
+          values.push_back(n.as<uint32_t>());
       }
 
-      for (const auto &id : operand_match_yaml_ids) {
-        if (operand_id.compare(id.first) == 0) {
-          match = id.second;
-        }
-      }
-
-      if (match == OPERAND_RULE_UNKNOWN) {
+      auto it = std::find_if(
+        operand_match_yaml_ids.begin(), operand_match_yaml_ids.end(),
+        [&](const std::pair<std::string, operand_rule_match_t>& e){ return operand_id == e.first; }
+      );
+      if (it == operand_match_yaml_ids.end())
         throw std::runtime_error("Invalid operand rule type: " + operand_id);
-      }
+      else
+        opgroup_rule_map[key].add_operand_rule(values, it->second);
     }
-
-    opgroup_rule->add_operand_rule(values, match);
   }
-
-  opgroup_rule_map[key] = opgroup_rule;
 }
 
-void metadata_factory_t::init_group_map(YAML::Node &node) {
-  node = node["Groups"];
+void metadata_factory_t::init_group_map(const YAML::Node& node) {
+  for (const auto& it : node["Groups"]) {
+    const std::string key = it.first.as<std::string>();
+    std::unique_ptr<metadata_t> md = std::make_unique<metadata_t>();
+    const YAML::Node& instruction_node = it.second;
 
-  for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
-    metadata_t *metadata = new metadata_t();
-    std::string key = it->first.as<std::string>();
-
-    YAML::Node instruction_node = it->second;
-
-    for (size_t i = 0; i < instruction_node.size(); i++) {
-      YAML::Node opgroup_node = instruction_node[i];
-
+    for (const YAML::Node& opgroup_node : instruction_node) {
       if (opgroup_node.IsScalar()) {
         std::string name = opgroup_node.as<std::string>();
-        metadata->insert(encoding_map[name]);
+        md->insert(encoding_map[name]);
       }
 
       if (opgroup_node.IsMap()) {
         update_rule_map(key, opgroup_node);
       }
     }
-
-    group_map[key] = metadata;
+    group_map[key] = std::move(md);
   }
 }
 
-YAML::Node metadata_factory_t::load_yaml(const char *yml_file) {
-  char path_buff[PATH_MAX];
+YAML::Node metadata_factory_t::load_yaml(const std::string& yml_file) {
+  const std::string path = policy_dir + "/" + yml_file;
   try {
-    strcpy(path_buff, policy_dir.c_str());
-    strcat(path_buff, "/");
-    strcat(path_buff, yml_file);
-    return YAML::LoadFile(path_buff);
-  } catch (std::exception &e) {
-    throw configuration_exception_t(std::string("while parsing ") + path_buff + std::string(": ") + e.what());
+    return YAML::LoadFile(path);
+  } catch (const std::exception& e) {
+    throw configuration_exception_t("while parsing " + path + ": " + e.what());
   }
 }
 
-metadata_factory_t::metadata_factory_t(std::string policy_dir)
-  : policy_dir(policy_dir) {
+metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_dir(policy_dir) {
   // load up all the requirements for initialization
   YAML::Node reqsAST = load_yaml("policy_init.yml");
   // load up the individual tag encodings
@@ -266,15 +228,83 @@ metadata_factory_t::metadata_factory_t(std::string policy_dir)
   init_group_map(groupAST);
 }
 
-std::string metadata_factory_t::render(meta_t meta, bool abbrev) {
+bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name) {
+  if (const metadata_t* md = lookup_metadata(tag_name)) {
+    map.add_range(start, end, *md);
+    return true;
+  }
+  return false;
+}
+
+void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t base_address, int xlen, const void* bytes, int n, reporter_t& err) {
+  for (int pc = 0, npc = 0; pc < n; pc = npc) {
+    insn_bits_t bits = *reinterpret_cast<const insn_bits_t*>(bytes + pc);
+    decoded_instruction_t inst = decode(bits, xlen);
+    if (!inst) {
+      err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits, base_address + pc);
+      npc = pc + 4;
+    } else {
+      npc = pc + (inst.flags.is_compressed ? 2 : 4);
+      if (const metadata_t* metadata = lookup_group_metadata(inst.name, inst))
+        map.add_range(base_address + pc, base_address + npc, *metadata);
+      else
+        err.warning("0x%016lx: 0x%08x  %s - no group found for instruction\n", base_address + pc, inst.flags.is_compressed ? bits & 0xffff : bits, inst.name);
+    }
+  }
+}
+
+void metadata_factory_t::tag_entities(metadata_memory_map_t& md_map, const elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err) {
+  std::list<std::unique_ptr<entity_binding_t>> bindings;
+  for (const std::string& yaml_file : yaml_files)
+    bindings.splice(bindings.end(), entity_binding_t::load(yaml_file, err));
+  for (const std::string& s : enumerate()) {
+    auto it = std::find_if(bindings.begin(), bindings.end(), [&](std::unique_ptr<entity_binding_t>& peb) { return peb->entity_name == s; });
+    if (it == bindings.end()) {
+      err.warning("Entity %s has no binding\n", s);
+    }
+  }
+
+  for (const std::unique_ptr<entity_binding_t>& e: bindings) {
+    if (const auto sb = dynamic_cast<entity_symbol_binding_t*>(e.get())) {
+      if (auto sym = img.symtab.find(sb->elf_name, !sb->is_singularity, sb->optional, err); sym != img.symtab.end()) {
+        // go ahead and mark it
+        uint64_t end_addr;
+        if (sb->is_singularity)
+          end_addr = sym->address + img.word_bytes();
+        else
+          end_addr = sym->address + sym->size; // TODO: align to platform word boundary?
+        if (!apply_tag(md_map, sym->address, end_addr, sb->entity_name)) {
+          err.warning("Unable to apply tag %s\n", sb->entity_name);
+        }
+      }
+    } else if (const auto rb = dynamic_cast<entity_range_binding_t*>(e.get())) {
+      auto sym = img.symtab.find(rb->elf_start_name, false, false, err);
+      auto end = img.symtab.find(rb->elf_end_name, false, false, err);
+      if (sym != img.symtab.end() && end != img.symtab.end()) {
+        if (!apply_tag(md_map, sym->address, end->address, rb->entity_name)) {
+          err.warning("Unable to apply tag %s\n", rb->entity_name);
+        }
+      }
+    }
+  }
+}
+
+std::vector<std::string> metadata_factory_t::enumerate() {
+  std::vector<std::string> elts;
+  for (const auto& [ name, init ] : entity_initializers)
+    elts.push_back(name);
+  return elts;
+}
+
+std::string metadata_factory_t::render(meta_t meta, bool abbrev) const {
   if (abbrev) {
-    auto const &iter = abbrev_reverse_encoding_map.find(meta);
+    const auto iter = abbrev_reverse_encoding_map.find(meta);
     if (iter == abbrev_reverse_encoding_map.end())
       return "<unknown: " + std::to_string(meta) + ">";
     else
       return iter->second;
   } else {
-    auto const &iter = reverse_encoding_map.find(meta);
+    const auto iter = reverse_encoding_map.find(meta);
     if (iter == reverse_encoding_map.end())
       return "<unknown: " + std::to_string(meta) + ">";
     else
@@ -282,15 +312,4 @@ std::string metadata_factory_t::render(meta_t meta, bool abbrev) {
   }
 }
 
-std::string metadata_factory_t::render(metadata_t const *metadata, bool abbrev) {
-  std::ostringstream os;
-  bool first = true;
-  for (auto &meta: *metadata) {
-    if (first)
-      first = false;
-    else
-      os << ", ";
-    os << render(meta, abbrev);
-  }
-  return os.str();
 }

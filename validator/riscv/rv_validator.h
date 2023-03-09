@@ -27,47 +27,27 @@
 #ifndef RV32_VALIDATOR_H
 #define RV32_VALIDATOR_H
 
-#include <stdio.h>
+#include <array>
+#include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
-
+#include "dmhc_rule_cache.h"
+#include "finite_rule_cache.h"
+#include "ideal_rule_cache.h"
+#include "metadata_memory_map.h"
+#include "policy_eval.h"
+#include "reader.h"
+#include "sim_validator.h"
 #include "soc_tag_configuration.h"
 #include "tag_based_validator.h"
-#include "tag_converter.h"
-#include "policy_eval.h"
-#include "metadata_memory_map.h"
-#include "ideal_rule_cache.h"
-#include "finite_rule_cache.h"
-#include "dmhc_rule_cache.h"
 
 namespace policy_engine {
 
-class rv32_validator_base_t : public tag_based_validator_t {
-protected: 
+class rv_validator_t : public sim_validator_t<RegisterReader_t, AddressFixer_t>, public tag_based_validator_t {
+private:
   tag_bus_t tag_bus;
 
-public:
-  context_t *ctx;
-  operands_t *ops;
-  results_t *res;
-
-  rv32_validator_base_t(meta_set_cache_t *ms_cache,
-			meta_set_factory_t *ms_factory,
-			RegisterReader_t rr, AddressFixer_t af);
-
-  void apply_metadata(metadata_memory_map_t *md_map);
-  
-  // called before we call the policy code - initializes ground state of input/output structures
-  void setup_validation();
-  
-  // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t &tag) {
-    return tag_bus.load_tag(addr, tag);
-  }
-};
-
-#define REG_SP 2
-class rv32_validator_t : public rv32_validator_base_t {
   uint32_t pending_RD;
   address_t mem_addr;
   uint32_t pending_CSR;
@@ -78,60 +58,69 @@ class rv32_validator_t : public rv32_validator_base_t {
   bool has_insn_mem_addr;
   bool rule_cache_hit;
 
-//  meta_set_t temp_ci_tag;
+public:
+  const int xlen;
 
- public:
+  context_t ctx;
+  operands_t ops;
+  results_t res;
+
   tag_t pc_tag;
-  tag_file_t<32> ireg_tags;
-  tag_file_t<0x1000> csr_tags;
-
-  void handle_violation(context_t *ctx, operands_t *ops);
+  std::array<tag_t, 32> ireg_tags;
+  std::array<tag_t, 0x1000> csr_tags;
   
   bool watch_pc;
   std::vector<address_t> watch_regs;
   std::vector<address_t> watch_csrs;
   std::vector<address_t> watch_addrs;
 
-  rv32_validator_t(meta_set_cache_t *ms_cache,
-		   meta_set_factory_t *ms_factory,
-		   soc_tag_configuration_t *tag_config,
-		   RegisterReader_t rr, AddressFixer_t af);
+  rv_validator_t(int xlen, const std::string& policy_dir, const std::string& soc_cfg, RegisterReader_t rr, AddressFixer_t af);
+  virtual ~rv_validator_t();
 
-  virtual ~rv32_validator_t() {
-    free(ctx);
-    free(ops);
-    free(res);
-    if (rule_cache) {
-      delete rule_cache;
-    }
-  }
+  constexpr uint64_t address_max() { if (xlen < 64) return (1ULL << xlen) - 1; else return -1; }
+
+  // called before we call the policy code - initializes ground state of input/output structures
+  void setup_validation();
+
+  void apply_metadata(const metadata_memory_map_t* md_map);
+
+  void handle_violation(context_t* ctx, operands_t* ops);
 
   bool validate(address_t pc, insn_bits_t insn);
-  bool validate(address_t pc, insn_bits_t insn, address_t mem_addr, bool *hit);
+  std::pair<bool, bool> validate(address_t pc, insn_bits_t insn, address_t mem_addr);
   bool commit();
 
   // Provides the tag for a given address.  Used for debugging.
-  virtual bool get_tag(address_t addr, tag_t &tag) {
-    return tag_bus.load_tag(addr, tag);
+  tag_t& get_tag(address_t addr) { return tag_bus.data_tag_at(addr); }
+  meta_set_t* get_meta_set(address_t addr) {
+    try {
+      return ms_cache[get_tag(addr)];
+    } catch (...) {
+      return nullptr;
+    }
   }
 
-  void set_pc_watch(bool watching);
-  void set_reg_watch(address_t addr);
-  void set_csr_watch(address_t addr);
-  void set_mem_watch(address_t addr);
+  meta_set_t* get_pc_meta_set() { return ms_cache[pc_tag]; }
+  meta_set_t* get_csr_meta_set(address_t csr) { return ms_cache[csr_tags[csr]]; }
+  meta_set_t* get_ireg_meta_set(address_t reg) { return ms_cache[ireg_tags[reg]]; }
+
+  void set_pc_watch(bool watching) { watch_pc = watching; }
+  void set_reg_watch(address_t addr) { watch_regs.push_back(addr); }
+  void set_csr_watch(address_t addr) { watch_csrs.push_back(addr); }
+  void set_mem_watch(address_t addr) { watch_addrs.push_back(addr); }
 
   void prepare_eval(address_t pc, insn_bits_t insn);
   void complete_eval();
 
   void flush_rule_cache();
-  void config_rule_cache(const std::string cache_name, int capacity);
+  void config_rule_cache(const std::string& cache_name, int capacity);
   void rule_cache_stats();
 
   // fields used by main.cc
   bool failed;
   context_t failed_ctx;
   operands_t failed_ops;
-  rule_cache_t *rule_cache = nullptr;
+  rule_cache_t* rule_cache;
   uint64_t rule_cache_hits;
   uint64_t rule_cache_misses;
 };

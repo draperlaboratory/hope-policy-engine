@@ -1,3 +1,6 @@
+#ifndef __DMHC_H__
+#define __DMHC_H__
+
 #include "compute_hash.h"
 
 #define GTABLE_MAX_COUNT 3
@@ -13,6 +16,8 @@
 //#define DMHC_DIRECT_K_HASH_CONFLICTS_FROM_REINSERT 1 
 // 2/25/16 -- BSV DMHC didn't originally do this, but revised it to do so.
 #define MISS_ON_ZERO_GTABLE_COUNT 1
+
+namespace policy_engine {
 
 class dmhc_t {
 public:
@@ -67,3 +72,7 @@ private:
 
   int misses, hits, false_hits, direct_conflicts, inserts; // statistics
 };
+
+} // namespace policy_engine
+
+#endif // __DMHC_H__

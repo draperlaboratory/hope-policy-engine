@@ -1,4 +1,7 @@
 #include "ideal_rule_cache.h"
+#include "riscv_isa.h"
+
+namespace policy_engine {
 
 ideal_rule_cache_t::ideal_rule_cache_t() {
   rule_cache_table.clear();
@@ -27,4 +30,6 @@ bool ideal_rule_cache_t::allow(operands_t *ops, results_t *res) {
     res->csrResult = entries->second.csrResult;
   }
   return !(entries == rule_cache_table.end());
+}
+
 }

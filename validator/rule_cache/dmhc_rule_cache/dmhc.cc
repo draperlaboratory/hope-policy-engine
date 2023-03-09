@@ -1,6 +1,8 @@
-#include <assert.h>
+#include <cassert>
 #include "dmhc.h"
 #include "tag_utils.h"
+
+namespace policy_engine {
 
 dmhc_t::dmhc_t(int cap, int newk, int newc, int infields, int outfields, int *ops_size, 
          int *res_size, bool new_no_evict) {
@@ -504,4 +506,6 @@ bool dmhc_t::lookup(meta_set_t *ops, meta_set_t *res, bool *consider) {
     //printf("It is a false hit\n");
     return(false);
   }    
+}
+
 }

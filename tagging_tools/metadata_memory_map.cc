@@ -24,65 +24,62 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <algorithm>
+#include <cstdint>
+#include <string>
 #include "metadata_memory_map.h"
+#include "range.h"
+#include <iostream>
+namespace policy_engine {
+  
+void metadata_memory_map_t::mem_region_t::add_range(uint64_t start, uint64_t end, const metadata_t& metadata) {
+  if (range.start == range.end) {
+    range.start = start;
+    assert(mem.size() == 0); // first range added
+  } else if (start < range.start) {
+    // inserting before the existing base - have to insert a bit
+    int n_insert = (range.start - start)/stride;
+    mem.insert(mem.begin(), n_insert, nullptr);
+    range.start = start;
+  }
 
-#include "metadata_factory.h"
+  int s = (start - range.start)/stride;
+  int e = (end - range.start)/stride;
 
-using namespace policy_engine;
+  if (e > mem.size()) {
+    mem.resize(e, nullptr);
+    range.end = index_to_addr(e);
+  }
 
-// for debugging only
-static metadata_factory_t *factory;
-
-void init_metadata_renderer(metadata_factory_t *md_factory) {
-  factory = md_factory;
+  while (s < e) {
+    metadata_t md(metadata);
+    if (mem[s])
+      md.insert(mem[s]);
+    mem[s++] = &map->md_cache.canonize(md);
+  }
 }
 
-std::string render_metadata(metadata_t const *metadata) {
-  if (factory)
-    return factory->render(metadata);
-  return "<no renderer>";
-}
-  
-void metadata_memory_map_t::add_range(address_t start, address_t end, metadata_t const *metadata) {
-
-  //  printf("(0x%x, 0x%x): %s\n", start, end, metadata->tagstring().c_str());
-  
+void metadata_memory_map_t::add_range(uint64_t start, uint64_t end, const metadata_t& metadata) {
   /* this is a meaningless call */
-  if ( start >= end )
+  if (start >= end)
     return;
-  
-  /* find the right mr */
-  for ( auto &mr : mrs ) {
 
-    /* check whether the region is adjacent or contained within */
-    if ( mr.contains(start) || mr.contains(end) ) {
-      mr.add_range(start, end, metadata);
-      return;
-    }
+  if (auto it = std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return r.adjacent(start) || r.adjacent(end); }); it != mrs.end()) {
+    it->add_range(start, end, metadata);
+  } else {
+    /* an appropriate existing MR was not found - make a new one */
+    mem_region_t mr(*this);
+    mr.add_range(start, end, metadata);
+    mrs.insert(std::find_if(mrs.begin(), mrs.end(), [&](const mem_region_t& r){ return end < r.range.start; }), mr); // will add at end if not found
   }
-  
-  /* an appropriate existing MR was not found - make a new one */
-  mem_region_t mr = mem_region_t(this);
-  int len = mrs.size();
-
-  /* put it in the vector at the right location */
-  int i;
-  for ( i = 0; i < len; i++ ) {
-    if ( end < mrs[i].range.start ) {
-
-      /* insert in the correct place */
-      mrs.insert(mrs.begin()+i, mr);
-
-      /* now add the metadata range */
-      mrs[i].add_range(start, end, metadata);
-      return;
-    }
-  }
-
-  /* nothing found, put it at the end. */
-  mrs.push_back(mr);
-  mrs[i].add_range(start, end, metadata);
-   
-  return;
 }
 
+const metadata_t* metadata_memory_map_t::get_metadata(uint64_t addr) const {
+  for (const auto& mr : mrs) {
+    if (mr.contains(addr))
+      return mr.getaddr(addr);
+  }
+  return nullptr;
+}
+
+}

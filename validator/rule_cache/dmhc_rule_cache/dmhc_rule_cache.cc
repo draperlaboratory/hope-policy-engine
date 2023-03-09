@@ -1,5 +1,7 @@
 #include "dmhc_rule_cache.h"
 
+namespace policy_engine {
+
 dmhc_rule_cache_t::dmhc_rule_cache_t(int capacity, int iwidth, int owidth, int k, bool no_evict) {
   int ops_size[OPS_LEN];
   ops_size[OP_PC]=iwidth;
@@ -112,3 +114,5 @@ bool dmhc_rule_cache_t::allow(operands_t *ops, results_t *res) {
 void dmhc_rule_cache_t::flush() {
   the_rule_cache->reset();
 }
+
+} // namespace policy_engine
