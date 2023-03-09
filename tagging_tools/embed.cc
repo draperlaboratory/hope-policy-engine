@@ -81,8 +81,8 @@ bool embed_tags_in_elf(
   command_string += std::string("objcopy --target elf") + std::to_string(old_elf.word_bytes()*8) + "-littleriscv";
   command_string += std::string(" --") + (update ? "update" : "add") + "-section .initial_tag_map=";
   command_string += section_temp_file;
-  command_string += update ? "" : "--set-section-flags .initial_tag_map=readonly,data";
-  command_string += old_elf.name + " " + new_elf_name;
+  if (update) command_string += " --set-section-flags .initial_tag_map=readonly,data";
+  command_string += std::string(" ") + old_elf.name + " " + new_elf_name;
   command_string += " > /dev/null 2>&1";
 
   return system(command_string.c_str()) == 0;
