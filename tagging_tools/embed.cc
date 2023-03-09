@@ -76,30 +76,16 @@ bool embed_tags_in_elf(
   const std::string section_temp_file = "initial_tag_map";
   save_tags_to_temp(metadata_values, memory_index_map, old_elf, section_temp_file, err);
 
-  const char base_command[] = "%sobjcopy --target elf%d-littleriscv --%s-section .initial_tag_map=%s %s %s %s";
-  std::string op = update ? "update" : "add";
-  std::string section_flags = update ? "" : "--set-section-flags .initial_tag_map=readonly,data";
-  char command_string[
-    sizeof(base_command) +
-    riscv_prefix.length() +
-    3 + // big enough to fit max xlen of "128"
-    op.length() +
-    section_temp_file.length() +
-    section_flags.length() +
-    old_elf.name.length() +
-    new_elf_name.length() +
-    1 // ensure enough space to fit null terminator
-  ];
-  std::sprintf(command_string, base_command,
-    riscv_prefix.c_str(),
-    old_elf.word_bytes()*8,
-    op.c_str(),
-    section_temp_file.c_str(),
-    section_flags.c_str(),
-    old_elf.name.c_str(), new_elf_name.c_str()
-  );
+  std::string command_string;
+  command_string += riscv_prefix;
+  command_string += std::string("objcopy --target elf") + std::to_string(old_elf.word_bytes()*8) + "-littleriscv";
+  command_string += std::string(" --") + (update ? "update" : "add") + "-section .initial_tag_map=";
+  command_string += section_temp_file;
+  if (update) command_string += " --set-section-flags .initial_tag_map=readonly,data";
+  command_string += std::string(" ") + old_elf.name + " " + new_elf_name;
+  command_string += " > /dev/null 2>&1";
 
-  return system(command_string) == 0;
+  return system(command_string.c_str()) == 0;
 }
 
 void embed_tags(metadata_memory_map_t& metadata_memory_map, elf_image_t& img, const std::string& elf_filename, reporter_t& err) {
@@ -107,10 +93,13 @@ void embed_tags(metadata_memory_map_t& metadata_memory_map, elf_image_t& img, co
   metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
 
   // Figure out if the section already exists in the elf. This affects the exact command needed to update the elf.
-  const char base_command[] = "%sobjdump --target elf%d-littleriscv -d -j .initial_tag_map %s >/dev/null 2>&1";
-  char command_string[sizeof(base_command)+riscv_prefix.length() + 3 + elf_filename.length()+1];
-  std::sprintf(command_string, base_command, riscv_prefix.c_str(), img.word_bytes()*8, elf_filename.c_str());
-  int ret = std::system(command_string);
+  std::string command_string;
+  command_string += riscv_prefix;
+  command_string += std::string("objdump --target elf") + std::to_string(img.word_bytes()*8) + "-littleriscv";
+  command_string += " -d -j .initial_tag_map ";
+  command_string += elf_filename;
+  command_string += " > /dev/null 2>&1";
+  int ret = std::system(command_string.c_str());
 
   if (!embed_tags_in_elf(memory_index_map.metadata, memory_index_map, img, elf_filename, ret == 0, err))
     throw std::ios::failure("failed to save indices to tag file");
