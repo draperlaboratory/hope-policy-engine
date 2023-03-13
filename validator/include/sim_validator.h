@@ -27,26 +27,30 @@
 #ifndef SIM_VALIDATOR_H
 #define SIM_VALIDATOR_H
 
-#include "validator.h"
+#include "platform_types.h"
 #include "reader.h"
+#include "validator.h"
 
 namespace policy_engine {
 
 /**
-   The sim validator is a slightly more specific validator that expresses
-   some of the connection to the simulator.  Specifically, when the simulator calls an
-   external validator, it provides APIs to read registers and memory
-   on the assumption that the validator needs to inquire of some SOC
-   state in order to evaluate an operation.
-*/
-class abstract_sim_validator_t : abstract_validator_t {
-  protected:
-  RegisterReader_t reg_reader;
-  AddressFixer_t addr_fixer;
-  public:
-  abstract_sim_validator_t(RegisterReader_t rr, AddressFixer_t af) : reg_reader(rr), addr_fixer(af) {
-  }
-  virtual ~abstract_sim_validator_t() { }
+ * The sim validator is a slightly more specific validator that expresses
+ * some of the connection to the simulator.  Specifically, when the simulator calls an
+ * external validator, it provides APIs to read registers and memory
+ * on the assumption that the validator needs to inquire of some SOC
+ * state in order to evaluate an operation. RegisterReader should be a callable type
+ * takes a register index and returns the value in that register and AddressFixer should
+ * be a callable type that takes an address and returns some transformation on it.
+ */
+template<class RegisterReader, class AddressFixer>
+class sim_validator_t : abstract_validator_t {
+protected:
+  RegisterReader reg_reader;
+  AddressFixer addr_fixer;
+
+public:
+  sim_validator_t(RegisterReader rr, AddressFixer af) : reg_reader(rr), addr_fixer(af) {}
+  virtual ~sim_validator_t() {}
   virtual bool validate(address_t pc, insn_bits_t insn) = 0;
   virtual bool commit() = 0;
 };

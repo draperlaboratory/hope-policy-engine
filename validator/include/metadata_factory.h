@@ -27,15 +27,19 @@
 #ifndef METADATA_FACTORY_H
 #define METADATA_FACTORY_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstdio>
 #include <map>
+#include <memory>
 #include <unordered_map>
+#include <vector>
 #include <yaml-cpp/yaml.h>
-#include <stdio.h>
-
-#include "policy_types.h" // meta_t
 #include "metadata.h"
+#include "metadata_memory_map.h"
 #include "opgroup_rule.h"
+#include "policy_types.h"
+#include "range_map.h"
+#include "riscv_isa.h"
 
 namespace policy_engine {
 
@@ -45,60 +49,62 @@ struct entity_init_t {
 };
 
 class metadata_factory_t {
+private:
+  const std::string policy_dir;
+
   std::unordered_map<meta_t, std::string> reverse_encoding_map; // for rendering
   std::unordered_map<meta_t, std::string> abbrev_reverse_encoding_map; // for rendering
   std::unordered_map<std::string, meta_t> encoding_map;
-  std::unordered_map<std::string, metadata_t const *> path_map;
-  std::unordered_map<std::string, metadata_t const *> group_map;
-  std::unordered_map<std::string, opgroup_rule_t *> opgroup_rule_map;
+  std::unordered_map<std::string, std::unique_ptr<const metadata_t>> path_map;
+  std::unordered_map<std::string, std::unique_ptr<const metadata_t>> group_map;
+  std::unordered_map<std::string, opgroup_rule_t> opgroup_rule_map;
 
   std::map<std::string, entity_init_t> entity_initializers;
 
-  std::string abbreviate(std::string const &dotted_string);
+  std::string abbreviate(const std::string& dotted_string);
 
-  void init_entity_initializers(YAML::Node const &reqsAST, std::string prefix);
-  void update_entity_initializers(YAML::Node const &metaAST, std::string prefix);
-  void init_encoding_map(YAML::Node &rawEnc);
-  void init_group_map(YAML::Node &groupAST);
-  YAML::Node load_yaml(const char *yml_file);
-  
-  std::string policy_dir;
+  void init_entity_initializers(const YAML::Node& reqsAST, const std::string& prefix);
+  void update_entity_initializers(const YAML::Node& metaAST, const std::string& prefix);
+  void init_encoding_map(const YAML::Node& rawEnc);
+  void init_group_map(const YAML::Node& groupAST);
+  void update_rule_map(std::string key, const YAML::Node& node);
 
-  static std::vector<std::string> split_dotted_name(const std::string &name);
+  YAML::Node load_yaml(const std::string& yml_file);
 
-  private:
-  void update_rule_map(std::string key, YAML::Node &node);
+public:
+  metadata_factory_t(const std::string& policy_dir);
 
-  public:
-  metadata_factory_t(std::string policy_dir);
-  metadata_t const *lookup_metadata(std::string dotted_path);
-  std::map<std::string, metadata_t const *> *lookup_metadata_map(std::string dotted_path);
+  const metadata_t* lookup_metadata(const std::string& dotted_path);
+  std::map<std::string, const metadata_t*> lookup_metadata_map(const std::string& dotted_path);
+  const metadata_t* lookup_group_metadata(const std::string& opgroup, const decoded_instruction_t& inst);
 
-  metadata_t const *lookup_group_metadata(std::string const &opgroup,
-                                          int32_t flags, uint32_t rs1, uint32_t rs2,
-                                          uint32_t rs3, uint32_t rd, int32_t imm) {
-    metadata_t *metadata;
-    auto const &it_opgroup_rule = opgroup_rule_map.find(opgroup);
-    if (it_opgroup_rule != opgroup_rule_map.end()) {
-      metadata = it_opgroup_rule->second->match(flags, rs1, rs2, rs3, rd, imm);
-      if (metadata != nullptr) {
-        return metadata;
-      }
-    }
-
-    auto const &it_group = group_map.find(opgroup);
-    if (it_group == group_map.end()) {
-      return nullptr;
-    }
-    return it_group->second;
+  bool apply_tag(metadata_memory_map_t& map, uint64_t start, uint64_t end, const std::string& tag_name);
+  template<class RangeMap=range_map_t>
+  void apply_tags(metadata_memory_map_t& map, const RangeMap& range_map) {
+    for (const auto& [ range, tags ] : range_map)
+      for (const std::string& tag : tags)
+        if (!apply_tag(map, range.start, range.end, tag))
+          throw std::out_of_range("could not find tag " + tag);
   }
 
-  std::string render(meta_t meta, bool abbrev = false);
-  std::string render(metadata_t const *metadata, bool abbrev = false);
-  void enumerate(std::list<std::string> &elts) {
-    for (auto const &p: entity_initializers) {
-      elts.push_back(p.first);
+  void tag_opcodes(metadata_memory_map_t& map, uint64_t base_address, int xlen, const void* bytes, int n, reporter_t& err);
+  void tag_entities(metadata_memory_map_t& md_map, const elf_image_t& img, const std::vector<std::string>& yaml_files, reporter_t& err);
+  std::vector<std::string> enumerate();
+
+  std::string render(meta_t meta, bool abbrev=false) const;
+
+  template<class MetadataPtr>
+  std::string render(MetadataPtr metadata, bool abbrev=false) const {
+    std::ostringstream os;
+    bool first = true;
+    for (const meta_t& meta: *metadata) {
+      if (first)
+        first = false;
+      else
+        os << ", ";
+      os << render(meta, abbrev);
     }
+    return os.str();
   }
 };
 

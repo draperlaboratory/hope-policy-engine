@@ -38,12 +38,12 @@ uint32_t e_v_validate(uint64_t pc, uint32_t instr);
 
 void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, AddressFixer_t addr_fixer);
 uint32_t e_v_commit(void);
-void e_v_set_metadata(const char *validator_cfg_path);
-void e_v_violation_msg(char *dest, int n);
-void e_v_pc_tag(char *dest, int n);
-void e_v_csr_tag(char *dest, int n, uint64_t addr);
-void e_v_reg_tag(char *dest, int n, uint64_t addr);
-void e_v_mem_tag(char *dest, int n, uint64_t addr);
+void e_v_set_metadata(const char* validator_cfg_path);
+void e_v_violation_msg(char* dest, int n);
+void e_v_pc_tag(char* dest, int n);
+void e_v_csr_tag(char* dest, int n, uint64_t addr);
+void e_v_reg_tag(char* dest, int n, uint64_t addr);
+void e_v_mem_tag(char* dest, int n, uint64_t addr);
 void e_v_set_pc_watch(bool watching);
 void e_v_set_reg_watch(uint64_t addr);
 void e_v_set_csr_watch(uint64_t addr);
@@ -55,5 +55,4 @@ void e_v_rule_cache_stats(void);
 }
 #endif
 
-
-#endif
+#endif // QEMU_INTERFACE_H

@@ -27,27 +27,26 @@
 #ifndef VALIDATOR_EXCEPTION_H
 #define VALIDATOR_EXCEPTION_H
 
-#include <string>
 #include <exception>
+#include <string>
 
 namespace policy_engine {
 
 class exception_t : public std::exception {
-  std::string msg;
-  public:
-  exception_t() : msg("unknown exception") { }
-  exception_t(std::string msg) : msg(msg) { }
-  virtual const char *what() const noexcept { return msg.c_str(); }
+  const std::string msg;
+public:
+  exception_t(std::string msg="unknown exception") : msg(msg) {}
+  virtual const char* what() const noexcept { return msg.c_str(); }
 };
 
 class configuration_exception_t : public exception_t {
-  public:
-  configuration_exception_t(std::string msg) : exception_t(msg) { }
+public:
+  configuration_exception_t(std::string msg) : exception_t(msg) {}
 };
 
 class runtime_exception_t : public exception_t {
-  public:
-  runtime_exception_t(std::string msg) : exception_t(msg) { }
+public:
+  runtime_exception_t(std::string msg) : exception_t(msg) {}
 };
 
 } // namespace policy_engine

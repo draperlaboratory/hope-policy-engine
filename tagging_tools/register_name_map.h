@@ -4,7 +4,7 @@
 #include <map>
 #include "csr_list.h"
 
-std::map<std::string, uint32_t> register_name_map = {
+static const std::map<std::string, uint32_t> register_name_map = {
   { "RZero", 0x0 },
   { "RA", 0x1 },
   { "SP", 0x2 },
@@ -73,7 +73,7 @@ std::map<std::string, uint32_t> register_name_map = {
 };
 
 // DPL CSR names to hardware tag address
-std::map<std::string, uint32_t> csr_name_map = {
+static const std::map<std::string, uint32_t> csr_name_map = {
   { "TSelect", 0x0 },
   { "TData1", 0x0 },
   { "TData2", 0x0 },
@@ -231,7 +231,7 @@ std::map<std::string, uint32_t> csr_name_map = {
 };
 
 // DPL names for CSRs mapped to host address
-std::map<std::string, uint32_t> csr_host_name_map = {
+static const std::map<std::string, uint32_t> csr_host_name_map = {
   { "FFlags", CSR_FFLAGS },
   { "FRM", CSR_FRM },
   { "FCSR", CSR_FCSR },

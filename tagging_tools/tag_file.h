@@ -27,33 +27,52 @@
 #ifndef TAG_FILE_H
 #define TAG_FILE_H
 
+#include <iostream>
+#include <list>
 #include <string>
+#include "elf_loader.h"
+#include "metadata_factory.h"
+#include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
-#include "metadata_index_map.h"
-#include "elf_utils.h"
+#include "range.h"
+#include "reporter.h"
 
 namespace policy_engine {
 
-bool load_tags(metadata_memory_map_t *map, std::string file_name);
-bool save_tags(metadata_memory_map_t *map, std::string file_name);
-bool save_tag_indexes(std::vector<const metadata_t *> &metadata_values,
-                      metadata_index_map_t<metadata_memory_map_t, range_t> &memory_index_map,
-                      metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
-                      metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                      int32_t register_default, int32_t csr_default, int32_t env_default,
-                      std::string file_name);
-bool write_headers(std::list<range_t> &code_ranges,
-                   std::list<std::pair<range_t, uint8_t>> &data_ranges,
-                   bool is_64_bit, std::string tag_filename);
-bool load_firmware_tag_file(std::list<range_t> &code_ranges,
-                            std::list<range_t> &data_ranges,
-                            std::vector<const metadata_t *> &metadata_values,
-                            metadata_index_map_t<metadata_memory_map_t, range_t> &metadata_index_map,
-                            metadata_index_map_t<metadata_register_map_t, std::string> &register_index_map,
-                            metadata_index_map_t<metadata_register_map_t, std::string> &csr_index_map,
-                            int32_t &register_default, int32_t &csr_default, int32_t &env_default,
-                            std::string file_name);
+void write_tag_file(
+  metadata_factory_t& factory,
+  const metadata_memory_map_t& metadata_memory_map,
+  const elf_image_t& elf_image,
+  const std::string& soc_filename,
+  const std::string& tag_filename,
+  const std::string& policy_dir,
+  const std::list<std::string>& soc_exclude,
+  reporter_t& err
+);
+
+bool save_tags(const metadata_memory_map_t& map, uint32_t xlen, const std::string& filename);
+bool load_tags(metadata_memory_map_t& map, const std::string& file_name, uint32_t& xlen);
+
+template<class OStream>
+void dump_tags(const metadata_memory_map_t& map, metadata_factory_t& factory, OStream&& out) {
+  out << std::hex;
+  for (const auto& [ range, metadata ] : map)
+    out << '[' << range.start << ',' << range.end << "]: " << factory.render(metadata, false) << std::endl;
+  out << std::dec;
+}
+
+bool load_firmware_tag_file(
+  std::list<range_t>& code_ranges,
+  std::list<range_t>& data_ranges,
+  std::vector<metadata_t>& metadata_values,
+  metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
+  metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
+  metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
+  const std::string& file_name,
+  reporter_t& err,
+  int32_t& register_default, int32_t& csr_default, int32_t& env_default
+);
 
 } // namespace policy_engine
 

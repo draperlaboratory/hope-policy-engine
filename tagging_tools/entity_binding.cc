@@ -25,91 +25,58 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <string>
 #include <yaml-cpp/yaml.h>
-
-#include "validator_exception.h"
 #include "entity_binding.h"
+#include "reporter.h"
+#include "validator_exception.h"
 
-using namespace policy_engine;
+namespace policy_engine {
 
-static void expect_field(YAML::Node const *n, const char *field, std::string entity_name) {
-  if (!(*n)[field])
-    throw configuration_exception_t("expected field " + std::string(field) + " in entity " + entity_name);
+template <class T=std::string>
+static T expect_field(const YAML::Node& n, const std::string& field, const std::string& entity_name) {
+  if (!n[field])
+    throw configuration_exception_t("expected field " + field + " in entity " + entity_name);
+  return n[field].as<T>();
 }
 
-static void process_element(const YAML::Node &n,
-			    std::list<std::unique_ptr<entity_binding_t>> &bindings) {
-  std::string elt_path;
-  
-  if (!n["name"])
-    throw configuration_exception_t("binding must have an entity name");
-  std::string entity_name = n["name"].as<std::string>();
-  expect_field(&n, "kind", entity_name);
-  std::string element_name = n["kind"].as<std::string>();
+static std::unique_ptr<entity_binding_t> process_element(const YAML::Node& n) {
+  std::string entity_name = expect_field(n, "name", "");
+  std::string element_name = expect_field(n, "kind", entity_name);
   if (element_name == "symbol") {
-    entity_symbol_binding_t *binding = new entity_symbol_binding_t;
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    binding->entity_name = entity_name;
-    expect_field(&n, "elf_name", entity_name);
-    binding->elf_name = n["elf_name"].as<std::string>();
-    if (n["tag_all"])
-      binding->is_singularity = !n["tag_all"].as<bool>();
-    if (n["optional"])
-      binding->optional = n["optional"].as<bool>();
-    bindings.push_back(std::move(u));
+    return std::make_unique<entity_symbol_binding_t>(
+      entity_name,
+      expect_field(n, "elf_name", entity_name),
+      n["optional"] && n["optional"].as<bool>(),
+      n["tag_all"] && !n["tag_all"].as<bool>()
+    );
   } else if (element_name == "range") {
-    entity_range_binding_t *binding = new entity_range_binding_t;
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    binding->entity_name = entity_name;
-    expect_field(&n, "elf_start", entity_name);
-    expect_field(&n, "elf_end", entity_name);
-    binding->elf_start_name = n["elf_start"].as<std::string>();
-    binding->elf_end_name = n["elf_end"].as<std::string>();
-    if (n["optional"])
-      binding->optional = n["optional"].as<bool>();
-    bindings.push_back(std::move(u));
+    return std::make_unique<entity_range_binding_t>(
+      entity_name,
+      expect_field(n, "elf_start", entity_name),
+      expect_field(n, "elf_end", entity_name),
+      n["optional"] && n["optional"].as<bool>()
+    );
   } else if (element_name == "soc") {
-    entity_soc_binding_t *binding = new entity_soc_binding_t;
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    binding->entity_name = entity_name;
-    if (n["optional"])
-      binding->optional = n["optional"].as<bool>();
-    bindings.push_back(std::move(u));
+    return std::make_unique<entity_soc_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>());
   } else if (element_name == "isa") {
-    entity_isa_binding_t *binding = new entity_isa_binding_t;
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    binding->entity_name = entity_name;
-    if (n["optional"])
-      binding->optional = n["optional"].as<bool>();
-    bindings.push_back(std::move(u));
+    return std::make_unique<entity_isa_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>());
   } else if (element_name == "image") {
-    entity_image_binding_t *binding = new entity_image_binding_t;
-    std::unique_ptr<entity_binding_t> u = std::unique_ptr<entity_binding_t>(binding);
-    binding->entity_name = entity_name;
-    if (n["optional"])
-      binding->optional = n["optional"].as<bool>();
-    bindings.push_back(std::move(u));
+    return std::make_unique<entity_image_binding_t>(entity_name, n["optional"] && n["optional"].as<bool>());
   } else {
     throw configuration_exception_t("unexpected kind " + element_name);
   }
 }
 
-void policy_engine::load_entity_bindings(const char *file_name,
-					 std::list<std::unique_ptr<entity_binding_t>> &bindings,
-					 reporter_t *err) {
+std::list<std::unique_ptr<entity_binding_t>> entity_binding_t::load(const std::string& file_name, reporter_t& err) {
+  std::list<std::unique_ptr<entity_binding_t>> bindings;
   try {
-    YAML::Node n = YAML::LoadFile(file_name);
-//  if (n["entities"]) {
-//    YAML::Node soc = n["entities"];
-//    for (YAML::const_iterator it = soc.begin(); it != soc.end(); ++it) {
-    for (YAML::const_iterator it = n.begin(); it != n.end(); ++it) {
-      process_element(*it, bindings);
-    }
-  } catch (std::exception &e) {
-    err->error("while parsing %s: %s\n", file_name, e.what());
+    for (const YAML::Node& node : YAML::LoadFile(file_name))
+      bindings.push_back(process_element(node));
+  } catch (const std::exception &e) {
+    err.error("while parsing %s: %s\n", file_name, e.what());
   }
-//  } else {
-//    throw configuration_exception_t("Expected a root 'entities' node");
-//  }
+  return bindings;
 }
 
+}

@@ -27,99 +27,75 @@
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
+#include <cstdint>
+#include <gelf.h>
 #include <map>
-#include <list>
 #include <string>
-#include <algorithm>
-
-#include "platform_types.h"
+#include <vector>
+#include "reporter.h"
 
 namespace policy_engine {
 
-class symbol_t {
-  public:
-  enum visibility_t {
-    PUBLIC, PRIVATE
-  };
-  enum kind_t {
-    CODE, DATA
-  };
-  symbol_t(const char *name) : name(name), addr(0), size(0), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, address_t addr) : name(name), addr(addr), size(0), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, address_t addr, size_t size) : name(name), addr(addr), size(size), visibility(PUBLIC), kind(CODE) { }
-  symbol_t(const char *name, address_t addr, size_t size, visibility_t visibility, kind_t kind) :
-  name(name), addr(addr), size(size), visibility(visibility), kind(kind) { }
-  address_t get_address() const { return addr; }
-  size_t get_size() const { return size; }
-  std::string get_name() const { return name; }
-  visibility_t get_visibility() { return visibility; }
-  kind_t get_kind() { return kind; }
+struct symbol_t {
+  enum visibility_t { PUBLIC, PRIVATE };
+  static visibility_t get_visibility(const GElf_Sym& symbol) {
+    switch (GELF_ST_BIND(symbol.st_info)) {
+      case STB_LOCAL:  return PRIVATE;
+      case STB_GLOBAL: return PUBLIC;
+      default: return PRIVATE;
+    }
+  }
 
-  bool operator <=(const symbol_t &rhs) const { return addr <= rhs.addr; }
-  bool operator <(const symbol_t &rhs) const { return addr < rhs.addr; }
-  private:
+  enum kind_t { CODE, DATA };
+  static kind_t get_kind(const GElf_Sym& symbol) {
+    switch (GELF_ST_TYPE(symbol.st_info)) {
+      case STT_FUNC: return CODE;
+      default: return DATA;
+    }
+  }
 
-  std::string name;
-  address_t addr;
-  size_t size;
-  visibility_t visibility;
-  kind_t kind;
+  const std::string name;
+  const uint64_t address = 0;
+  const size_t size = 0;
+  const visibility_t visibility = PUBLIC;
+  const kind_t kind = CODE;
+
+  bool operator <(const symbol_t& rhs) const { return address < rhs.address; }
+  bool operator <=(const symbol_t& rhs) const { return address <= rhs.address; }
+  bool operator >(const symbol_t& rhs) const { return address > rhs.address; }
+  bool operator >=(const symbol_t& rhs) const { return address >= rhs.address; }
 };
 
 class symbol_table_t {
-  typedef std::map<address_t, symbol_t *> symbol_map_t;
-  symbol_map_t symbols;
-  std::map<std::string, symbol_t *> symbols_by_name;
+private:
+  std::vector<symbol_t> sym_list;
+  std::map<uint64_t, int> addr_map;
+  std::map<std::string, int> name_map;
 
-  public:
+public:
+  using iterator = typename decltype(sym_list)::iterator;
+  using const_iterator = typename decltype(sym_list)::const_iterator;
 
-  void add_symbol(symbol_t *sym) {
-    symbols[sym->get_address()] = sym;
-    symbols_by_name[sym->get_name()] = sym;
-  }
+  symbol_table_t() {}
 
-  symbol_t *find_symbol(std::string name) const {
-    auto it = symbols_by_name.find(name);
-    if (it == symbols_by_name.end())
-      return nullptr;
-    return it->second;
-  }
+  iterator begin() { return sym_list.begin(); }
+  iterator end() { return sym_list.end(); }
+  const_iterator begin() const { return sym_list.begin(); }
+  const_iterator end() const { return sym_list.end(); }
+  const_iterator cbegin() const { return sym_list.cbegin(); }
+  const_iterator cend() const { return sym_list.cend(); }
 
-  symbol_t *find_nearest_symbol(address_t addr) const {
-    auto low = symbols.lower_bound(addr);
-    if (low == symbols.end())
-      return nullptr;
-    if (low == symbols.begin())
-      return nullptr;
-    --low;
-    return low->second;
-  }
+  void push_back(const symbol_t& sym);
 
-  symbol_t *find_next_symbol(address_t addr) const {
-    auto low = symbols.lower_bound(addr);
-    if (low == symbols.end())
-      return nullptr;
-    ++low;
-    return low->second;
-  }
+  const symbol_t& operator [](const std::string& name) const { return sym_list[name_map.at(name)]; }
+  const symbol_t& operator [](uint64_t addr) const { return sym_list[addr_map.at(addr)]; }
 
-  typedef std::list<symbol_t *> symbol_list_t;
-  symbol_list_t sorted_symbols() {
-    symbol_list_t res;
-    std::transform(symbols.begin(), symbols.end(), std::back_inserter(res),
-		   [](const symbol_map_t::value_type &val) { return val.second; });
-    res.sort([](const symbol_t * const &lhs, const symbol_t * const &rhs) { return *lhs <= *rhs; });
-    return res;
-  }
- 
-  static void next_nearest_symbol(symbol_list_t::const_iterator &iter,
-				  symbol_list_t::const_iterator const &end,
-				  address_t addr) {
-    while (iter != end && (*iter)->get_address() < addr) {
-//      printf("nns: 0x%x - %s\n", (*iter)->get_address(), (*iter)->name.c_str());
-      iter++;
-    }
-  }
+  const_iterator find(const std::string& name) const;
+  const_iterator find(uint64_t addr) const;
+  const_iterator find(const std::string& name, bool needs_size, bool optional, reporter_t& reporter) const;
+  const_iterator lower_bound(uint64_t addr) const;
+  const_iterator upper_bound(uint64_t addr) const;
+  const_iterator find_nearest(uint64_t addr) const;
 };
 
 } // namespace policy_engine

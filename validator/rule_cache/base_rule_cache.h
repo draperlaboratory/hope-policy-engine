@@ -2,7 +2,8 @@
 #define __BASE_RULE_CACHE_H__
 
 #include "riscv_isa.h"
-//#include <inttypes.h>
+
+namespace policy_engine {
 
 struct compare_ops {
   bool operator()(const operands_t &a, const operands_t &b) const {
@@ -22,25 +23,29 @@ public:
   virtual bool allow(operands_t *ops, results_t *res) = 0;
 };
 
+} // namespace policy_engine
+
 namespace std
 {
-  template <>
-      struct hash<operands_t>
+
+template <>
+struct hash<policy_engine::operands_t>
+{
+  size_t operator()(const policy_engine::operands_t& ops) const
   {
-    size_t operator()(const operands_t& ops) const
-    {
-      // XOR all meta_set_t pointers (operands) together.
-      // Shift pointers slightly so that two identical
-      // tags don't cancel out to 0.
-      size_t hash = (size_t) ops.pc;
-      hash ^= (size_t) ops.ci  << 1;
-      hash ^= (size_t) ops.op1 << 2;
-      hash ^= (size_t) ops.op2 << 3;
-      hash ^= (size_t) ops.op3 << 4;
-      hash ^= (size_t) ops.mem << 5;
-      return hash;
-    }
-  };
-}
+    // XOR all meta_set_t pointers (operands) together.
+    // Shift pointers slightly so that two identical
+    // tags don't cancel out to 0.
+    size_t hash = (size_t) ops.pc;
+    hash ^= (size_t) ops.ci  << 1;
+    hash ^= (size_t) ops.op1 << 2;
+    hash ^= (size_t) ops.op2 << 3;
+    hash ^= (size_t) ops.op3 << 4;
+    hash ^= (size_t) ops.mem << 5;
+    return hash;
+  }
+};
+
+} // namespace std
 
 #endif// __BASE_RULE_CACHE_H__
