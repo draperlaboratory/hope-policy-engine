@@ -28,17 +28,19 @@
 #include <cstdio>
 #include "policy_eval.h"
 #include "policy_utils.h"
+#include "tag_types.h"
+#include "tag_utils.h"
 #include "riscv_isa.h"
 
 namespace policy_engine {
 
-void dump_tag(const meta_set_t* ms) {
-  char tag_name[1024];
-  if (ms) {
-    meta_set_to_string(ms, tag_name, sizeof(tag_name));
-    std::printf("%s", tag_name);
+void dump_tag(tag_t tag) {
+  if (tag != BAD_TAG_VALUE) {
+    char tag_name[1024];
+    meta_set_to_string(get_ms(tag), tag_name, sizeof(tag_name));
+    std::printf(tag_name);
   } else {
-    std::printf("<null>");
+    std::printf("<invalid>");
   }
 }
 
@@ -68,15 +70,15 @@ void debug_status(const context_t *ctx, int status) {
 }
 
 void debug_operands(const context_t* ctx, const operands_t* ops) {
-  std::printf("    pc = "); dump_tag(ops->pc); std::printf("\n");
-  std::printf("    ci = "); dump_tag(ops->ci); std::printf("\n");
-  std::printf("    op1 = "); dump_tag(ops->op1); std::printf("\n");
-  std::printf("    op2 = "); dump_tag(ops->op2); std::printf("\n");
-  std::printf("    op3 = "); dump_tag(ops->op3); std::printf("\n");
-  std::printf("    mem = "); dump_tag(ops->mem); std::printf("\n");
+  std::printf("    pc = (%ld) ", ops->pc); dump_tag(ops->pc); std::printf("\n");
+  std::printf("    ci = (%ld) ", ops->ci); dump_tag(ops->ci); std::printf("\n");
+  std::printf("    op1 = (%ld) ", ops->op1); dump_tag(ops->op1); std::printf("\n");
+  std::printf("    op2 = (%ld) ", ops->op2); dump_tag(ops->op2); std::printf("\n");
+  std::printf("    op3 = (%ld) ", ops->op3); dump_tag(ops->op3); std::printf("\n");
+  std::printf("    mem = (%ld) ", ops->mem); dump_tag(ops->mem); std::printf("\n");
 }
 
-void debug_results(const context_t *ctx, const results_t *res) {
+void debug_results(const context_t* ctx, const results_t* res) {
   if (res->pcResult) {
     std::printf("      pc = "); dump_tag(res->pc); std::printf("\n");
   }

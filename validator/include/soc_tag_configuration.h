@@ -45,11 +45,8 @@ public:
     bool heterogeneous;
     size_t tag_granularity = 4;
     size_t word_size = 4;
-    meta_set_t* meta_set;
+    tag_t tag;
   };
-
-  using iterator = std::list<soc_element_t>::iterator;
-  using const_iterator = std::list<soc_element_t>::const_iterator;
 
 private:
   std::list<soc_element_t> elements;
@@ -58,6 +55,9 @@ private:
   void process_element(const std::string& element_name, const YAML::Node& n, int xlen);
 
 public:
+  using iterator = typename decltype(elements)::iterator;
+  using const_iterator = typename decltype(elements)::const_iterator;
+
   soc_tag_configuration_t(meta_set_factory_t* factory, const std::string& file_name, int xlen);
 
   void apply(tag_bus_t* tag_bus, meta_set_cache_t* ms_cache);

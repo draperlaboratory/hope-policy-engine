@@ -99,31 +99,68 @@ typedef struct context {
 /**
  * Structure that holds input operands for rule eval
  */  
-typedef struct operands {
-  const meta_set_t* pc;
-  const meta_set_t* ci;
-  const meta_set_t* op1;
-  const meta_set_t* op2;
-  const meta_set_t* op3;
-  const meta_set_t* mem;
+typedef struct operands_t {
+  tag_t pc;
+  tag_t ci;
+  tag_t op1;
+  tag_t op2;
+  tag_t op3;
+  tag_t mem;
+
+#ifdef __cplusplus
+  bool operator ==(const operands_t& that) const { return pc == that.pc && ci == that.ci && op1 == that.op1 && op2 == that.op2 && op3 == that.op3 && mem == that.mem; }
+  bool operator !=(const operands_t& that) const { return !(*this == that); }
+#endif
 } operands_t;
 
 /**
  * Structure that holds results after rule eval
  */  
-typedef struct results {
-  meta_set_t* pc;
-  meta_set_t* rd;
-  meta_set_t* csr;
+typedef struct results_t {
+  tag_t pc;
+  tag_t rd;
+  tag_t csr;
   // flags indicate results are present
   bool pcResult;
   bool rdResult;
   bool csrResult;
+
+#ifdef __cplusplus
+  bool operator ==(const results_t& that) const { return pc == that.pc && rd == that.rd && csr == that.csr &&
+                                                         pcResult == that.pcResult && rdResult == that.rdResult && csrResult == that.csrResult; }
+  bool operator !=(const results_t& that) const { return !(*this == that); }
+#endif
 } results_t;
 
 #ifdef __cplusplus
 } // extern "C"
 } // namespace policy_engine
+
+namespace std
+{
+
+template<>
+struct equal_to<policy_engine::operands_t> {
+  bool operator ()(const policy_engine::operands_t& a, const policy_engine::operands_t& b) const { return a == b; }
+};
+
+template<>
+struct hash<policy_engine::operands_t> {
+  size_t operator ()(const policy_engine::operands_t& ops) const {
+    // XOR all meta_set_t pointers (operands) together.
+    // Shift pointers slightly so that two identical
+    // tags don't cancel out to 0.
+    size_t hash = ops.pc;
+    hash ^= ops.ci  << 1;
+    hash ^= ops.op1 << 2;
+    hash ^= ops.op2 << 3;
+    hash ^= ops.op3 << 4;
+    hash ^= ops.mem << 5;
+    return hash;
+  }
+};
+
+} // namespace std
 #endif
 
 #endif // RISCV_ISA_H

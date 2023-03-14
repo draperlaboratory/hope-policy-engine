@@ -3,21 +3,19 @@
 
 #include <functional>
 #include <unordered_map>
+#include <vector>
 #include "ideal_rule_cache.h"
 #include "riscv_isa.h"
 
 namespace policy_engine {
 
-class finite_rule_cache_t : public ideal_rule_cache_t
-{
-
+class finite_rule_cache_t : public ideal_rule_cache_t {
 public:
+  finite_rule_cache_t(int capacity) : ideal_rule_cache_t(), capacity(capacity), cache_full(false), entries(std::vector<operands_t>(capacity)), next_entry(0) {}
+  ~finite_rule_cache_t() {}
 
-  finite_rule_cache_t(int capacity);
-  ~finite_rule_cache_t();
-
-  void install_rule(operands_t *ops, results_t *res);
-  bool allow(operands_t *ops, results_t *res);
+  void install_rule(const operands_t& ops, const results_t& res);
+  bool allow(const operands_t& ops, results_t& res);
 
 private:
   // the number of rules the cache can hold.
@@ -32,7 +30,7 @@ private:
   // The oldest entry in the cache is:
   //   - entries[0] if cache_full is false
   //   - entries[(next_entry+1)%capacity] if cache_full is true
-  operands_t *entries;
+  std::vector<operands_t> entries;
 
   // the next location into which we will insert an entry in the "entries"
   // array.

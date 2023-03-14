@@ -16,12 +16,12 @@ public:
   ideal_rule_cache_t();
   ~ideal_rule_cache_t();
 
-  void install_rule(operands_t *ops, results_t *res);
-  bool allow(operands_t *ops, results_t *res);
+  void install_rule(const operands_t& ops, const results_t& res);
+  bool allow(const operands_t& ops, results_t& res);
   void flush();
 
 protected:
-  std::unordered_map<operands_t, results_t, std::hash<operands_t>, compare_ops> rule_cache_table;
+  std::unordered_map<operands_t, results_t> rule_cache_table;
 };
 
 } // namespace policy_engine
