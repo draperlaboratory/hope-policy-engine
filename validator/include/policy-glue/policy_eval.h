@@ -53,7 +53,7 @@ void free_eval_params(context_t** ctx, operands_t** ops, results_t** res);
 /**
  * Initialize context and set up operands before policy eval.
  */
-void prepare_eval(context_t* ctx, operands_t* ops, results_t* res);
+void prepare_eval(context_t* ctx, const operands_t* ops, results_t* res);
 
 /**
  * Evaluate policy with context and operands, populate results.
@@ -63,18 +63,12 @@ void prepare_eval(context_t* ctx, operands_t* ops, results_t* res);
  *    policyImpFailure = -1
  *    policySuccess = 1
  */
-int eval_policy(context_t* ctx, operands_t* ops, results_t* res);
+int eval_policy(context_t* ctx, const operands_t* ops, results_t* res);
 
 /**
  * Install rule with operands and results.
  */
-void complete_eval(context_t* ctx, operands_t* ops, results_t* res);
-
-/**
- * Helper Fn to optomize by returning a cannonical representation of
- * a metadata set. Necessary for performance and to save memory.
- */  
-meta_set_t* canonize(meta_set_t* ts);
+void complete_eval(context_t* ctx, const operands_t* ops, results_t* res);
 
   
 /**
@@ -100,7 +94,7 @@ void debug_results(const context_t* ctx, const results_t* res);
 /**
  * Call this if there is a rule violation
  */
-void handle_violation(context_t* ctx, operands_t* ops, results_t* out);
+void handle_violation(context_t* ctx, const operands_t* ops, results_t* out);
   
 /**
  * Call this if there is a fatal error in the eval code

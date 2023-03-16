@@ -1,4 +1,3 @@
-#include <functional>
 #include <iostream>
 #include "meta_cache.h"
 #include "metadata.h"
@@ -16,35 +15,21 @@ bool operator ==(const meta_set_t& lhs, const meta_set_t& rhs) {
 
 bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs) { return !(lhs == rhs); }
 
-meta_set_t& meta_set_cache_t::canonize(const meta_set_t& ts) {
-  for (meta_set_t& ms : canon)
-    if (ms == ts)
-      return ms;
-  canon.push_back(ts);
-
-  m2t[&canon.back()] = reinterpret_cast<tag_t>(&canon.back());
-  t2m[m2t[&canon.back()]] = &canon.back();
-
-  return canon.back();
+tag_t meta_set_cache_t::canonize(const meta_set_t& ts) {
+  for (int i = 0; i < meta_sets.size(); i++)
+    if (meta_sets[i] == ts)
+      return i;
+  if (meta_sets.size() == meta_sets.capacity())
+    std::cout << "reallocating meta set vector to increase capacity may invalidate tags that are pointers" << std::endl;
+  meta_sets.push_back(ts);
+  return meta_sets.size() - 1;
 }
 
-meta_set_t& meta_set_cache_t::canonize(const metadata_t& md) {
+tag_t meta_set_cache_t::canonize(const metadata_t& md) {
   meta_set_t ms{0};
   for (const meta_t& e : md)
     ms_bit_add(&ms, e);
   return canonize(ms);
 }
 
-meta_set_t* meta_set_cache_t::operator [](tag_t tag) const {
-  if (tag == 0)
-    return nullptr;
-  return t2m.at(tag);
-}
-
-tag_t meta_set_cache_t::to_tag(meta_set_t* msp) const {
-  if (m2t.find(msp) == m2t.end())
-    return 0;
-  return m2t.at(msp);
-}
-
-}
+} // namespace policy_engine

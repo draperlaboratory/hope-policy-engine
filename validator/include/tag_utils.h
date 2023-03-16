@@ -47,10 +47,7 @@ namespace policy_engine {
  * particular platform, in which case, there would be some conversion to policy data structures
  * required.
  */
-typedef uintptr_t tag_t;
-#define PRItag PRIuPTR
-
-static const tag_t BAD_TAG_VALUE = -1;
+#define PRItag PRIdPTR
 
 struct tag_provider_t {
   virtual ~tag_provider_t() {}

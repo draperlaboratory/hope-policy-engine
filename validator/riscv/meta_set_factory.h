@@ -31,6 +31,7 @@
 #include "meta_cache.h"
 #include "metadata_factory.h"
 #include "policy_meta_set.h"
+#include "tag_types.h"
 
 namespace policy_engine {
 
@@ -40,8 +41,9 @@ private:
 
 public:
   meta_set_factory_t(meta_set_cache_t* ms_cache, const std::string& policy_dir) : metadata_factory_t(policy_dir), ms_cache(ms_cache) {}
-  meta_set_t* get_meta_set(const std::string& dotted_path);
-  meta_set_t* get_group_meta_set(const std::string& opgroup) { return nullptr; }
+  bool has_meta_set(const std::string& dotted_path) { return lookup_metadata(dotted_path) != nullptr; }
+  tag_t get_tag(const std::string& dotted_path);
+  tag_t get_group_tag(const std::string& opgroup) { return BAD_TAG_VALUE; }
 };
 
 } // namespace policy_engine
