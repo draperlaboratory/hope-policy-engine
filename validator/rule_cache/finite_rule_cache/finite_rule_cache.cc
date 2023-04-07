@@ -1,5 +1,8 @@
 #include <cstring>
 #include "finite_rule_cache.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "riscv_isa.h"
 
 namespace policy_engine {

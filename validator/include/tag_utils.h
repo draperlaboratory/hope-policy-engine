@@ -27,9 +27,10 @@
 #ifndef TAG_UTILS_H
 #define TAG_UTILS_H
 
-#include <cassert>
-#include <cinttypes>
-#include <cstdint>
+#include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <vector>
 #include <map>
 #include <memory>
 #include <stdexcept>
