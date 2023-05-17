@@ -29,8 +29,10 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <map>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <yaml-cpp/yaml.h>
@@ -59,7 +61,7 @@ private:
   std::unordered_map<std::string, std::unique_ptr<const metadata_t>> group_map;
   std::unordered_map<std::string, opgroup_rule_t> opgroup_rule_map;
 
-  std::map<std::string, entity_init_t> entity_initializers;
+  std::map<std::string, entity_init_t, std::function<bool(const std::string&, const std::string&)>> entity_initializers;
 
   std::string abbreviate(const std::string& dotted_string);
 
