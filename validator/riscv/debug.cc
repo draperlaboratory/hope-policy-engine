@@ -38,7 +38,7 @@ void dump_tag(tag_t tag) {
   if (tag != BAD_TAG_VALUE) {
     char tag_name[1024];
     meta_set_to_string(get_ms(tag), tag_name, sizeof(tag_name));
-    std::printf(tag_name);
+    std::printf("%s", tag_name);
   } else {
     std::printf("<invalid>");
   }
