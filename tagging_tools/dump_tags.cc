@@ -113,6 +113,12 @@ void dump_tags(const std::string& file_name) {
     throw std::ios::failure("could not open " + file_name);
 
   int i = 0;
+  uint8_t is64bit;
+
+  if (reader.read_uleb<uint8_t>(is64bit) <= 0) {
+    throw std::runtime_error("could not read 64-bit encoding flag byte");
+  }
+  
   while (!reader.eof()) {
     uint64_t start, end;
     uint32_t metadata_count;
