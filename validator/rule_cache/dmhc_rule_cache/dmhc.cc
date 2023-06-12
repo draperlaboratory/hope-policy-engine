@@ -1,4 +1,6 @@
-#include <cassert>
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "dmhc.h"
 #include "meta_cache.h"
 #include "riscv_isa.h"
