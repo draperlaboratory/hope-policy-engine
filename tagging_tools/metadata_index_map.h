@@ -37,6 +37,17 @@ public:
 
   metadata_index_map_t() {}
 
+  metadata_index_map_t(const M& metadata_map, std::vector<const metadata_t*> initial_metadata) {
+    metadata = std::vector(initial_metadata);
+    for (const auto& [ key, value ] : metadata_map) {
+      const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](const metadata_t* v){ return *v == *value; });
+      (*this)[key] = std::distance(metadata.begin(), it);
+      if (it == metadata.end()) {
+        metadata.push_back(value);
+      }
+    }
+  }
+
   metadata_index_map_t(const M& metadata_map) {
     for (const auto& [ key, value ] : metadata_map) {
       const auto it = std::find_if(metadata.begin(), metadata.end(), [&value](const metadata_t* v){ return *v == *value; });
