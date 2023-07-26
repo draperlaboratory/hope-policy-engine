@@ -268,10 +268,28 @@ void write_tag_file(
     std::vector<const metadata_t*> metadata_values;
     metadata_index_map_t<metadata_memory_map_t, range_t> memory_index_map(metadata_memory_map);
     metadata_values.insert(metadata_values.end(), memory_index_map.metadata.begin(), memory_index_map.metadata.end());
-    metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(factory.lookup_metadata_map("ISA.RISCV.Reg"));
-    metadata_values.insert(metadata_values.end(), register_index_map.metadata.begin(), register_index_map.metadata.end());
-    metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(factory.lookup_metadata_map("ISA.RISCV.CSR"));
-    metadata_values.insert(metadata_values.end(), csr_index_map.metadata.begin(), csr_index_map.metadata.end());
+
+    // Add any metadata from initial register/SOC/CSR assignments that's not already in metadata_values
+    metadata_index_map_t<metadata_register_map_t, std::string> register_index_map(factory.lookup_metadata_map("ISA.RISCV.Reg"), metadata_values);
+    for(const auto& metadata : register_index_map.metadata){
+      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&metadata](const metadata_t* v){ return *v == *metadata; });
+      if (it == metadata_values.end())
+          metadata_values.push_back(metadata);
+    }
+
+    metadata_index_map_t<metadata_register_map_t, std::string> soc_index_map(factory.lookup_metadata_map("SOC"), metadata_values);
+    for(const auto& metadata : soc_index_map.metadata){
+      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&metadata](const metadata_t* v){ return *v == *metadata; });
+      if (it == metadata_values.end())
+          metadata_values.push_back(metadata);
+    }
+
+    metadata_index_map_t<metadata_register_map_t, std::string> csr_index_map(factory.lookup_metadata_map("ISA.RISCV.CSR"), metadata_values);
+    for(const auto& metadata : csr_index_map.metadata){
+      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&metadata](const metadata_t* v){ return *v == *metadata; });
+      if (it == metadata_values.end())
+          metadata_values.push_back(metadata);
+    }
 
     // Separate the default entries from those corresponding to actual registers/CSRs
     int register_default = -1;
