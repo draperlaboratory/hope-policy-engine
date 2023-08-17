@@ -32,8 +32,7 @@
 
 namespace policy_engine {
 
-tag_t meta_set_factory_t::get_tag(const std::string& dotted_path) {
-  const metadata_t* metadata = lookup_metadata(dotted_path);
+tag_t meta_set_factory_t::get_tag(const metadata_t* const metadata) {
   if (metadata) {
     meta_set_t ms;
     memset(&ms, 0, sizeof(ms));
