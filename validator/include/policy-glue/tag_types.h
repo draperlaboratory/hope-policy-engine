@@ -36,7 +36,7 @@
     values clear.  The uses should be quite rare.
   */
 typedef uintptr_t tagged_value_t;
-typedef intptr_t tag_t;
+typedef uintptr_t tag_t;
 #define BAD_TAG_VALUE ((tag_t)-1)
 
 
