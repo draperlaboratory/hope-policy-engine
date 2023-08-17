@@ -31,17 +31,17 @@
 #include <list>
 #include <string>
 #include "elf_loader.h"
-#include "metadata_factory.h"
 #include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
+#include "meta_set_factory.h"
 #include "range.h"
 #include "reporter.h"
 
 namespace policy_engine {
 
 void write_tag_file(
-  metadata_factory_t& factory,
+  meta_set_factory_t& factory,
   const metadata_memory_map_t& metadata_memory_map,
   const elf_image_t& elf_image,
   const std::string& soc_filename,

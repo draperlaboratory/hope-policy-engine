@@ -32,10 +32,10 @@
 #include <utility>
 #include "elf_loader.h"
 #include "metadata.h"
-#include "metadata_factory.h"
 #include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
+#include "meta_set_factory.h"
 #include "platform_types.h"
 #include "policy_meta_set.h"
 #include "register_name_map.h"
@@ -146,7 +146,7 @@ bool save_tag_indexes(
   return true;
 }
 
-void exclude_unused_soc(const YAML::Node& soc, std::list<std::string>& exclude, metadata_factory_t& factory) {
+void exclude_unused_soc(const YAML::Node& soc, std::list<std::string>& exclude, meta_set_factory_t& factory) {
   std::map<std::string, const metadata_t*> soc_map = factory.lookup_metadata_map("SOC");
 
   for (const auto& node : soc) {
@@ -234,7 +234,7 @@ void get_address_ranges(const elf_image_t& elf_image, std::list<range_t>& code_r
 }
 
 void write_tag_file(
-  metadata_factory_t& factory,
+  meta_set_factory_t& factory,
   const metadata_memory_map_t& metadata_memory_map,
   const elf_image_t& elf_image,
   const std::string& soc_filename,

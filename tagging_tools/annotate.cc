@@ -31,7 +31,7 @@
 #include <string>
 #include "metadata.h"
 #include "metadata_memory_map.h"
-#include "metadata_factory.h"
+#include "meta_set_factory.h"
 #include "reporter.h"
 #include "tag_file.h"
 
@@ -52,7 +52,7 @@ std::string pad(const std::string& str, int width) {
   return res;
 }
 
-void annotate_asm(metadata_factory_t& md_factory, metadata_memory_map_t& md_map, const std::string& asm_file, const std::string& output_file) {
+void annotate_asm(meta_set_factory_t& md_factory, metadata_memory_map_t& md_map, const std::string& asm_file, const std::string& output_file) {
   std::ifstream asm_in(asm_file);
   if (!asm_in)
     throw std::ios::failure("couldn't open input file " + asm_file);

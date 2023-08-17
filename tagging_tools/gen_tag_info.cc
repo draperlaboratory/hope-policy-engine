@@ -14,7 +14,8 @@
 #include "elf_loader.h"
 #include "embed.h"
 #include "llvm_metadata_tagger.h"
-#include "metadata_factory.h"
+#include "meta_cache.h"
+#include "meta_set_factory.h"
 #include "metadata_memory_map.h"
 #include "range_map.h"
 #include "reporter.h"
@@ -90,8 +91,9 @@ int main(int argc, char* argv[]) {
       err.error("Couldn't add .tag_array to binary\n");
   }
 
+  policy_engine::meta_set_cache_t md_cache;
   policy_engine::metadata_memory_map_t md_memory_map;
-  policy_engine::metadata_factory_t md_factory(FLAGS_policy_dir);
+  policy_engine::meta_set_factory_t md_factory(&md_cache, FLAGS_policy_dir);
 
   md_factory.apply_tags(md_memory_map, range_map);
   
