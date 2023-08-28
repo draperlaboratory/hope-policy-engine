@@ -74,7 +74,7 @@ void e_v_set_callbacks(RegisterReader_t reg_reader, MemoryReader_t mem_reader, A
       std::printf("setting callbacks\n");
       uint32_t xlen = 32; // default value in case load_tags fails
       policy_engine::metadata_memory_map_t map;
-      bool loaded = policy_engine::load_tags(map, tags_file, xlen);
+      bool loaded = policy_engine::load_metadata(map, tags_file, xlen);
       rv_validator = std::make_unique<policy_engine::rv_validator_t>(xlen, policy_dir, soc_cfg_path, reg_reader, addr_fixer);
 
       if (!loaded) {
