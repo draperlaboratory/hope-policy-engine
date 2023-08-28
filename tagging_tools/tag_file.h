@@ -51,8 +51,8 @@ void write_tag_file(
   reporter_t& err
 );
 
-bool save_tags(const metadata_memory_map_t& map, uint32_t xlen, const std::string& filename);
-bool load_tags(metadata_memory_map_t& map, const std::string& file_name, uint32_t& xlen);
+bool save_metadata(const metadata_memory_map_t& map, uint32_t xlen, const std::string& filename);
+bool load_metadata(metadata_memory_map_t& map, const std::string& file_name, uint32_t& xlen);
 
 template<class OStream>
 void dump_tags(const metadata_memory_map_t& map, metadata_factory_t& factory, OStream&& out) {
