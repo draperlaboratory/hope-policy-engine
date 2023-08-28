@@ -32,7 +32,7 @@
 #include <utility>
 #include "elf_loader.h"
 #include "metadata.h"
-#include "metadata_index_map.h"
+#include "metadata_tag_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
 #include "metadata_tag_map.h"
@@ -379,12 +379,12 @@ bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,
   std::vector<metadata_t>& metadata_values,
-  metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
-  metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
-  metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
+  metadata_tag_map_t<metadata_memory_map_t, range_t>& metadata_tag_map,
+  metadata_tag_map_t<metadata_register_map_t, std::string>& register_tag_map,
+  metadata_tag_map_t<metadata_register_map_t, std::string>& csr_tag_map,
   const std::string& file_name,
   reporter_t& err,
-  int32_t& register_default, int32_t& csr_default, int32_t& env_default
+  tag_t& register_default, tag_t& csr_default, tag_t& env_default
 ) {
   uint8_t is_64_bit;
   uint32_t code_range_count;
@@ -445,61 +445,60 @@ bool load_firmware_tag_file(
 
   if (reader.read_uleb<uint32_t>(register_index_count) <= 0)
     return false;
-  if (reader.read_uleb<int32_t>(register_default) <= 0)
+  if (reader.read_uleb<tag_t>(register_default) <= 0)
     return false;
   for (std::size_t i = 0; i < register_index_count; i++) {
     std::string register_name;
     uint32_t register_value;
-    uint32_t register_meta;
+    tag_t register_meta;
 
     if (reader.read_uleb<uint32_t>(register_value) <= 0)
       return false;
-    if (reader.read_uleb<uint32_t>(register_meta) <= 0)
+    if (reader.read_uleb<tag_t>(register_meta) <= 0)
       return false;
 
     const auto it = std::find_if(register_name_map.begin(), register_name_map.end(), [&](const std::pair<std::string, uint32_t>& e){ return e.second == register_value; });
     if (it == register_name_map.end())
       return false;
 
-    std::pair<std::string, uint32_t> p(it->first, register_meta);
-    register_index_map.insert(std::make_pair(it->first, register_meta));
+    register_tag_map.insert(std::make_pair(it->first, register_meta));
   }
 
   if (reader.read_uleb<uint32_t>(csr_index_count) <= 0)
     return false;
-  if (reader.read_uleb<int32_t>(csr_default) <= 0)
+  if (reader.read_uleb<tag_t>(csr_default) <= 0)
     return false;
   for (std::size_t i = 0; i < csr_index_count; i++) {
     uint32_t csr_value;
-    uint32_t csr_meta;
+    tag_t csr_meta;
     if (reader.read_uleb<uint32_t>(csr_value) <= 0)
       return false;
-    if (reader.read_uleb<uint32_t>(csr_meta) <= 0)
+    if (reader.read_uleb<tag_t>(csr_meta) <= 0)
       return false;
 
     const auto it = std::find_if(csr_name_map.begin(), csr_name_map.end(), [&](const std::pair<std::string, uint32_t>& e){ return e.second == csr_value; });
     if (it == csr_name_map.end())
       return false;
 
-    csr_index_map.insert(std::make_pair(it->first, csr_meta));
+    csr_tag_map.insert(std::make_pair(it->first, csr_meta));
   }
 
-  if (reader.read_uleb<int32_t>(env_default) <= 0)
+  if (reader.read_uleb<tag_t>(env_default) <= 0)
     return false;
 
   if (reader.read_uleb<uint32_t>(memory_index_count) <= 0)
     return false;
   for (size_t i = 0; i < memory_index_count; i++) {
     range_t range;
-    uint32_t metadata_index;
+    tag_t metadata_tag;
 
     if (reader.read_uleb<uint64_t>(range.start) <= 0)
       return false;
     if (reader.read_uleb<uint64_t>(range.end) <= 0)
       return false;
-    if (reader.read_uleb<uint32_t>(metadata_index) <= 0)
+    if (reader.read_uleb<tag_t>(metadata_tag) <= 0)
       return false;
-    metadata_index_map.insert(std::make_pair(range, metadata_index));
+    metadata_tag_map.insert(std::make_pair(range, metadata_tag));
   }
 
   return true;

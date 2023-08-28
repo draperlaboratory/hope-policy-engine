@@ -31,12 +31,13 @@
 #include <list>
 #include <string>
 #include "elf_loader.h"
-#include "metadata_index_map.h"
 #include "metadata_memory_map.h"
 #include "metadata_register_map.h"
+#include "metadata_tag_map.h"
 #include "meta_set_factory.h"
 #include "range.h"
 #include "reporter.h"
+#include "tag_types.h"
 
 namespace policy_engine {
 
@@ -66,12 +67,12 @@ bool load_firmware_tag_file(
   std::list<range_t>& code_ranges,
   std::list<range_t>& data_ranges,
   std::vector<metadata_t>& metadata_values,
-  metadata_index_map_t<metadata_memory_map_t, range_t>& metadata_index_map,
-  metadata_index_map_t<metadata_register_map_t, std::string>& register_index_map,
-  metadata_index_map_t<metadata_register_map_t, std::string>& csr_index_map,
+  metadata_tag_map_t<metadata_memory_map_t, range_t>& metadata_tag_map,
+  metadata_tag_map_t<metadata_register_map_t, std::string>& register_tag_map,
+  metadata_tag_map_t<metadata_register_map_t, std::string>& csr_tag_map,
   const std::string& file_name,
   reporter_t& err,
-  int32_t& register_default, int32_t& csr_default, int32_t& env_default
+  tag_t& register_default, tag_t& csr_default, tag_t& env_default
 );
 
 } // namespace policy_engine

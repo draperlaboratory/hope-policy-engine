@@ -29,9 +29,10 @@
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
-#include "metadata_index_map.h"
 #include "metadata_register_map.h"
+#include "metadata_tag_map.h"
 #include "tag_file.h"
+#include "tag_types.h"
 #include "uleb.h"
 
 void usage() {
@@ -44,17 +45,17 @@ void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
   std::list<policy_engine::range_t> code_ranges;
   std::list<policy_engine::range_t> data_ranges;
   std::vector<policy_engine::metadata_t> metadata_values;
-  int32_t register_default;
-  int32_t csr_default;
-  int32_t env_default;
+  tag_t register_default;
+  tag_t csr_default;
+  tag_t env_default;
 
-  auto memory_index_map = policy_engine::metadata_index_map_t<policy_engine::metadata_memory_map_t, policy_engine::range_t>();
-  auto register_index_map = policy_engine::metadata_index_map_t<policy_engine::metadata_register_map_t, std::string>();
-  auto csr_index_map = policy_engine::metadata_index_map_t<policy_engine::metadata_register_map_t, std::string>();
+  policy_engine::metadata_tag_map_t<policy_engine::metadata_memory_map_t, policy_engine::range_t> memory_tag_map;
+  policy_engine::metadata_tag_map_t<policy_engine::metadata_register_map_t, std::string> register_tag_map;
+  policy_engine::metadata_tag_map_t<policy_engine::metadata_register_map_t, std::string> csr_tag_map;
 
   if (!load_firmware_tag_file(
     code_ranges, data_ranges, metadata_values,
-    memory_index_map, register_index_map, csr_index_map,
+    memory_tag_map, register_tag_map, csr_tag_map,
     tag_filename,
     err,
     register_default, csr_default, env_default
@@ -83,21 +84,21 @@ void dump_firmware_tags(const char* tag_filename, size_t num_entries) {
 
   std::printf("\nRegister tag entries:\n");
   std::printf("Default: %x\n", register_default);
-  for (const auto& [ reg, ind ] : register_index_map) {
+  for (const auto& [ reg, ind ] : register_tag_map) {
     std::printf("%s: %x\n", reg.c_str(), ind);
   }
 
   std::printf("\nCSR tag entries:\n");
   std::printf("Default: %x\n", csr_default);
-  for(const auto& [ reg, ind ] : csr_index_map) {
+  for(const auto& [ reg, ind ] : csr_tag_map) {
     std::printf("%s: %x\n", reg.c_str(), ind);
   }
 
   std::printf("\nEnv tag default: %x\n", env_default);
 
-  std::printf("\nMemory tag entries (showing %lu of %lu):\n", num_entries, memory_index_map.size());
+  std::printf("\nMemory tag entries (showing %lu of %lu):\n", num_entries, memory_tag_map.size());
   size_t entry_index = 0;
-  for (const auto& [ range, ind ] : memory_index_map) {
+  for (const auto& [ range, ind ] : memory_tag_map) {
     std::printf("{ 0x%" PRIaddr_pad " - 0x%" PRIaddr_pad " }: %x\n", range.start, range.end, ind);
 
     entry_index++;
