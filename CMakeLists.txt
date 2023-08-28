@@ -17,6 +17,7 @@ include_directories("./validator/include")
 include_directories("./tagging_tools")
 
 add_library(tagging_tools
+  policy/src/policy_meta_set.c
   tagging_tools/annotate.cc
   tagging_tools/elf_loader.cc
   tagging_tools/embed.cc
@@ -28,6 +29,8 @@ add_library(tagging_tools
   tagging_tools/tag_elf_file.cc
   tagging_tools/tag_file.cc
   validator/riscv/inst_decoder.cc
+  validator/riscv/meta_cache.cc
+  validator/riscv/meta_set_factory.cc
   )
 set_property(TARGET tagging_tools PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(tagging_tools PRIVATE
