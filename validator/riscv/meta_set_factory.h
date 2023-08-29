@@ -42,6 +42,7 @@ private:
 public:
   meta_set_factory_t(meta_set_cache_t* ms_cache, const std::string& policy_dir) : metadata_factory_t(policy_dir), ms_cache(ms_cache) {}
   bool has_meta_set(const std::string& dotted_path) { return lookup_metadata(dotted_path) != nullptr; }
+
   tag_t get_tag(const metadata_t* const metadata);
   tag_t get_tag(const std::string& dotted_path) { return get_tag(lookup_metadata(dotted_path)); }
   tag_t get_group_tag(const std::string& opgroup) { return BAD_TAG_VALUE; }

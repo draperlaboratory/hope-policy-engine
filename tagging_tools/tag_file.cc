@@ -266,32 +266,28 @@ void write_tag_file(
     if (!write_headers(writer, code_ranges, data_ranges_granularity, elf_image.word_bytes() == 8))
       throw std::ios::failure("failed to write headers to tag file");
 
-    // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
     std::vector<const metadata_t*> metadata_values;
+    // Transform (memory/register -> metadata) maps into a metadata list and (memory/register -> index) maps
     metadata_tag_map_t<metadata_memory_map_t, range_t> memory_tag_map(metadata_memory_map, factory);
-    metadata_values.insert(metadata_values.end(), memory_tag_map.metadata.begin(), memory_tag_map.metadata.end());
+    for (const auto& [ key, md ] : metadata_memory_map)
+      if (const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&md](const metadata_t* v){ return *v == *md; }); it == metadata_values.end())
+        metadata_values.push_back(md);
 
     // Add any metadata from initial register/SOC/CSR assignments that's not already in metadata_values
     metadata_tag_map_t<metadata_register_map_t, std::string> register_tag_map(factory.lookup_metadata_map("ISA.RISCV.Reg"), factory, metadata_values);
-    for (const auto& metadata : register_tag_map.metadata){
-      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&metadata](const metadata_t* v){ return *v == *metadata; });
-      if (it == metadata_values.end())
-          metadata_values.push_back(metadata);
-    }
+    for (const auto& [ key, md ] : factory.lookup_metadata_map("ISA.RISCV.Reg"))
+      if (const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&md](const metadata_t* v){ return *v == *md; }); it == metadata_values.end())
+        metadata_values.push_back(md);
 
     metadata_tag_map_t<metadata_register_map_t, std::string> soc_tag_map(factory.lookup_metadata_map("SOC"), factory, metadata_values);
-    for (const auto& metadata : soc_tag_map.metadata){
-      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&metadata](const metadata_t* v){ return *v == *metadata; });
-      if (it == metadata_values.end())
-          metadata_values.push_back(metadata);
-    }
+    for (const auto& [ key, md ] : factory.lookup_metadata_map("SOC"))
+      if (const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&md](const metadata_t* v){ return *v == *md; }); it == metadata_values.end())
+        metadata_values.push_back(md);
 
     metadata_tag_map_t<metadata_register_map_t, std::string> csr_tag_map(factory.lookup_metadata_map("ISA.RISCV.CSR"), factory, metadata_values);
-    for (const auto& metadata : csr_tag_map.metadata){
-      const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&metadata](const metadata_t* v){ return *v == *metadata; });
-      if (it == metadata_values.end())
-          metadata_values.push_back(metadata);
-    }
+    for (const auto& [ key, md ] : factory.lookup_metadata_map("ISA.RISCV.CSR"))
+      if (const auto it = std::find_if(metadata_values.begin(), metadata_values.end(), [&md](const metadata_t* v){ return *v == *md; }); it == metadata_values.end())
+        metadata_values.push_back(md);
 
     // Separate the default entries from those corresponding to actual registers/CSRs
     tag_t register_default = -1;

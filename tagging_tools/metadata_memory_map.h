@@ -185,6 +185,7 @@ public:
 
   void add_range(uint64_t start, uint64_t end, const metadata_t& metadata);
   const metadata_t* get_metadata(uint64_t addr) const;
+  size_t size() const;
 };
 
 } // namespace policy_engine

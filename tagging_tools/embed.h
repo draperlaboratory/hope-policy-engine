@@ -8,7 +8,7 @@
 
 namespace policy_engine {
 
-void embed_tags(metadata_memory_map_t& metadata_memory_map, elf_image_t& img, const std::string& elf_filename, reporter_t& err);
+void embed_tags(const metadata_memory_map_t& metadata_memory_map, const elf_image_t& img, const std::string& elf_filename, reporter_t& err);
     
 }
 

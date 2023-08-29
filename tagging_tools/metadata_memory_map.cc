@@ -82,4 +82,11 @@ const metadata_t* metadata_memory_map_t::get_metadata(uint64_t addr) const {
   return nullptr;
 }
 
+size_t metadata_memory_map_t::size() const {
+  size_t s = 0;
+  for (const auto& mr : mrs)
+    s += mr.size();
+  return s;
+}
+
 }
