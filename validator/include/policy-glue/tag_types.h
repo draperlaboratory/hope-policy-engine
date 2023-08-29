@@ -37,7 +37,7 @@
   */
 typedef uintptr_t tagged_value_t;
 typedef uintptr_t tag_t;
-#define BAD_TAG_VALUE ((tag_t)-1)
-
+static const tag_t BAD_TAG_VALUE = 0;
+static const tag_t MASKED_TAG_VALUE = -1;
 
 #endif
