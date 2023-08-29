@@ -28,6 +28,7 @@ add_library(tagging_tools
   tagging_tools/symbol_table.cc
   tagging_tools/tag_elf_file.cc
   tagging_tools/tag_file.cc
+  validator/riscv/indexed_meta_cache.cc
   validator/riscv/inst_decoder.cc
   validator/riscv/meta_cache.cc
   validator/riscv/meta_set_factory.cc
@@ -54,6 +55,7 @@ target_include_directories(validator PRIVATE
 
 add_library(rv_validator
   validator/riscv/debug.cc
+  validator/riscv/indexed_meta_cache.cc
   validator/riscv/inst_decoder.cc
   validator/riscv/meta_cache.cc
   validator/riscv/rv_validator.cc

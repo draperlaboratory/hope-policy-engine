@@ -38,16 +38,11 @@ bool operator ==(const meta_set_t& lhs, const meta_set_t& rhs);
 bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs);
 
 class meta_set_cache_t {
-private:
-  std::vector<meta_set_t> meta_sets;
-
 public:
-  meta_set_cache_t() { meta_sets.reserve(1024); }
-
-  tag_t canonize(const meta_set_t& ts);
+  virtual tag_t canonize(const meta_set_t& ts) = 0;
   tag_t canonize(const metadata_t& md);
 
-  const meta_set_t& operator [](tag_t tag) const { return meta_sets.at(tag); }
+  virtual const meta_set_t& operator [](tag_t tag) const = 0;
 };
 
 } // namespace policy_engine

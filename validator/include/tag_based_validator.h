@@ -28,7 +28,7 @@
 #define TAG_BASED_VALIDATOR_H
 
 #include <string>
-#include "meta_cache.h"
+#include "indexed_meta_cache.h"
 #include "meta_set_factory.h"
 #include "policy_meta_set.h"
 #include "sim_validator.h"
@@ -38,7 +38,7 @@ namespace policy_engine {
 
 class tag_based_validator_t : public abstract_validator_t {
 public:
-  meta_set_cache_t ms_cache;
+  indexed_meta_set_cache_t ms_cache;
   meta_set_factory_t ms_factory;
 
   tag_based_validator_t(const std::string& policy_dir) : ms_factory(meta_set_factory_t(&ms_cache, policy_dir)) {}

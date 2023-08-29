@@ -13,8 +13,8 @@
 #include "annotate.h"
 #include "elf_loader.h"
 #include "embed.h"
+#include "indexed_meta_cache.h"
 #include "llvm_metadata_tagger.h"
-#include "meta_cache.h"
 #include "meta_set_factory.h"
 #include "metadata_memory_map.h"
 #include "range_map.h"
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
       err.error("Couldn't add .tag_array to binary\n");
   }
 
-  policy_engine::meta_set_cache_t md_cache;
+  policy_engine::indexed_meta_set_cache_t md_cache;
   policy_engine::metadata_memory_map_t md_memory_map;
   policy_engine::meta_set_factory_t md_factory(&md_cache, FLAGS_policy_dir);
 
