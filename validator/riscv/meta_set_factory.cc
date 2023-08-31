@@ -34,12 +34,7 @@ namespace policy_engine {
 
 tag_t meta_set_factory_t::get_tag(const metadata_t* const metadata) {
   if (metadata) {
-    meta_set_t ms;
-    memset(&ms, 0, sizeof(ms));
-    for (const meta_t& m: *metadata) {
-      ms_bit_add(&ms, m);
-    }
-    return ms_cache->canonize(ms);
+    return ms_cache->canonize(*metadata);
   } else {
     return BAD_TAG_VALUE;
   }
