@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -59,9 +58,8 @@ void range_map_t::add_rwx_ranges(const elf_image_t& ef, reporter_t& err) {
 
 void range_map_t::add_soc_ranges(const std::string& soc_file, const YAML::Node& policy_inits, reporter_t& err) {
   YAML::Node soc_cfg = YAML::LoadFile(soc_file);
-  std::map<std::string, range_t, std::function<bool(const std::string&, const std::string&)>> soc_ranges([](const std::string& lhs, const std::string& rhs) {
-    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), [](char l, char r) { return std::toupper(l) < std::toupper(r); });
-  });
+
+  std::map<std::string, range_t> soc_ranges;
   for (const auto& elem : soc_cfg["SOC"]) {
     // SOC CFG file specifies ranges inclusively, but they should be exclusive
     range_t inclusive = elem.second.as<range_t>();

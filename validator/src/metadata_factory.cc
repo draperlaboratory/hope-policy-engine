@@ -215,10 +215,7 @@ YAML::Node metadata_factory_t::load_yaml(const std::string& yml_file) {
   }
 }
 
-metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_dir(policy_dir),
-                                                                        entity_initializers([](const std::string& lhs, const std::string& rhs) {
-  return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), [](char l, char r) { return std::toupper(l) < std::toupper(r); });
-}) {
+metadata_factory_t::metadata_factory_t(const std::string& policy_dir) : policy_dir(policy_dir) {
   // load up all the requirements for initialization
   YAML::Node reqsAST = load_yaml("policy_init.yml");
   // load up the individual tag encodings
