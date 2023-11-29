@@ -18,11 +18,11 @@ bool operator !=(const meta_set_t& lhs, const meta_set_t& rhs) { return !(lhs ==
 tag_t meta_set_cache_t::canonize(const meta_set_t& ts) {
   for (int i = 0; i < meta_sets.size(); i++)
     if (meta_sets[i] == ts)
-      return i;
+      return i + 1;
   if (meta_sets.size() == meta_sets.capacity())
     std::cout << "reallocating meta set vector to increase capacity may invalidate tags that are pointers" << std::endl;
   meta_sets.push_back(ts);
-  return meta_sets.size() - 1;
+  return meta_sets.size();
 }
 
 tag_t meta_set_cache_t::canonize(const metadata_t& md) {

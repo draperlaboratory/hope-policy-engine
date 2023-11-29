@@ -323,7 +323,7 @@ void write_tag_file(
   }
 }
 
-bool save_tags(const metadata_memory_map_t& map, uint32_t xlen, const std::string& filename) {
+bool save_metadata(const metadata_memory_map_t& map, uint32_t xlen, const std::string& filename) {
   if (auto writer = uleb_writer_t(filename)) {
     if (!writer.write_uleb<uint32_t>(xlen))
       return false;
@@ -343,7 +343,7 @@ bool save_tags(const metadata_memory_map_t& map, uint32_t xlen, const std::strin
   return true;
 }
 
-bool load_tags(metadata_memory_map_t& map, const std::string& file_name, uint32_t& xlen) {
+bool load_metadata(metadata_memory_map_t& map, const std::string& file_name, uint32_t& xlen) {
   uleb_reader_t reader(file_name);
   if (!reader)
     return false;
