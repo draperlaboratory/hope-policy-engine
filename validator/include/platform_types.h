@@ -37,7 +37,7 @@ typedef uint64_t address_t; // big enough to fit addresses for both RV32 and RV6
 typedef uint32_t insn_bits_t;
 typedef uint64_t reg_t; // big enogh to fit data for both RV32 and RV64
 
-#define PRIaddr PRIu64
+#define PRIaddr PRIx64
 #define PRIaddr_pad "016lx"
 #define PRIreg PRIu64
 
