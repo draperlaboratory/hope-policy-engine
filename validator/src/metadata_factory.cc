@@ -238,7 +238,7 @@ bool metadata_factory_t::apply_tag(metadata_memory_map_t& map, uint64_t start, u
 
 void metadata_factory_t::tag_opcodes(metadata_memory_map_t& map, uint64_t base_address, int xlen, const void* bytes, int n, reporter_t& err) {
   for (int pc = 0, npc = 0; pc < n; pc = npc) {
-    insn_bits_t bits = *reinterpret_cast<const insn_bits_t*>(bytes + pc);
+    insn_bits_t bits = *reinterpret_cast<const insn_bits_t*>((uintptr_t) bytes + pc);
     decoded_instruction_t inst = decode(bits, xlen);
     if (!inst) {
       err.warning("Failed to decode instruction 0x%08x at address %#x\n", bits, base_address + pc);

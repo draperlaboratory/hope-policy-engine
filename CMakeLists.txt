@@ -10,7 +10,7 @@ find_package( Boost REQUIRED COMPONENTS program_options )
 include_directories( ${Boost_INCLUDE_DIRS} )
 
 # debug flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -O0")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -O0 -fanalyzer")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -O0")
 
 include_directories("./validator/include")
