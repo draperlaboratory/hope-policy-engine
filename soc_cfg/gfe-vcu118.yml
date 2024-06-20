@@ -1,4 +1,10 @@
 SOC:
+  MAILBOX: {
+    name: SOC.IO.MAILBOX,
+    start: 0x10000,
+    end: 0x100ff,
+    heterogeneous: false
+    }
   TEST: {
     name: SOC.IO.TEST,
     start: 0x50000000,
